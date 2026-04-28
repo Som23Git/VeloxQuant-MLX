@@ -54,9 +54,12 @@ class PreconditionerFactory:
             cls = PreconditionerRegistry.get("jl")
             return cls(kwargs["S"])
         elif kind == "hadamard":
-            raise QuantizerConfigError(
-                "PreconditionerFactory: 'hadamard' preconditioner is not yet implemented."
-            )
+            if "D" not in kwargs:
+                raise QuantizerConfigError(
+                    "PreconditionerFactory: 'hadamard' requires 'D' kwarg (±1 diagonal vector)."
+                )
+            cls = PreconditionerRegistry.get("hadamard")
+            return cls(kwargs["D"])
         else:
             raise QuantizerConfigError(
                 f"PreconditionerFactory: unknown kind '{kind}'. "

@@ -10,8 +10,8 @@ from mlx_kv_quant.core.abstractions import ArtifactStore, Quantizer
 from mlx_kv_quant.core.constants import DEFAULT_POLAR_LEVELS
 from mlx_kv_quant.core.context import EncodedVector, TransformResult
 from mlx_kv_quant.core.registry import QuantizerRegistry
-from mlx_kv_quant.math.rotation import make_rotation_matrix
-from mlx_kv_quant.preconditioners.rotation import RotationPreconditioner
+from mlx_kv_quant.math.rotation import make_hadamard_diagonal, make_rotation_matrix
+from mlx_kv_quant.preconditioners.rotation import HadamardPreconditioner, RotationPreconditioner
 from mlx_kv_quant.transforms.polar import RecursivePolarTransform
 
 
@@ -37,6 +37,7 @@ class PolarQuantizer(Quantizer):
         seed: Random seed.
         m: Unused (for API consistency).
         store: Optional ArtifactStore.
+        use_hadamard: If True, use randomized Hadamard instead of QR rotation.
     """
 
     def __init__(
@@ -47,6 +48,7 @@ class PolarQuantizer(Quantizer):
         seed: int = 42,
         n_levels: int = DEFAULT_POLAR_LEVELS,
         store: Optional[ArtifactStore] = None,
+        use_hadamard: bool = False,
         **kwargs: Any,
     ) -> None:
         self._d = d
@@ -56,16 +58,19 @@ class PolarQuantizer(Quantizer):
 
         import mlx.core as mx
 
-        # Rotation matrix
-        if store is not None and store.exists("rotation", d=d, seed=seed):
-            Pi = store.load_rotation_matrix(d, seed)
+        if use_hadamard:
+            D_np = make_hadamard_diagonal(d, seed=seed)
+            D = mx.array(D_np)
+            self._rotation = HadamardPreconditioner(D)
         else:
-            Pi_np = make_rotation_matrix(d, seed=seed)
-            Pi = mx.array(Pi_np.astype(np.float16))
-            if store is not None:
-                store.save_rotation_matrix(Pi_np, d=d, seed=seed)
-
-        self._rotation = RotationPreconditioner(Pi)
+            if store is not None and store.exists("rotation", d=d, seed=seed):
+                Pi = store.load_rotation_matrix(d, seed)
+            else:
+                Pi_np = make_rotation_matrix(d, seed=seed)
+                Pi = mx.array(Pi_np.astype(np.float16))
+                if store is not None:
+                    store.save_rotation_matrix(Pi_np, d=d, seed=seed)
+            self._rotation = RotationPreconditioner(Pi)
         self._transform = RecursivePolarTransform(n_levels=n_levels)
 
         # Per-level codebooks

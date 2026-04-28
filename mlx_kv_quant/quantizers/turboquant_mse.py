@@ -8,8 +8,8 @@ from mlx_kv_quant.codebooks.base import CodebookFactory
 from mlx_kv_quant.core.abstractions import ArtifactStore, Quantizer
 from mlx_kv_quant.core.context import EncodedVector, QuantizationContext
 from mlx_kv_quant.core.registry import QuantizerRegistry
-from mlx_kv_quant.math.rotation import make_rotation_matrix
-from mlx_kv_quant.preconditioners.rotation import RotationPreconditioner
+from mlx_kv_quant.math.rotation import make_hadamard_diagonal, make_rotation_matrix
+from mlx_kv_quant.preconditioners.rotation import HadamardPreconditioner, RotationPreconditioner
 
 
 @QuantizerRegistry.register("turboquant_mse")
@@ -19,9 +19,9 @@ class TurboQuantMSE(Quantizer):
     Applies a random rotation then per-coordinate Lloyd-Max quantisation.
 
     Pipeline (encode):
-        y = x @ Π^T          (rotation)
+        y = rotate(x)        (QR rotation or randomized Hadamard)
         idx = argmin_k |y_j - c_k|  (scalar codebook per coordinate)
-        x̂ = codebook[idx] @ Π       (dequantise + unrotate)
+        x̂ = unrotate(codebook[idx])
 
     MSE bound: D_mse ≤ √(3π)/2 · 4^(-b)
 
@@ -34,6 +34,9 @@ class TurboQuantMSE(Quantizer):
         m: Unused (for API consistency with factory).
         store: Optional ArtifactStore.
         use_beta: If True, use Beta distribution codebook; else Gaussian.
+        use_hadamard: If True, use randomized Hadamard (O(d log d), Metal-accelerated)
+            instead of QR rotation (O(d²), CPU matmul). Requires d = m*2^k
+            where m in {1, 12, 20, 28} — all powers of 2 satisfy this.
     """
 
     def __init__(
@@ -44,6 +47,7 @@ class TurboQuantMSE(Quantizer):
         m: int = 128,
         store: Optional[ArtifactStore] = None,
         use_beta: bool = False,
+        use_hadamard: bool = False,
         **kwargs: Any,
     ) -> None:
         self._d = d
@@ -52,16 +56,20 @@ class TurboQuantMSE(Quantizer):
 
         import mlx.core as mx
 
-        # Rotation matrix
-        if store is not None and store.exists("rotation", d=d, seed=seed):
-            Pi = store.load_rotation_matrix(d, seed)
+        if use_hadamard:
+            D_np = make_hadamard_diagonal(d, seed=seed)
+            D = mx.array(D_np)
+            self._rotation = HadamardPreconditioner(D)
         else:
-            Pi_np = make_rotation_matrix(d, seed=seed)
-            Pi = mx.array(Pi_np.astype(np.float16))
-            if store is not None:
-                store.save_rotation_matrix(Pi_np, d=d, seed=seed)
-
-        self._rotation = RotationPreconditioner(Pi)
+            # QR rotation matrix
+            if store is not None and store.exists("rotation", d=d, seed=seed):
+                Pi = store.load_rotation_matrix(d, seed)
+            else:
+                Pi_np = make_rotation_matrix(d, seed=seed)
+                Pi = mx.array(Pi_np.astype(np.float16))
+                if store is not None:
+                    store.save_rotation_matrix(Pi_np, d=d, seed=seed)
+            self._rotation = RotationPreconditioner(Pi)
 
         # Codebook
         distribution = "beta" if (use_beta or d < 64) else "gaussian"

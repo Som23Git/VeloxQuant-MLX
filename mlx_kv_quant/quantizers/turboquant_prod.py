@@ -9,9 +9,9 @@ from mlx_kv_quant.core.abstractions import ArtifactStore, Quantizer
 from mlx_kv_quant.core.constants import SQRT_PI_OVER_2
 from mlx_kv_quant.core.context import EncodedVector
 from mlx_kv_quant.core.registry import QuantizerRegistry
-from mlx_kv_quant.math.rotation import make_jl_matrix, make_rotation_matrix
+from mlx_kv_quant.math.rotation import make_hadamard_diagonal, make_jl_matrix, make_rotation_matrix
 from mlx_kv_quant.preconditioners.jl_sketch import QJLEncoder
-from mlx_kv_quant.preconditioners.rotation import RotationPreconditioner
+from mlx_kv_quant.preconditioners.rotation import HadamardPreconditioner, RotationPreconditioner
 
 
 @QuantizerRegistry.register("turboquant_prod")
@@ -35,6 +35,8 @@ class TurboQuantProd(Quantizer):
         m: JL projection dimension.
         seed: Random seed.
         store: Optional ArtifactStore.
+        use_hadamard: If True, use randomized Hadamard (O(d log d), Metal-accelerated)
+            instead of QR rotation (O(d²), CPU matmul).
     """
 
     def __init__(
@@ -44,6 +46,7 @@ class TurboQuantProd(Quantizer):
         m: int = 128,
         seed: int = 42,
         store: Optional[ArtifactStore] = None,
+        use_hadamard: bool = False,
         **kwargs: Any,
     ) -> None:
         self._d = d
@@ -55,16 +58,19 @@ class TurboQuantProd(Quantizer):
 
         import mlx.core as mx
 
-        # Rotation matrix
-        if store is not None and store.exists("rotation", d=d, seed=seed):
-            Pi = store.load_rotation_matrix(d, seed)
+        if use_hadamard:
+            D_np = make_hadamard_diagonal(d, seed=seed)
+            D = mx.array(D_np)
+            self._rotation = HadamardPreconditioner(D)
         else:
-            Pi_np = make_rotation_matrix(d, seed=seed)
-            Pi = mx.array(Pi_np.astype(np.float16))
-            if store is not None:
-                store.save_rotation_matrix(Pi_np, d=d, seed=seed)
-
-        self._rotation = RotationPreconditioner(Pi)
+            if store is not None and store.exists("rotation", d=d, seed=seed):
+                Pi = store.load_rotation_matrix(d, seed)
+            else:
+                Pi_np = make_rotation_matrix(d, seed=seed)
+                Pi = mx.array(Pi_np.astype(np.float16))
+                if store is not None:
+                    store.save_rotation_matrix(Pi_np, d=d, seed=seed)
+            self._rotation = RotationPreconditioner(Pi)
 
         # MSE codebook at (b-1) bits
         distribution = "gaussian" if d >= 64 else "beta"
