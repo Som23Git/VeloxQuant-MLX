@@ -4,6 +4,25 @@ import math
 
 import numpy as np
 
+# mx.hadamard_transform requires d = m * 2^k where m is in this set
+_HADAMARD_VALID_M = {1, 12, 20, 28}
+
+
+def is_hadamard_compatible(d: int) -> bool:
+    """Return True if d is supported by mx.hadamard_transform.
+
+    MLX requires d = m * 2^k where m in {1, 12, 20, 28} and k >= 0.
+    All powers of 2 work (m=1). Examples that do NOT work: 576=9*64, 192=3*64.
+    """
+    if d < 1:
+        return False
+    for m in _HADAMARD_VALID_M:
+        if d % m == 0:
+            remainder = d // m
+            if remainder & (remainder - 1) == 0:  # power of 2
+                return True
+    return False
+
 
 def make_hadamard_diagonal(d: int, seed: int = 42) -> np.ndarray:
     """Generate a random ±1 diagonal vector for randomized Hadamard transform.

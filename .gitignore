@@ -15,6 +15,15 @@ build/
 *.db
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
-*.egg-info/
+*.egg
+
+# Precomputed artifacts
+artifacts/
+*.npy
+
+
+# Old turboquant-mlx directory
+turboquant-mlx/

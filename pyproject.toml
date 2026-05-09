@@ -3,19 +3,29 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mlx-kv-quant"
-version = "0.1.0"
-description = "TurboQuant, PolarQuant, and QJL KV cache quantization for Apple Silicon MLX"
+name = "VeloxQuant-MLX"
+version = "0.2.0"
+description = "Fast KV cache quantization for Apple Silicon — TurboQuant, PolarQuant, and QJL in MLX"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
-keywords = ["quantization", "kv-cache", "llm", "mlx", "apple-silicon"]
+license = { file = "LICENSE" }
+authors = [
+    { name = "Rajveer Rathod", email = "rathodrajveer1311@gmail.com" },
+]
+keywords = [
+    "quantization", "kv-cache", "llm", "mlx", "apple-silicon",
+    "turboquant", "polarquant", "qjl", "inference", "compression",
+]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Hardware",
 ]
 dependencies = [
     "mlx>=0.18",
@@ -27,11 +37,19 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-xdist",
-    "scipy>=1.11",  # used only in offline precompute (not at inference runtime)
+    "scipy>=1.11",
     "psutil>=5.9",
+    "build>=1.2",
+    "twine>=5.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/rajveer43/VeloxQuant-MLX"
+Repository = "https://github.com/rajveer43/VeloxQuant-MLX"
+"Bug Tracker" = "https://github.com/rajveer43/VeloxQuant-MLX/issues"
+
 [project.scripts]
+veloxquant = "mlx_kv_quant.__main__:main"
 mlx-kv-quant = "mlx_kv_quant.__main__:main"
 
 [tool.setuptools.packages.find]

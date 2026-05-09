@@ -9,7 +9,7 @@ from mlx_kv_quant.core.abstractions import ArtifactStore, Quantizer
 from mlx_kv_quant.core.constants import SQRT_PI_OVER_2
 from mlx_kv_quant.core.context import EncodedVector
 from mlx_kv_quant.core.registry import QuantizerRegistry
-from mlx_kv_quant.math.rotation import make_hadamard_diagonal, make_jl_matrix, make_rotation_matrix
+from mlx_kv_quant.math.rotation import is_hadamard_compatible, make_hadamard_diagonal, make_jl_matrix, make_rotation_matrix
 from mlx_kv_quant.preconditioners.jl_sketch import QJLEncoder
 from mlx_kv_quant.preconditioners.rotation import HadamardPreconditioner, RotationPreconditioner
 
@@ -58,7 +58,7 @@ class TurboQuantProd(Quantizer):
 
         import mlx.core as mx
 
-        if use_hadamard:
+        if use_hadamard and is_hadamard_compatible(d):
             D_np = make_hadamard_diagonal(d, seed=seed)
             D = mx.array(D_np)
             self._rotation = HadamardPreconditioner(D)

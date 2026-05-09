@@ -6,7 +6,7 @@ import sys
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Usage: python -m mlx_kv_quant {precompute|benchmark}")
+        print("Usage: veloxquant {precompute|benchmark}")
         sys.exit(1)
 
     command = sys.argv[1]

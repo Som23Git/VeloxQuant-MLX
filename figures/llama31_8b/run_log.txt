@@ -1,0 +1,57 @@
+
+================================================================
+Loading mlx-community/Llama-3.1-8B-Instruct-4bit...
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 146312.93it/s]
+  Llama 3.1 8B Instruct (4-bit): 32 layers, head_dim=128, kv_heads=8
+
+
+================================================================
+[fp16 baseline]  key compression: —
+  The theory of relativity, developed by Albert Einstein, is a fundamental concept in modern physics that explains how space and time are connected. I'll break it down into simple terms, covering both special and general relativity with examples.
+
+**Special Relativity (1905)**
+
+Special relativity deals with the behavior of objects when they move at high speeds, close to the speed of light. The key concept is that the laws of physics are the same for all observers, regardless of...
+  201 tokens  9.3s  (21.5 tok/s)
+
+================================================================
+[TurboQuant 2-bit]  key compression: 9.14×
+  Today, today, 202, today, today, today, today, relativity,  today, today, today, today, today, today, rel, today, today, today, today today today today today, today today today, today, today, today, today, today, today, today,, today, today, today,,,today, today,,,,,, today,,,today,today,,,today,,today,,today,today,today,today, today, today, today, today,, today, today, today, today,today, today, today, today, today, today,today,today,today,today,today,today,today,today,today...
+  187 tokens  11.5s  (16.3 tok/s)
+
+================================================================
+[TurboQuant 3-bit]  key compression: 5.82×
+  I'd be happy to explain the theory of relativity in simple terms.
+
+The theory of relativity, also known as the theory of relativity, was developed by Albert Einstein in 1905. This theory, which is also known as the theory of relativity, is a fundamental concept in physics.
+  62 tokens  4.5s  (13.9 tok/s)
+
+================================================================
+[TurboQuant 4-bit]  key compression: 4.27×
+  The theory of relativity, developed by Albert Einstein, is a fundamental concept in modern physics. I'll break it down into simple terms, covering both special and general relativity, with examples to help illustrate the concepts.
+
+**Special Relativity (1905)**
+
+Special relativity deals with the nature of space and time. It's based on two main principles:
+
+1. **The laws of physics are the same for all observers in uniform motion**. This means that the laws of physics, like gr...
+  201 tokens  13.5s  (14.8 tok/s)
+
+================================================================
+SUMMARY — Llama 3.1 8B Instruct (4-bit)
+  Tokens cached : 256
+  2-bit         : 9.14× compression  |  16.3 tok/s
+  3-bit         : 5.82× compression  |  13.9 tok/s
+  4-bit         : 4.27× compression  |  14.8 tok/s
+  fp16 baseline :                    |  21.5 tok/s
+
+Computing quality curves...
+Generating figures → figures/llama31_8b/
+  Saved fig1_benchmark_summary.png
+  Saved fig2_quality_vs_bits.png
+  Saved fig3_memory_at_scale.png
+  Saved fig4_attention_distortion.png
+  Saved fig5_output_comparison.png
+  Saved fig6_full_report.png
+Done — Llama 3.1 8B Instruct (4-bit)
+
