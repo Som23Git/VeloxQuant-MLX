@@ -1,0 +1,402 @@
+
+================================================================
+[v2] Loading mlx-community/Qwen3-4B-4bit...
+Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 166293.99it/s]
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:629: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig1.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:630: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig1.savefig(f"{out_dir}/fig1_benchmark_summary.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:707: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig3.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:708: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig3.savefig(f"{out_dir}/fig3_memory_at_scale.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:736: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig4.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:737: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig4.savefig(f"{out_dir}/fig4_attention_distortion.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:755: UserWarning: Glyph 12290 (\N{IDEOGRAPHIC FULL STOP}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:755: UserWarning: Glyph 65292 (\N{FULLWIDTH COMMA}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:755: UserWarning: Glyph 30340 (\N{CJK UNIFIED IDEOGRAPH-7684}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:755: UserWarning: Glyph 9 (	) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:755: UserWarning: Glyph 32476 (\N{CJK UNIFIED IDEOGRAPH-7EDC}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:755: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:755: UserWarning: Tight layout not applied. tight_layout cannot make Axes height small enough to accommodate all Axes decorations.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:756: UserWarning: Glyph 12290 (\N{IDEOGRAPHIC FULL STOP}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:756: UserWarning: Glyph 65292 (\N{FULLWIDTH COMMA}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:756: UserWarning: Glyph 30340 (\N{CJK UNIFIED IDEOGRAPH-7684}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:756: UserWarning: Glyph 9 (	) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:756: UserWarning: Glyph 32476 (\N{CJK UNIFIED IDEOGRAPH-7EDC}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:756: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:827: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig6.savefig(f"{out_dir}/fig6_full_report.png", dpi=150, bbox_inches="tight")
+  Qwen3 4B: 36 layers, head_dim=128, kv_heads=8
+
+
+================================================================
+[fp16 baseline]  key compression: —
+  <think>
+Okay, the user wants an explanation of both special and general relativity in simple terms, with examples. Let me start by recalling the basics of each theory.
+
+First, special relativity. I remember it's about the laws of physics being the same for all observers, and the speed of light being constant. The key points are time dilation and length contraction. Maybe use the example of a spaceship going near the speed of light. If someone is on the spaceship, time would p...
+  200 tokens  5.4s  (37.1 tok/s)
+
+================================================================
+[TurboQuant 2-bit]  key compression: 9.14×
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+d
+
+
+
+.
+
+
+
+
+。 is
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+....
+
+d， to
+
+oc to
+
+络
+
+
+
+
+thence
+
+
+ in
+ of
+
+
+
+
+
+xxxxxxxx
+
+
+
+
+
+
+
+
+
+
+..1 in
+.
+1 of of的的
+1的 of.
+
+
+
+
+
+
+.....
+The..2 of.a of1
+
+, of
+
+, of...
+...
+...........-- of.... ofationscheiden.
+
+
+
+
+  
+  .
+
+
+
+    
+	
+
+
+	
+old
+
+ovable
+
+ 
+   I
+
+The
+
+
+
+ 	
+
+
+The wird 
+1
+
+The
+
+
+  is
+
+  97 tokens  8.0s  (12.1 tok/s)
+
+================================================================
+[TurboQuant 3-bit]  key compression: 5.82×
+  
+Okay, okay, okay, okay, okay,
+
+
+
+Okay, okay, okay, okay, okay, okay,, okay,, okay, okay
+
+, okay, okay, okay, okay, okay, okay, okay, okay, okay, okay, okay, okay, okay, okay, okay,, okay, okay okay, okay, okay, okay okay and, okay, okay,, okay,,, okay,, okay,, and, okay,, and okay, okay,,,,, okay, okay, okay,, okay,,, okay, okay, okay, okay0,, okay, okay,, okay, okay,,, okay, okay, okay, okay, okay,,, okay okay, okay okay,,, okay okay okay, okay, okay0, okay okay, okay okay ...
+  175 tokens  8.5s  (20.6 tok/s)
+
+================================================================
+[TurboQuant 4-bit]  key compression: 4.27×
+  . The user.of
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay, so
+
+
+
+Okay, so
+
+
+
+
+Okay, so
+
+Okay, I need to get the
+
+Okay, so
+
+Okay
+
+Okay
+
+Okay, 
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay,
+
+Okay,
+
+Okay
+
+Okay
+
+Okay
+
+Okay,
+
+Okay
+
+
+
+Okay
+
+
+
+
+
+
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+
+
+
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+
+
+
+
+
+
+
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+Okay
+
+
+
+
+
+
+
+
+
+
+
+
+
+Okay
+
+
+
+Okay
+
+
+
+
+
+
+
+Okay
+
+
+
+
+
+Okay
+
+Okay,Okay
+
+Okay
+
+Okay
+
+Okay, so, I need
+
+Okay
+
+Okay
+
+Okay
+
+
+
+Okay
+
+Oka...
+  169 tokens  10.3s  (16.4 tok/s)
+
+================================================================
+[TurboQuant RVQ 2-bit]  key compression: 3.88×
+  <think>
+Okay, the user wants an explanation on the theory of relativity, covering both special and general relativity, with examples. Let me start by recalling the basics of special relativity. Einstein's special theory of relativity, which is based on two postulates:: the principle of relativity and the constancy of the speed of light. The principle of relativity states that the laws of physics are the same in all inertial frames of reference. Then, the constancy of the spee...
+  199 tokens  8.0s  (24.8 tok/s)
+
+================================================================
+SUMMARY (v2) — Qwen3 4B
+  Tokens cached       : 229
+  TQ 2-bit (single)   : 9.14× | 12.1 tok/s | 97 tokens
+  TQ 3-bit            : 5.82× | 20.6 tok/s | 175 tokens
+  TQ 4-bit            : 4.27× | 16.4 tok/s | 169 tokens
+  TQ RVQ 2-bit ★      : 3.88× | 24.8 tok/s | 199 tokens
+  fp16 baseline       :       | 37.1 tok/s | 200 tokens
+
+Computing quality curves...
+  RVQ 2-bit synthetic: cosine=0.9766, SNR=13.21 dB
+Generating figures → figures/updated_tests/qwen3_4b/
+  Saved fig1_benchmark_summary.png
+  Saved fig2_quality_vs_bits.png
+  Saved fig3_memory_at_scale.png
+  Saved fig4_attention_distortion.png
+  Saved fig5_output_comparison.png
+  Saved fig6_full_report.png
+Done v2 — Qwen3 4B
+

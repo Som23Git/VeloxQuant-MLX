@@ -37,8 +37,15 @@ class ScalarCodebook(Codebook):
             )
 
         import mlx.core as mx
+        # Centroids must be sorted for searchsorted-based quantize.
+        sort_idx = np.argsort(centroids)
+        centroids = centroids[sort_idx]
         self._centroids_mx: Any = mx.array(centroids.astype(np.float16))
         self._centroids_np: np.ndarray = centroids
+        # Precompute Voronoi boundaries (midpoints between sorted centroids).
+        # Used by quantize() via mx.searchsorted — single kernel, no (b,d,k) broadcast.
+        boundaries_np = (centroids[:-1] + centroids[1:]) / 2.0
+        self._boundaries_mx: Any = mx.array(boundaries_np.astype(np.float16))
 
         self._voronoi = VoronoiTree()
         self._voronoi.build(centroids)
@@ -65,10 +72,14 @@ class ScalarCodebook(Codebook):
             Index array of shape (batch, d), dtype uint8.
         """
         import mlx.core as mx
-        # y: (batch, d), centroids: (k,)
-        # broadcast to (batch, d, k)
-        dists = mx.abs(y[:, :, None] - self._centroids_mx[None, None, :])
-        return mx.argmin(dists, axis=-1).astype(mx.uint8)
+        # Boundary-sum quantize: count how many boundaries y exceeds.
+        # That count is exactly the centroid index. Drops the abs() and argmin()
+        # kernels of the prior path; still uses (batch, d, k-1) broadcast but
+        # over k-1 boundaries instead of k centroids, and with cheaper (>) op.
+        # Output is identical to the broadcast argmin in exact arithmetic; fp16
+        # tie-breaking on a boundary may flip to the other side.
+        cmp = (y[:, :, None] > self._boundaries_mx[None, None, :])
+        return mx.sum(cmp.astype(mx.uint8), axis=-1).astype(mx.uint8)
 
     def dequantize(self, idx: Any) -> Any:
         """Retrieve centroid values via gather.

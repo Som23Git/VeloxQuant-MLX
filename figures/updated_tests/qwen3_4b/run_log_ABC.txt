@@ -1,0 +1,383 @@
+
+================================================================
+[v2] Loading mlx-community/Qwen3-4B-4bit...
+Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 24322.64it/s]
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:616: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig1.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:617: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig1.savefig(f"{out_dir}/fig1_benchmark_summary.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:694: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig3.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:695: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig3.savefig(f"{out_dir}/fig3_memory_at_scale.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:723: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig4.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:724: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig4.savefig(f"{out_dir}/fig4_attention_distortion.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 30340 (\N{CJK UNIFIED IDEOGRAPH-7684}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 19981 (\N{CJK UNIFIED IDEOGRAPH-4E0D}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 28982 (\N{CJK UNIFIED IDEOGRAPH-7136}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 12289 (\N{IDEOGRAPHIC COMMA}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 65292 (\N{FULLWIDTH COMMA}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 20182 (\N{CJK UNIFIED IDEOGRAPH-4ED6}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 21463 (\N{CJK UNIFIED IDEOGRAPH-53D7}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 20110 (\N{CJK UNIFIED IDEOGRAPH-4E8E}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 36136 (\N{CJK UNIFIED IDEOGRAPH-8D28}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 32463 (\N{CJK UNIFIED IDEOGRAPH-7ECF}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 128640 (\N{ROCKET}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Glyph 129504 (\N{BRAIN}) missing from font(s) DejaVu Sans Mono.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:742: UserWarning: Tight layout not applied. tight_layout cannot make Axes height small enough to accommodate all Axes decorations.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 30340 (\N{CJK UNIFIED IDEOGRAPH-7684}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 19981 (\N{CJK UNIFIED IDEOGRAPH-4E0D}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 28982 (\N{CJK UNIFIED IDEOGRAPH-7136}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 12289 (\N{IDEOGRAPHIC COMMA}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 65292 (\N{FULLWIDTH COMMA}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 20182 (\N{CJK UNIFIED IDEOGRAPH-4ED6}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 21463 (\N{CJK UNIFIED IDEOGRAPH-53D7}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 20110 (\N{CJK UNIFIED IDEOGRAPH-4E8E}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 36136 (\N{CJK UNIFIED IDEOGRAPH-8D28}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 32463 (\N{CJK UNIFIED IDEOGRAPH-7ECF}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 128640 (\N{ROCKET}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:743: UserWarning: Glyph 129504 (\N{BRAIN}) missing from font(s) DejaVu Sans Mono.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:814: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig6.savefig(f"{out_dir}/fig6_full_report.png", dpi=150, bbox_inches="tight")
+  Qwen3 4B: 36 layers, head_dim=128, kv_heads=8
+
+
+================================================================
+[fp16 baseline]  key compression: —
+  <think>
+Okay, the user wants an explanation of both special and general relativity in simple terms, with examples. Let me start by recalling the basics of each theory.
+
+First, special relativity. I remember it's about the laws of physics being the same for all observers, and the speed of light being constant. The key points are time dilation and length contraction. Maybe use the example of a spaceship going near the speed of light. If someone is on the spaceship, time would p...
+  200 tokens  5.1s  (39.2 tok/s)
+
+================================================================
+[TurboQuant 2-bit]  key compression: 9.14×
+  
+
+
+
+
+
+的,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+的
+
+
+
+
+的
+
+
+
+
+
+
+
+
+
+的的的
+
+
+
+
+
+
+
+的不然的、、的的的的的，的
+
+的的的的的的的
+
+
+
+的的的的的的的的的的的的
+
+的的的的他的的的的不受的的的的的的
+
+的的的的的的
+
+
+
+的
+
+的的的的的，
+
+的的的的的
+的
+def于于的的的的的的的的的的的质
+0的经的的
+的
+的的的
+的
+的的的
+
+于
+的的的的的的的的
+的的的的的的的的
+
+
+
+于的的
+
+的的的的的的的的的的的的的的的的的的的的的的的的0的[](的0的 terribly
+  174 tokens  5.6s  (31.2 tok/s)
+
+================================================================
+[TurboQuant 3-bit]  key compression: 5.82×
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Okay
+
+
+
+
+
+0
+0
+
+0
+
+
+0
+000000000000
+
+
+
+000000000000000
+00
+000000000
+0000000
+0000000000000000000
+000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  172 tokens  5.6s  (30.7 tok/s)
+
+================================================================
+[TurboQuant 4-bit]  key compression: 4.27×
+  
+
+
+
+the
+
+rel
+
+Okay
+
+rel
+
+rel
+
+rel
+
+rel
+
+f
+
+rel
+
+The
+
+rel
+
+rel
+
+f
+
+f
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##
+
+rel
+
+
+
+
+
+.
+.
+.
+
+
+
+
+
+
+
+
+.
+
+
+
+
+.
+
+
+.....
+.............................................................�
+.....
+
+............................
+.........
+  50 tokens  5.8s  (8.6 tok/s)
+
+================================================================
+[TurboQuant RVQ 2-bit]  key compression: 3.88×
+  <|im_start|>
+
+</think>
+
+</think>
+
+</think>
+
+Sure! Here's a simple explanation of **Einstein's Theory of Relativity and General Relativity**, with examples to help you understand the concepts:
+
+---
+
+## � **What is Relativity?**
+
+Relativity is a theory that tells us how **space and time** work, especially when things move really fast (like a spaceship) or have **mass** (like a planet). There are two parts to it:
+
+1. **Special Relativity** (for things moving fast)
+2. **General R...
+  199 tokens  5.5s  (36.0 tok/s)
+
+================================================================
+SUMMARY (v2) — Qwen3 4B
+  Tokens cached       : 229
+  TQ 2-bit (single)   : 9.14× | 31.2 tok/s | 174 tokens
+  TQ 3-bit            : 5.82× | 30.7 tok/s | 172 tokens
+  TQ 4-bit            : 4.27× | 8.6 tok/s | 50 tokens
+  TQ RVQ 2-bit ★      : 3.88× | 36.0 tok/s | 199 tokens
+  fp16 baseline       :       | 39.2 tok/s | 200 tokens
+
+Computing quality curves...
+  RVQ 2-bit synthetic: cosine=0.9766, SNR=13.21 dB
+Generating figures → figures/updated_tests/qwen3_4b/
+  Saved fig1_benchmark_summary.png
+  Saved fig2_quality_vs_bits.png
+  Saved fig3_memory_at_scale.png
+  Saved fig4_attention_distortion.png
+  Saved fig5_output_comparison.png
+  Saved fig6_full_report.png
+Done v2 — Qwen3 4B
+
