@@ -39,18 +39,32 @@ class TurboQuantProd(Quantizer):
             instead of QR rotation (O(d²), CPU matmul).
     """
 
+    @staticmethod
+    def m_default(d: int, b: int) -> int:
+        """Default JL sketch dimension as a function of (d, b).
+
+        At b<=2 the MSE residual is large, so allocate the full d sketch
+        dimensions for the QJL correction. At b>=3 the residual is small and
+        m=min(d, 64) is enough.
+        """
+        return d if b <= 2 else min(d, 64)
+
     def __init__(
         self,
         d: int,
         b: int = 3,
-        m: int = 128,
+        m: Optional[int] = None,
         seed: int = 42,
         store: Optional[ArtifactStore] = None,
         use_hadamard: bool = False,
+        use_adaptive_codebook: bool = False,
+        n_calib: int = 64,
         **kwargs: Any,
     ) -> None:
         self._d = d
         self._b = b
+        if m is None:
+            m = TurboQuantProd.m_default(d, b)
         self._m = m
         self._seed = seed
         self._b_mse = max(b - 1, 1)
@@ -86,6 +100,15 @@ class TurboQuantProd(Quantizer):
                     self._codebook.centroids_numpy(),  # type: ignore[attr-defined]
                     distribution=dist_key, b=self._b_mse, d=d,
                 )
+
+        # Optionally wrap the MSE codebook in an AdaptiveScalarCodebook that
+        # refits its centroids from observed (post-rotation) vectors.
+        self._use_adaptive_codebook = bool(use_adaptive_codebook)
+        if self._use_adaptive_codebook:
+            from mlx_kv_quant.codebooks.adaptive_codebook import AdaptiveScalarCodebook
+            self._codebook = AdaptiveScalarCodebook(  # type: ignore[assignment]
+                b=self._b_mse, d=d, n_calib=n_calib, default_codebook=self._codebook,  # type: ignore[arg-type]
+            )
 
         # JL matrix for residual QJL — Gaussian JL allows m > d
         m_eff = m
@@ -133,6 +156,8 @@ class TurboQuantProd(Quantizer):
 
         # Stage 1: MSE quantize
         y = self._rotation.apply(x)
+        if self._use_adaptive_codebook:
+            self._codebook.observe(y)  # type: ignore[attr-defined]
         indices = self._codebook.quantize(y)
         y_hat = self._codebook.dequantize(indices)
         x_hat_mse = self._rotation.apply_inverse(y_hat)
@@ -212,3 +237,12 @@ class TurboQuantProd(Quantizer):
             f"TurboQuantProd(d={self._d}, b={self._b}, "
             f"b_mse={self._b_mse}, m={self._m_eff}, seed={self._seed})"
         )
+
+
+@QuantizerRegistry.register("turboquant_prod_adaptive")
+class TurboQuantProdAdaptive(TurboQuantProd):
+    """TurboQuantProd with use_adaptive_codebook=True forced on by default."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("use_adaptive_codebook", True)
+        super().__init__(*args, **kwargs)

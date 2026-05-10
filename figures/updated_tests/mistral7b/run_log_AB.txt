@@ -1,0 +1,92 @@
+
+================================================================
+[v2] Loading mlx-community/Mistral-7B-Instruct-v0.3-4bit...
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 152125.02it/s]
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:618: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig1.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:619: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig1.savefig(f"{out_dir}/fig1_benchmark_summary.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:696: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig3.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:697: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig3.savefig(f"{out_dir}/fig3_memory_at_scale.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:725: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig4.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:726: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig4.savefig(f"{out_dir}/fig4_attention_distortion.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:744: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig5.tight_layout()
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:745: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig5.savefig(f"{out_dir}/fig5_output_comparison.png", dpi=150, bbox_inches="tight")
+/Users/rajveerrathod/Work/personal_projects/turboquant_mac_implementation/benchmark_core.py:816: UserWarning: Glyph 9733 (\N{BLACK STAR}) missing from font(s) Arial.
+  fig6.savefig(f"{out_dir}/fig6_full_report.png", dpi=150, bbox_inches="tight")
+  Mistral 7B Instruct v0.3: 32 layers, head_dim=128, kv_heads=8
+
+
+================================================================
+[fp16 baseline]  key compression: —
+  The Theory of Relativity, proposed by Albert Einstein, is a fundamental concept that revolutionized our understanding of space, time, and gravity. It consists of two parts: Special Relativity and General Relativity.
+
+1. Special Relativity (1905): This theory describes how physics works in uniform motion, specifically when objects are moving at constant velocities relative to each other.
+
+   - Principle of Relativity: The laws of physics are the same for all observers in unifo...
+  201 tokens  9.0s  (22.4 tok/s)
+
+================================================================
+[TurboQuant 2-bit]  key compression: 9.14×
+  1. The theory of relativity, or the theory of relativity, refers to the theories that describe to the theories of physics and chemistry, which describes the theory of physics and the behavior of the electromagnetic spectrum, which describes the theory of the electromagnetic spectrum (EMF theory, electromagnet, the theory of quantum mechanics, which describes the theory of electromagnetic.
+
+In this case, the theory of electromagnetic, the theory of electromagnet, the theory of...
+  201 tokens  9.0s  (22.4 tok/s)
+
+================================================================
+[TurboQuant 3-bit]  key compression: 5.82×
+  Sure, I'd be happy to help!
+
+1. **What is Special Relativity?**
+   - Special Relativity is a theory proposed by Albert Einstein in 1905. It deals with physics on a single frame of reference (like a spaceship or a stationary platform). The key idea is that the laws of physics are the same for all observers moving at constant velocities relative to each other.
+
+   - In Special Relativity, Einstein introduced two postulates:
+    1. The Principle of Relativity of Motion (E=mc^2):...
+  201 tokens  9.1s  (22.0 tok/s)
+
+================================================================
+[TurboQuant 4-bit]  key compression: 4.27×
+  The Theory of Relativity, proposed by Albert Einstein in the early 20th century, is a revolutionary understanding of space, time, and gravity. It consists of two main parts: Special Relativity and General Relativity.
+
+1. Special Relativity:
+
+   Special Relativity, introduced in 1905, deals with physics in a single, unchanging frame of reference (like a spaceship moving at a constant speed). It has two main postulates:
+
+   a) The laws of physics are the same for all observers ...
+  201 tokens  9.3s  (21.7 tok/s)
+
+================================================================
+[TurboQuant RVQ 2-bit]  key compression: 3.88×
+  The Theory of Relativity, proposed by Albert Einstein, is a fundamental concept that describes how space and time are intertwined into a four-dimensional fabric called spacetime. It consists of two parts: Special Relativity and General Relativity.
+
+1. Special Relativity (SR, 1905): This theory deals with physics in a single frame of reference (inertial frame) and at constant velocity. It introduced two revolutionary ideas:
+
+   a. The Principle of Relativity: The laws of physi...
+  201 tokens  9.0s  (22.4 tok/s)
+
+================================================================
+SUMMARY (v2) — Mistral 7B Instruct v0.3
+  Tokens cached       : 226
+  TQ 2-bit (single)   : 9.14× | 22.4 tok/s | 201 tokens
+  TQ 3-bit            : 5.82× | 22.0 tok/s | 201 tokens
+  TQ 4-bit            : 4.27× | 21.7 tok/s | 201 tokens
+  TQ RVQ 2-bit ★      : 3.88× | 22.4 tok/s | 201 tokens
+  fp16 baseline       :       | 22.4 tok/s | 201 tokens
+
+Computing quality curves...
+  RVQ 2-bit synthetic: cosine=0.9766, SNR=13.21 dB
+Generating figures → figures/updated_tests/mistral7b/
+  Saved fig1_benchmark_summary.png
+  Saved fig2_quality_vs_bits.png
+  Saved fig3_memory_at_scale.png
+  Saved fig4_attention_distortion.png
+  Saved fig5_output_comparison.png
+  Saved fig6_full_report.png
+Done v2 — Mistral 7B Instruct v0.3
+
