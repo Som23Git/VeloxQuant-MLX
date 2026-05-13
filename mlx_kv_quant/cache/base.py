@@ -269,5 +269,56 @@ class KVCacheBuilder:
 
         return KVCacheFactory.create(cfg)
 
+    @staticmethod
+    def for_model(model, config: "KVCacheConfig") -> list:
+        """Build one KVCache per language-model layer, sized per-layer.
+
+        Works for text-only and VLM models (Qwen2-VL, Qwen3-VL, Mistral, etc.).
+        Layers without a self_attn attribute (MoE gates, etc.) fall back to a
+        standard fp16 KVCache so the list length always matches model.layers.
+
+        Args:
+            model: Loaded mlx_lm model instance.
+            config: KVCacheConfig specifying method, bit_width_inlier, seed, etc.
+                    head_dim is overridden per-layer.
+
+        Returns:
+            List of KVCache instances, one per language-model layer.
+        """
+        from mlx_lm.models.cache import KVCache as _FallbackCache
+
+        # Qwen2-VL exposes model.layers directly; text models expose model.model.layers
+        layers = getattr(model, "layers", None) or model.model.layers
+        # VLM wrappers (Qwen2-VL) have model.args.text_config only;
+        # real attention config lives in model.language_model.args
+        args = getattr(model, "args", None)
+        if args is not None and not hasattr(args, "hidden_size"):
+            lm = getattr(model, "language_model", None)
+            if lm is not None:
+                args = getattr(lm, "args", args)
+        caches = []
+        for i, layer in enumerate(layers):
+            attn = getattr(layer, "self_attn", None) or getattr(layer, "attn", None)
+            if attn is None:
+                caches.append(_FallbackCache())
+                continue
+            hd = getattr(attn, "head_dim", None)
+            if hd is None:
+                if args is not None:
+                    hd = getattr(args, "head_dim", None) or (
+                        args.hidden_size // args.num_attention_heads
+                    )
+            if hd is None:
+                caches.append(_FallbackCache())
+                continue
+            layer_cfg = KVCacheConfig(
+                method=config.method,
+                head_dim=hd,
+                bit_width_inlier=config.bit_width_inlier,
+                seed=config.seed + i,
+            )
+            caches.append(KVCacheFactory.create(layer_cfg))
+        return caches
+
     def __repr__(self) -> str:
         return f"KVCacheBuilder(config={self._config!r})"
