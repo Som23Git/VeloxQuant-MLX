@@ -29,16 +29,23 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Distinctive identifiers — class names + package name.
+            // Distinctive identifiers — strongly unique class names only.
             // Excluding our own repo so legitimate forks don't trigger.
+            //
+            // We deliberately do NOT search for the generic strings
+            // "mlx_kv_quant" or "VeloxQuant-MLX" — those have high
+            // false-positive rates because they appear in PyPI metadata
+            // mirrors (e.g. szabgab/pydigger-data), AI-assistant transcripts,
+            // and legitimate downstream users' install scripts. The class
+            // names below are unique enough that any hit warrants review.
             const SELF = 'rajveer43/VeloxQuant-MLX';
             const queries = [
               `"TurboQuantRVQMLXKVCache" -repo:${SELF}`,
               `"OutlierTokenRVQMLXKVCache" -repo:${SELF}`,
               `"RateQuantRVQMLXKVCache" -repo:${SELF}`,
               `"TurboQuantMLXKVCache" -repo:${SELF}`,
-              `"VeloxQuant-MLX" -repo:${SELF}`,
-              `"mlx_kv_quant" -repo:${SELF}`,
+              `"_rvq_quality_synthetic" -repo:${SELF}`,
+              `"allocate_bits_waterfilling" -repo:${SELF}`,
             ];
 
             let total_hits = 0;
