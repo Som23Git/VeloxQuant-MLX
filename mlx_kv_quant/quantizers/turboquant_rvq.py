@@ -45,6 +45,15 @@ class TurboQuantRVQ(Quantizer):
     Total memory per coordinate: 2*b bits (vs b in plain MSE, 2*b-1 in Prod).
     Quality at b=2 is comparable to b=4 single-pass on a Gaussian source.
 
+    Supported bit-widths:
+        b=1: stage-1 is a 2-level sign quantizer ({-0.798, +0.798}), stage-2
+             corrects sign-quantization error with a 2-level Laplacian codebook.
+             Achieves ~0.92 cosine / +7.5 dB SNR on d=128 — the lowest-bit
+             RVQ config we expose. Per-vector storage: ceil(d/4) + 2 bytes.
+        b=2: default. ~0.98 cosine / +13 dB SNR on d=128.
+        b>=3: diminishing returns vs single-pass TurboQuant 4-bit; mainly
+             useful when extreme accuracy is required.
+
     Args:
         d: Input dimension.
         b: Bits per stage (each stage uses b bits, total 2*b bits/dim).

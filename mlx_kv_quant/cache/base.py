@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 from mlx_kv_quant.core.abstractions import ArtifactStore, KVCache, QuantizationObserver
 from mlx_kv_quant.core.exceptions import QuantizerConfigError
@@ -15,7 +15,11 @@ class KVCacheConfig:
     Attributes:
         method: Quantisation algorithm.
         head_dim: Attention head dimension (d).
-        bit_width_inlier: Bit-width for inlier channels.
+        bit_width_inlier: Bit-width for inlier channels. Either a single int
+            applied uniformly across all layers, OR a ``list[int]`` of length
+            ``n_layers`` for per-layer RateQuant-style allocation. When passed
+            as a list, ``KVCacheBuilder.for_model()`` consumes element ``i``
+            for layer ``i``; ``KVCacheFactory.create()`` requires an int.
         bit_width_outlier: Bit-width for outlier channels (None → same as inlier).
         jl_dim: JL projection dimension m.
         n_outlier_channels: Number of outlier channels to detect.
@@ -27,9 +31,9 @@ class KVCacheConfig:
         observers: List of QuantizationObserver instances.
     """
 
-    method: Literal["turboquant_prod", "turboquant_mse", "polar", "qjl"] = "turboquant_prod"
+    method: Literal["turboquant_prod", "turboquant_mse", "turboquant_rvq", "polar", "qjl"] = "turboquant_prod"
     head_dim: int = 128
-    bit_width_inlier: int = 2
+    bit_width_inlier: Union[int, list] = 2
     bit_width_outlier: Optional[int] = None
     jl_dim: Optional[int] = None
     n_outlier_channels: Optional[int] = None
@@ -68,15 +72,24 @@ class KVCacheFactory:
         from mlx_kv_quant.cache.qjl_cache import QJLKVCache
         from mlx_kv_quant.cache.sliding_window_cache import SlidingWindowKVCache
         from mlx_kv_quant.cache.turboquant_cache import TurboQuantKVCache
+        from mlx_kv_quant.cache.turboquant_rvq_cache import TurboQuantRVQKVCache
 
         d = config.head_dim
         seed = config.seed
         b = config.bit_width_inlier
+        if isinstance(b, list):
+            raise QuantizerConfigError(
+                "KVCacheFactory.create() requires bit_width_inlier to be a single int. "
+                "List-form bit_width_inlier (per-layer allocation) is consumed by "
+                "KVCacheBuilder.for_model(), which dispatches to create() once per layer."
+            )
         m = config.jl_dim if config.jl_dim is not None else d
         store = config.store
 
         if config.method in ("turboquant_prod", "turboquant_mse"):
             cache: KVCache = TurboQuantKVCache(config)
+        elif config.method == "turboquant_rvq":
+            cache = TurboQuantRVQKVCache(config)
         elif config.method == "polar":
             cache = PolarQuantKVCache(config)
         elif config.method == "qjl":
@@ -84,7 +97,7 @@ class KVCacheFactory:
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
-                f"Choices: turboquant_prod, turboquant_mse, polar, qjl."
+                f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, polar, qjl."
             )
 
         if config.sliding_window is not None:
@@ -130,11 +143,15 @@ class KVCacheBuilder:
         self._config.head_dim = d
         return self
 
-    def with_bit_width(self, inlier: int, outlier: Optional[int] = None) -> "KVCacheBuilder":
+    def with_bit_width(self, inlier, outlier: Optional[int] = None) -> "KVCacheBuilder":
         """Set bit-width(s).
 
         Args:
-            inlier: Bit-width for inlier channels.
+            inlier: Bit-width for inlier channels. Either an int (uniform across
+                all layers) or a list[int] of length n_layers for RateQuant-style
+                per-layer allocation. When a list is supplied, this builder
+                must be consumed via ``KVCacheBuilder.for_model(model, config)``;
+                direct ``.build()`` rejects the list.
             outlier: Bit-width for outlier channels (defaults to inlier if None).
         """
         self._config.bit_width_inlier = inlier
@@ -249,7 +266,17 @@ class KVCacheBuilder:
             raise QuantizerConfigError(
                 f"KVCacheBuilder: head_dim={d} must be a power of 2."
             )
-        if cfg.bit_width_inlier < 1:
+        if isinstance(cfg.bit_width_inlier, list):
+            if not cfg.bit_width_inlier:
+                raise QuantizerConfigError(
+                    "KVCacheBuilder: bit_width_inlier list must not be empty."
+                )
+            if not all(isinstance(b, int) and b >= 1 for b in cfg.bit_width_inlier):
+                raise QuantizerConfigError(
+                    "KVCacheBuilder: every element of bit_width_inlier must "
+                    "be an int >= 1."
+                )
+        elif cfg.bit_width_inlier < 1:
             raise QuantizerConfigError(
                 f"KVCacheBuilder: bit_width_inlier={cfg.bit_width_inlier} must be >= 1."
             )
@@ -268,6 +295,84 @@ class KVCacheBuilder:
             )
 
         return KVCacheFactory.create(cfg)
+
+    @staticmethod
+    def for_model(model, config: "KVCacheConfig") -> list:
+        """Build one KVCache per language-model layer, sized per-layer.
+
+        Works for text-only and VLM models (Qwen2-VL, Qwen3-VL, Mistral, etc.).
+        Layers without a self_attn attribute (MoE gates, etc.) fall back to a
+        standard fp16 KVCache so the list length always matches model.layers.
+
+        Per-layer bit-widths (RateQuant)
+        --------------------------------
+        If ``config.bit_width_inlier`` is a ``list[int]``, element ``i`` is
+        used for layer ``i``. The list length must equal the number of
+        attention-bearing layers (layers without self_attn are skipped from
+        the count). This lets RateQuant-style mixed-precision allocations
+        be passed through the standard API without manual cache wiring.
+
+        Args:
+            model: Loaded mlx_lm model instance.
+            config: KVCacheConfig specifying method, bit_width_inlier, seed, etc.
+                    head_dim is overridden per-layer.
+
+        Returns:
+            List of KVCache instances, one per language-model layer.
+        """
+        from mlx_lm.models.cache import KVCache as _FallbackCache
+
+        # Qwen2-VL exposes model.layers directly; text models expose model.model.layers
+        layers = getattr(model, "layers", None) or model.model.layers
+        # VLM wrappers (Qwen2-VL) have model.args.text_config only;
+        # real attention config lives in model.language_model.args
+        args = getattr(model, "args", None)
+        if args is not None and not hasattr(args, "hidden_size"):
+            lm = getattr(model, "language_model", None)
+            if lm is not None:
+                args = getattr(lm, "args", args)
+
+        # Resolve per-layer bit-width policy
+        b_spec = config.bit_width_inlier
+        is_per_layer = isinstance(b_spec, list)
+        if is_per_layer:
+            # Count attention-bearing layers up-front for validation
+            n_attn = sum(1 for L in layers
+                         if (getattr(L, "self_attn", None) or getattr(L, "attn", None))
+                         is not None)
+            if len(b_spec) != n_attn:
+                raise QuantizerConfigError(
+                    f"KVCacheBuilder.for_model: bit_width_inlier is a list of "
+                    f"length {len(b_spec)}, but model has {n_attn} attention "
+                    f"layers. The list must have one entry per attention layer."
+                )
+
+        caches = []
+        attn_idx = 0  # index into b_spec, advances only for attention layers
+        for i, layer in enumerate(layers):
+            attn = getattr(layer, "self_attn", None) or getattr(layer, "attn", None)
+            if attn is None:
+                caches.append(_FallbackCache())
+                continue
+            hd = getattr(attn, "head_dim", None)
+            if hd is None:
+                if args is not None:
+                    hd = getattr(args, "head_dim", None) or (
+                        args.hidden_size // args.num_attention_heads
+                    )
+            if hd is None:
+                caches.append(_FallbackCache())
+                continue
+            layer_b = b_spec[attn_idx] if is_per_layer else b_spec
+            layer_cfg = KVCacheConfig(
+                method=config.method,
+                head_dim=hd,
+                bit_width_inlier=layer_b,
+                seed=config.seed + i,
+            )
+            caches.append(KVCacheFactory.create(layer_cfg))
+            attn_idx += 1
+        return caches
 
     def __repr__(self) -> str:
         return f"KVCacheBuilder(config={self._config!r})"

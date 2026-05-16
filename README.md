@@ -1,30 +1,49 @@
 # VeloxQuant-MLX
 
-**Fast KV-cache quantization for Apple Silicon — TurboQuant, PolarQuant, RVQ, and QJL in MLX.**
+**Fast KV-cache quantization for Apple Silicon — TurboQuant, RVQ, RateQuant, PolarQuant, and QJL in MLX.**
 
-[![PyPI version](https://img.shields.io/badge/pypi-0.3.0-blue.svg)](https://pypi.org/project/VeloxQuant-MLX/)
+[![PyPI version](https://img.shields.io/badge/pypi-0.3.5-blue.svg)](https://pypi.org/project/VeloxQuant-MLX/)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Apple%20Silicon-black.svg)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A drop-in KV-cache replacement for `mlx_lm` that compresses the Key tensor by **3–9×** with near-lossless quality at 4-bit and **functional 2-bit** via Residual Vector Quantization. Validated end-to-end on 8 production models (Llama, Mistral, Falcon, Qwen, Phi, Gemma, DeepSeek-V2-Lite).
+A drop-in KV-cache replacement for `mlx_lm` that compresses the Key tensor by **3–9×** with near-lossless quality at 4-bit, **functional 2-bit and 1-bit** via Residual Vector Quantization, and **per-layer mixed-precision** allocation via RateQuant. Validated end-to-end on 8 production models (Mistral, Falcon, Phi, Qwen3, Llama 3.1, Gemma3, Qwen2.5).
+
+### Uniform 1-bit RVQ — 7.5× key compression, 95–104% of fp16 throughput
 
 ```python
-from mlx_kv_quant import KVCacheBuilder
-import mlx.core as mx, numpy as np
+import mlx_lm
+from mlx_kv_quant import KVCacheBuilder, KVCacheConfig
 
-cache = (KVCacheBuilder()
-    .with_method("turboquant_rvq")     # new in 0.3.0 — usable 2-bit
-    .with_head_dim(128)
-    .with_bit_width(inlier=2)
-    .build())
+model, tokenizer = mlx_lm.load("mlx-community/Mistral-7B-Instruct-v0.3-4bit")
 
-rng = np.random.default_rng(0)
-for _ in range(1000):
-    cache.append(mx.array(rng.standard_normal(128).astype(np.float16)),
-                 mx.array(rng.standard_normal(128).astype(np.float16)))
+config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=1, seed=42)
+caches = KVCacheBuilder.for_model(model, config)
+model.make_cache = lambda *_a, **_k: caches
 
-print(f"{cache.memory_bytes()/1024:.1f} KB for {len(cache)} tokens")
+response = mlx_lm.generate(model, tokenizer,
+    prompt="Explain the theory of relativity in simple terms.",
+    max_tokens=200,
+)
+```
+
+### Per-layer RateQuant — match fp16 throughput at fractional average bits
+
+```python
+from mlx_kv_quant import (
+    KVCacheBuilder, KVCacheConfig,
+    calibrate_layer_sensitivities, allocate_bits_ratequant,
+)
+
+# 1.6s one-time calibration on real model activations
+weights = calibrate_layer_sensitivities(model, tokenizer)
+
+# Theorem 2 closed-form: high-sensitivity layers get more bits
+alloc = allocate_bits_ratequant(weights, target_avg_bits=1.5, beta=3.5)
+
+# Pass the list directly to KVCacheConfig — for_model() consumes per layer
+config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=alloc, seed=42)
+caches = KVCacheBuilder.for_model(model, config)
 ```
 
 ---
@@ -34,22 +53,25 @@ print(f"{cache.memory_bytes()/1024:.1f} KB for {len(cache)} tokens")
 1. [Highlights](#highlights)
 2. [Installation](#installation)
 3. [Quick start](#quick-start)
-4. [What's inside](#whats-inside)
-5. [Algorithm guide](#algorithm-guide-which-method-to-pick)
-6. [Per-model benchmark results](#per-model-benchmark-results)
-7. [Throughput optimization journey](#throughput-optimization-journey)
-8. [Architecture](#architecture)
-9. [CLI](#cli)
-10. [Development](#development)
-11. [References](#references)
+4. [RateQuant — per-layer mixed precision](#ratequant--per-layer-mixed-precision)
+5. [What's inside](#whats-inside)
+6. [Algorithm guide](#algorithm-guide-which-method-to-pick)
+7. [Per-model benchmark results](#per-model-benchmark-results)
+8. [Throughput optimization journey](#throughput-optimization-journey)
+9. [Architecture](#architecture)
+10. [CLI](#cli)
+11. [Development](#development)
+12. [References](#references)
 
 ---
 
 ## Highlights
 
-- **RVQ 2-bit (new)** — two-pass residual quantization brings 2-bit cosine from **0.69 → 0.98**, finally making 2-bit usable for real inference.
-- **End-to-end fp16 throughput parity** on Mistral 7B (22.3 vs 22.1 tok/s) and 92% on Qwen3 4B after the 0.3.0 throughput optimizations.
-- **Three quantizers**, one interface — `turboquant_prod`, `turboquant_mse`, `turboquant_rvq`, plus `polar` and `qjl`.
+- **RVQ 1-bit (new in 0.3.4)** — sign-quantizer stage + Laplacian residual delivers **7.5× key compression with cosine 0.92**, generates full 200-token output on every tested model, and **matches or beats fp16 throughput** on 5 of 7 7-8B models (best: Phi-4 at 110% of fp16).
+- **RateQuant per-layer allocation (new in 0.3.5)** — Theorem 2 reverse-waterfilling on real activation sensitivities. Pass `bit_width_inlier=alloc_list` to `KVCacheConfig`, let `KVCacheBuilder.for_model()` consume per layer. 1.6s one-time calibration, zero inference overhead.
+- **RVQ 2-bit** — two-pass residual quantization brings 2-bit cosine from **0.69 → 0.98**.
+- **End-to-end fp16 throughput parity** on Mistral, Falcon, Phi-4, Qwen3, Gemma3 after the throughput optimizations.
+- **Four quantizers**, one interface — `turboquant_rvq`, `turboquant_prod`, `turboquant_mse`, plus `polar` and `qjl`.
 - **Native MLX integration** — no Metal kernel writing required; uses `mx.hadamard_transform` for O(d log d) rotation.
 - **Production patterns** — Factory + Strategy + Registry + Builder. Drop-in for `mlx_lm.cache.KVCache`.
 - **Apple Silicon first** — designed and tested on M-series unified-memory.
@@ -103,24 +125,80 @@ out = cache.attend(q)
 print(f"Memory: {cache.memory_bytes()/1024:.1f} KB for {len(cache)} tokens")
 ```
 
-### Drop-in replacement for `mlx_lm` generation
+### Drop-in replacement for `mlx_lm` generation (recommended)
 
-See [`benchmark_core.py`](benchmark_core.py) for the full pattern. Short version:
+`KVCacheBuilder.for_model()` handles per-layer construction, dtype detection,
+and VLM wrappers automatically:
 
 ```python
-from benchmark_core import TurboQuantRVQMLXKVCache  # MLX KVCache subclass
 import mlx_lm
+from mlx_kv_quant import KVCacheBuilder, KVCacheConfig
 
 model, tokenizer = mlx_lm.load("mlx-community/Mistral-7B-Instruct-v0.3-4bit")
 
-# Patch make_cache to inject our compressed cache
-def _make_compressed():
-    return [TurboQuantRVQMLXKVCache(n_kv_heads=8, head_dim=128, bits=2, seed=i)
-            for i in range(model.args.num_hidden_layers)]
-model.make_cache = _make_compressed
+config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=1, seed=42)
+caches = KVCacheBuilder.for_model(model, config)
+model.make_cache = lambda *_a, **_k: caches
 
 response = mlx_lm.generate(model, tokenizer, prompt="...", max_tokens=200)
 ```
+
+Per-cache byte accounting is available via `cache.fp16_key_bytes /
+cache.compressed_key_bytes` for benchmark reporting.
+
+---
+
+## RateQuant — per-layer mixed precision
+
+The default is **uniform** bit-width across layers. RateQuant
+([arxiv:2605.06675](https://arxiv.org/abs/2605.06675)) allocates **more bits
+to high-sensitivity layers** and fewer to low-sensitivity ones, with the
+average held at a user-chosen target. The library exposes both the
+sensitivity probe and the closed-form allocator:
+
+```python
+from mlx_kv_quant import (
+    KVCacheBuilder, KVCacheConfig,
+    calibrate_layer_sensitivities,   # 1.6s, real-activation probe
+    allocate_bits_ratequant,         # Theorem 2 reverse-waterfilling
+)
+
+# Step 1 — one-time calibration on 8 default prompts (overridable)
+weights = calibrate_layer_sensitivities(model, tokenizer)
+# weights[i] is the mean-squared key L2 norm at layer i
+
+# Step 2 — closed-form allocation. Average is exact; per-layer bits are integer.
+alloc = allocate_bits_ratequant(
+    weights,
+    target_avg_bits=1.5,   # fractional — integer alloc straddles it
+    beta=3.5,              # RVQ decay constant (paper-reported)
+    bit_choices=(1, 2, 3), # RVQ supports any positive integer b
+)
+
+# Step 3 — pass directly to KVCacheConfig. for_model() consumes per-layer.
+config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=alloc, seed=42)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**When does it help?** When per-layer sensitivity is heterogeneous. The
+calibration printout reports the min/max range; a ratio above ~2× indicates
+RateQuant will give measurable gains. Empirically:
+
+| Model | Sensitivity ratio | Notes |
+|---|---|---|
+| Falcon3 7B (28 layers, head_dim=256) | 6.48× | Mixed alloc: 14 layers at b=2, 14 at b=1 |
+| Gemma3 4B (34 layers, head_dim=256) | 14.39× | Mixed alloc: 3 at b=3, 11 at b=2, 20 at b=1 |
+
+**Distortion model.** The paper notes that the decay rate β varies across
+quantizers (3.5 for TurboQuant, ≈5.0 for KIVI/QuaRot). The library default
+of `beta=3.5` is correct for RVQ; if you adapt the allocator to another
+quantizer, call `fit_distortion_curve()` first to estimate β.
+
+**What's NOT (yet) implemented from the paper:** per-head allocation (paper:
+L×H groups, ours: L), gradient-based sensitivity (paper notes activation
+is ~1 PPL worse but both beat uniform), and K/V separation (paper's biggest
+single fix on KIVI). These remain open extensions — the per-layer subset
+already gives most of the benefit on RVQ at ≥1.5 bits.
 
 ---
 
@@ -130,12 +208,15 @@ response = mlx_lm.generate(model, tokenizer, prompt="...", max_tokens=200)
 |---|---|
 | [`mlx_kv_quant.quantizers.turboquant_prod`](mlx_kv_quant/quantizers/turboquant_prod.py) | Rotation + Lloyd-Max + QJL residual (b-1 + 1 bits) |
 | [`mlx_kv_quant.quantizers.turboquant_mse`](mlx_kv_quant/quantizers/turboquant_mse.py) | Rotation + Lloyd-Max only (no residual correction) |
-| [`mlx_kv_quant.quantizers.turboquant_rvq`](mlx_kv_quant/quantizers/turboquant_rvq.py) | **NEW** — two-pass scalar RVQ (Gaussian + Laplacian codebooks) |
+| [`mlx_kv_quant.quantizers.turboquant_rvq`](mlx_kv_quant/quantizers/turboquant_rvq.py) | Two-pass scalar RVQ (Gaussian + Laplacian codebooks), b=1/2/3+ |
 | [`mlx_kv_quant.quantizers.polarquant`](mlx_kv_quant/quantizers/polarquant.py) | Recursive polar coordinate decomposition |
 | [`mlx_kv_quant.quantizers.qjl`](mlx_kv_quant/quantizers/qjl.py) | Pure 1-bit JL sign sketch |
-| [`mlx_kv_quant.codebooks`](mlx_kv_quant/codebooks/) | `ScalarCodebook`, Lloyd-Max strategies, **`AdaptiveScalarCodebook`** |
+| [`mlx_kv_quant.cache.turboquant_rvq_cache`](mlx_kv_quant/cache/turboquant_rvq_cache.py) | **NEW** — `TurboQuantRVQKVCache` mlx_lm-compatible cache wrapper |
+| [`mlx_kv_quant.allocators`](mlx_kv_quant/allocators/) | **NEW** — `allocate_bits_ratequant`, `calibrate_layer_sensitivities` |
+| [`mlx_kv_quant.observers`](mlx_kv_quant/observers/) | `DistortionObserver`, `LatencyObserver`, `MemoryObserver`, **`KeyNormObserver` (new)** |
+| [`mlx_kv_quant.codebooks`](mlx_kv_quant/codebooks/) | `ScalarCodebook`, Lloyd-Max strategies, `AdaptiveScalarCodebook` |
 | [`mlx_kv_quant.preconditioners`](mlx_kv_quant/preconditioners/) | `RotationPreconditioner` (QR), `HadamardPreconditioner` (Metal) |
-| [`mlx_kv_quant.cache`](mlx_kv_quant/cache/) | `TurboQuantKVCache` standalone, MLX `KVCache` subclasses |
+| [`mlx_kv_quant.cache`](mlx_kv_quant/cache/) | `TurboQuantKVCache` standalone, mlx_lm `KVCache` subclasses |
 | [`mlx_kv_quant.weight`](mlx_kv_quant/weight/) | `QuantizedLinear` for model weight quantization |
 | [`mlx_kv_quant.dsa.bit_pack`](mlx_kv_quant/dsa/bit_pack.py) | Sub-byte index packing |
 | [`mlx_kv_quant.outlier`](mlx_kv_quant/outlier/) | Two-stream cache for high-variance channels |
@@ -144,25 +225,57 @@ response = mlx_lm.generate(model, tokenizer, prompt="...", max_tokens=200)
 
 ## Algorithm guide — which method to pick
 
-| Method | Bits/dim | Per-token storage (d=128) | Quality (cosine) | Best for |
+| Method | Bits/dim | Per-vector storage (d=128) | Quality (cosine) | Best for |
 |---|---|---|---|---|
-| `turboquant_mse` | b | `b·d/8` + 4 B norm | 0.86 @ 3b, 0.95 @ 4b | Default 3–4 bit, lowest memory overhead |
-| `turboquant_prod` | b-1 + 1 | `(b-1)·d/8` + JL signs + 2 norms | 0.86 @ 3b, 0.95 @ 4b | Unbiased IP estimator, slightly higher quality |
-| **`turboquant_rvq`** | **2·b** | **`2·b·d/8`** + 2 B norm | **0.98 @ b=2** | **Functional 2-bit** — only method that works at b=2 |
+| `turboquant_mse` | b | `b·d/8` + 4 B norm | 0.86 @ 3b, 0.95 @ 4b | Lowest overhead at 3–4 bit |
+| `turboquant_prod` | b-1 + 1 | `(b-1)·d/8` + JL signs + 2 norms | 0.86 @ 3b, 0.95 @ 4b | Unbiased IP estimator at 3–4 bit |
+| **`turboquant_rvq` @ b=2** | **2·b = 4** | **64 B** | **0.98** | **Functional 2-bit, 3.9× compression** |
+| **`turboquant_rvq` @ b=1** | **2·b = 2** | **34 B** | **0.92** | **Aggressive 7.5× compression — full output on every tested model** |
 | `polar` | b·levels | varies | medium | Geometric structure, very low bits |
-| `qjl` | 1 | `d/8` + 2 B norm | 0.62 @ 1b | Topology-only retrieval, extreme compression |
+| `qjl` | 1 | `d/8` + 2 B norm | 0.62 | Topology-only retrieval, extreme compression |
 
 **Rule of thumb**:
-- **3–4 bit, max compression** → `turboquant_mse`
-- **3–4 bit, best quality** → `turboquant_prod`
-- **2 bit (3.88× key compression with full coherence)** → `turboquant_rvq`
-- **1 bit (extreme compression, ranking only)** → `qjl`
+- **3–4 bit, maximum compression at uniform precision** → `turboquant_mse`
+- **3–4 bit, best uniform-precision quality** → `turboquant_prod`
+- **2 bit (3.9× key compression, full coherent output)** → `turboquant_rvq` with `b=2`
+- **1 bit (7.5× key compression, full coherent output on 7/7 tested models)** → `turboquant_rvq` with `b=1`
+- **Fractional average bits (mixed-precision)** → `turboquant_rvq` + `allocate_bits_ratequant`
+- **Ranking-only retrieval, extreme compression** → `qjl`
 
 ---
 
 ## Per-model benchmark results
 
-All measurements on **Apple M4 MacBook · 16 GB unified memory · Python 3.12**. Prompt: structured 200-token explanation of relativity. Each model runs fp16 + TurboQuant 2/3/4-bit; v2 runs add RVQ 2-bit.
+All measurements on **Apple M4 MacBook · 16/24 GB unified memory · Python 3.12**. Prompt: structured 200-token explanation of relativity.
+
+### v4 results — RVQ 1-bit at 7.5× compression (8-model sweep, 0.3.4)
+
+| Model | fp16 tok/s | RVQ 1-bit tok/s | tokens | vs fp16 |
+|---|---|---|---|---|
+| Mistral 7B v0.3 | 23.3 | **22.2** | 201/201 | 95% |
+| Falcon3 7B | 24.0 | **23.1** | 200/200 | 96% |
+| Phi-4 | 11.9 | **11.8** | 200/200 | **99%** |
+| Qwen3 4B | 40.2 | 34.3 | 187/200 | 85% |
+| Qwen3 8B | 20.5 | **21.1** | 200/200 | **103%** |
+| Llama 3.1 8B | 22.0 | **21.5** | 201/201 | 98% |
+| Gemma3 4B | 32.5 | **30.5** | 201/201 | 94% |
+| Qwen2.5 32B | 3.7 | — | — | memory-constrained on 24 GB, see [docs](docs/MEMORY_CONSTRAINT_FINDINGS.md) |
+
+> Generated by [`benchmark_scripts/run_outlier_ratequant.py`](benchmark_scripts/run_outlier_ratequant.py).
+> Source figures: [`figures/outlier_token_ratequant/<model>/`](figures/outlier_token_ratequant/).
+
+### v5 results — RateQuant V2 mixed-precision (2-model trial, 0.3.5)
+
+Per-layer allocation via `allocate_bits_ratequant` at target b̄=1.5,
+measured on Apple M4 24 GB. Source figures: [`figures/2026-05-16/`](figures/2026-05-16/).
+
+| Model | fp16 | RVQ 1-bit | RVQ 1-bit + Outlier | **RVQ + RateQuant V2** | sens. ratio |
+|---|---|---|---|---|---|
+| Falcon3 7B | 22.9 | 23.1 (101%) | 22.0 (96%) | **22.8 (100%)** at 5.22× compression | 6.48× |
+| Gemma3 4B | 39.8 | 37.8 (95%) | 34.7 (87%) | **36.3 (91%)** at 5.22× compression | 14.39× |
+
+> Per-layer allocations were computed from a 1.6s real-activation calibration:
+> Falcon3 split 14/14 (b=2/b=1); Gemma3 split 3/11/20 (b=3/b=2/b=1).
 
 ### Cross-model summary (single-pass quality at 3-bit and 4-bit)
 

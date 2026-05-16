@@ -94,6 +94,14 @@ def main() -> None:
         "Change 2 TQ-RVQ (b=2 x2)", x, x_hat, _bytes_rvq(D, B)
     ))
 
+    # --- Bonus: TurboQuantRVQ b=1 (sign quant + Laplacian residual correction) ---
+    qrvq1 = TurboQuantRVQ(d=D, b=1, seed=SEED)
+    ev = qrvq1.encode(x)
+    x_hat = qrvq1.decode(ev)
+    rows.append(_eval(
+        "Extra   TQ-RVQ (b=1 x2)", x, x_hat, _bytes_rvq(D, 1)
+    ))
+
     # --- Change 3: TurboQuantProd + AdaptiveScalarCodebook ---
     qp_ad = TurboQuantProd(
         d=D, b=B, m=min(D, 64), seed=SEED,
@@ -126,6 +134,8 @@ def main() -> None:
 
     assert c1["cosine"] > 0.75, f"Change 1 cosine {c1['cosine']:.4f} not > 0.75"
     assert c2["cosine"] > 0.82, f"Change 2 cosine {c2['cosine']:.4f} not > 0.82"
+    rvq1 = by_name["Extra   TQ-RVQ (b=1 x2)"]
+    assert rvq1["cosine"] > 0.80, f"RVQ b=1 cosine {rvq1['cosine']:.4f} not > 0.80"
     # Change 3 finding: on post-rotation unit-norm vectors the empirical
     # distribution is already near-Gaussian, so the fitted codebook is
     # essentially identical to the default N(0, 1/d) Lloyd-Max codebook.
@@ -145,5 +155,70 @@ def main() -> None:
     )
 
 
+def test_vlm_keys():
+    """Verify RVQ 2-bit quality on image-like key tensors (large S, non-unit norms).
+
+    VLM image patch tokens flood the KV cache with ~256-1024 vectors per layer
+    during prefill. Their distribution after ViT projection is similar to text
+    keys but with potentially larger norms. This test checks that our quantizer
+    handles large-batch, non-unit-norm input correctly.
+    """
+    print("\n" + "=" * 64)
+    print("VLM KEY TENSOR TEST  (d=128, S=512, simulated image prefill)")
+    print("=" * 64)
+
+    np.random.seed(7)
+    D_vlm = 128
+    S_vlm = 512  # typical image patch count
+    H_vlm = 8    # kv heads
+
+    # Simulate (B*H*S, D) batch as would arrive after reshape in update_and_fetch
+    # Image keys tend to have larger norms than text keys (~5-20 range)
+    raw = np.random.randn(S_vlm * H_vlm, D_vlm).astype(np.float32)
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    scale = np.random.uniform(3.0, 15.0, size=(S_vlm * H_vlm, 1)).astype(np.float32)
+    keys_np = (raw / norms * scale).astype(np.float16)
+    keys_mx = mx.array(keys_np)
+
+    # Normalize (mirrors update_and_fetch path)
+    norms_mx = mx.linalg.norm(keys_mx.astype(mx.float32), axis=-1, keepdims=True).astype(mx.float16)
+    safe = mx.maximum(norms_mx, mx.array(1e-4, dtype=mx.float16))
+    k_unit = (keys_mx / safe).astype(mx.float16)
+
+    results = {}
+    for label, quantizer in [
+        ("TQ-Prod 4-bit", TurboQuantProd(d=D_vlm, b=4, m=64, seed=0, use_hadamard=True)),
+        ("TQ-RVQ 2-bit",  TurboQuantRVQ(d=D_vlm, b=2, seed=0, use_hadamard=True)),
+        ("TQ-Prod 2-bit", TurboQuantProd(d=D_vlm, b=2, m=D_vlm, seed=0, use_hadamard=True)),
+    ]:
+        ev = quantizer.encode(k_unit)
+        k_hat = quantizer.decode(ev)
+        cos = float(mx.mean(
+            mx.sum(k_unit * k_hat, axis=-1) /
+            (mx.linalg.norm(k_unit, axis=-1) * mx.linalg.norm(k_hat, axis=-1) + 1e-8)
+        ))
+        results[label] = cos
+        print(f"  {label:<22}  cosine = {cos:.4f}")
+
+    print()
+    assert results["TQ-Prod 4-bit"] > 0.93, \
+        f"TQ-Prod 4-bit VLM cosine {results['TQ-Prod 4-bit']:.4f} < 0.93"
+    assert results["TQ-RVQ 2-bit"] > 0.90, \
+        f"TQ-RVQ 2-bit VLM cosine {results['TQ-RVQ 2-bit']:.4f} < 0.90"
+    assert results["TQ-RVQ 2-bit"] > results["TQ-Prod 2-bit"], \
+        f"RVQ 2-bit ({results['TQ-RVQ 2-bit']:.4f}) should beat single-pass 2-bit ({results['TQ-Prod 2-bit']:.4f})"
+
+    print("VLM KEY TEST PASSED")
+    print(f"  RVQ 2-bit cosine on image-like keys: {results['TQ-RVQ 2-bit']:.4f}")
+
+
+def main_vlm():
+    test_vlm_keys()
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--vlm" in sys.argv:
+        main_vlm()
+    else:
+        main()

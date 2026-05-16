@@ -2,6 +2,206 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.3.5] — 2026-05-16
+
+### Added — RateQuant becomes a first-class library feature
+
+- **`mlx_kv_quant.allocators.allocate_bits_ratequant`** — RateQuant Theorem 2
+  closed-form reverse-waterfilling allocator (arxiv:2605.06675). Given a list
+  of per-layer sensitivities and a fractional `target_avg_bits`, returns an
+  integer-valued list of bit-widths whose mean exactly matches the target.
+  Defaults match the paper's RVQ-fitted β=3.5; configurable per quantizer.
+- **`mlx_kv_quant.allocators.calibrate_layer_sensitivities`** — one-pass
+  activation-norm probe. Runs 8 default calibration prompts (overridable),
+  collects per-token squared key L2 norm via a transparent KV-cache subclass.
+  Returns one float per attention layer; ratios above ~2× indicate
+  RateQuant will deliver measurable gains.
+- **`mlx_kv_quant.allocators.fit_distortion_curve`** — least-squares fit of
+  `D(b) = α·β^(-b)` on synthetic unit-norm Gaussian keys. Use this if
+  adapting the allocator to a different quantizer family (paper reports
+  β≈5.0 for KIVI/QuaRot vs 3.5 for TurboQuant).
+- **`KVCacheConfig.bit_width_inlier`** now accepts `int | list[int]`.
+  When a list is supplied, `KVCacheBuilder.for_model(model, config)` consumes
+  element `i` for layer `i`. Length mismatch raises `QuantizerConfigError`.
+  `KVCacheFactory.create()` continues to require an int (the list path
+  dispatches through `for_model` to per-layer factory calls).
+- **`mlx_kv_quant.cache.turboquant_rvq_cache.TurboQuantRVQKVCache`** —
+  library-grade mlx_lm-compatible cache wrapper around `TurboQuantRVQ`.
+  Exposes `compressed_key_bytes`, `fp16_key_bytes`, and `assigned_bits`
+  (never `bits` — that name collides with mlx_lm's quantized-SDPA dispatch).
+- **`mlx_kv_quant.observers.KeyNormObserver`** and `KeyNormReport` —
+  event-driven observer that accumulates per-token key L2 norm² and reports
+  mean / min / max plus a `heterogeneity_ratio` property (predicts RateQuant
+  benefit).
+- **`turboquant_rvq` registered** in `KVCacheFactory.create()` — users can
+  now configure RVQ via `method="turboquant_rvq"` in `KVCacheConfig` without
+  manually constructing the cache class.
+- **27 new tests** across `tests/allocators/`, `tests/observers/`, and
+  `tests/cache/test_turboquant_rvq_cache.py`. Full suite: 187 passing.
+
+### Changed
+- `KVCacheBuilder.with_bit_width(inlier=...)` now accepts a list for
+  per-layer RateQuant allocations.
+- Top-level package re-exports `allocate_bits_ratequant`,
+  `calibrate_layer_sensitivities`, `fit_distortion_curve`,
+  `KeyNormObserver`, and `KeyNormReport`.
+- `pyproject.toml`: version 0.3.5; added `maintainers`, `Author`, `Changelog`,
+  `Documentation` URLs so PyPI displays attribution cleanly.
+
+### Results (RateQuant V2 trial — 2 models on Apple M4 24 GB)
+
+| Model | fp16 | RVQ 1-bit | **RVQ + RateQuant V2** (b̄=1.5) | sensitivity ratio |
+|---|---|---|---|---|
+| Falcon3 7B | 22.9 | 23.1 | **22.8 (100%)** at 5.22× | 6.48× |
+| Gemma3 4B | 39.8 | 37.8 | **36.3 (91%)** at 5.22× | 14.39× |
+
+> Per-layer bit allocations from 1.6s real-activation calibration:
+> Falcon3 = 14/14 (b=2/b=1); Gemma3 = 3/11/20 (b=3/b=2/b=1).
+> Source figures: [`figures/2026-05-16/`](figures/2026-05-16/).
+
+### Known limitations vs paper
+- **Per-head granularity** not implemented (paper: L×H groups, ours: L).
+  mlx_lm's cache is per-layer; adding per-head requires splitting the cache
+  layout. Estimated gain left on the table: ~30% of the paper's headline
+  improvement.
+- **Gradient-based sensitivity** not implemented (paper uses gradient,
+  notes activation is ~1 PPL worse but both beat uniform). Gradient requires
+  backprop through `mlx_lm.generate`, which is not currently practical.
+- **K/V separate budgets** not implemented (paper's biggest single fix on
+  KIVI). Our cache currently only quantizes keys; values pass through fp16.
+
+## [0.3.4] — 2026-05-15
+
+### Added
+- **`OutlierTokenRVQMLXKVCache`** (arxiv:2505.10938, ACL 2025) — RVQ 1-bit
+  cache that routes high-L2-norm "sink" tokens through an fp16 side buffer
+  at prefill. Vectorized mask-blend implementation (no scatter) keeps decode
+  S=1 overhead-free. Catches 0.05–0.09% of tokens on Phi-4, Qwen3, Llama,
+  Gemma3 — exactly the sink-token pattern the paper predicts.
+- **`RateQuantRVQMLXKVCache`** (arxiv:2605.06675) — per-layer integer bit
+  allocation via reverse-waterfilling on a fitted distortion curve
+  D(b) = α·β^(-b). Computed once at construction, zero inference overhead.
+  Uses `.assigned_bits` (not `.bits`) to avoid triggering mlx_lm's quantized
+  SDPA path that expects a different cache layout.
+- **`benchmark_scripts/outlier_ratequant_core.py`** — 4-config figure
+  pipeline (fp16, RVQ 1-bit, RVQ 1-bit + Outlier, RVQ + RateQuant) with
+  a dedicated palette and the same 6-PNG layout as `_generate_figures_v3`.
+- **`benchmark_scripts/run_outlier_ratequant.py`** — 8-model × 4-config
+  benchmark runner with subprocess isolation. Outputs to
+  `figures/outlier_token_ratequant/<model>/`.
+- **`docs/MEMORY_CONSTRAINT_FINDINGS.md`** — documents the Qwen2.5-32B
+  memory-headroom constraint on 24 GB Apple M4 and the watchdog mechanism
+  added to protect the GPU from OOM-driven kernel events.
+- **`.github/workflows/copyright-watch.yml`** — weekly GitHub Actions job
+  that searches the public code index for distinctive class names
+  (TurboQuantRVQMLXKVCache, OutlierTokenRVQMLXKVCache, etc.) and fails
+  the workflow on any hit, triggering an email per GitHub notification
+  settings.
+- **`NOTICE`** — explicit attribution-requirements notice that strengthens
+  the MIT license terms for DMCA purposes.
+
+### Results (OTRQ sweep, 7 of 8 models, Apple M4 24 GB)
+
+Outlier-Token RVQ matches or **beats fp16 throughput** on 5 of 7 models at
+7.5× compression:
+
+| Model | fp16 | RVQ 1-bit | RVQ 1-bit + Outlier | vs fp16 |
+|---|---|---|---|---|
+| Mistral 7B | 21.4 | 21.9 | **22.2** | **104%** |
+| Phi-4 | 10.3 | 9.1 | **11.3** | **110%** |
+| Qwen3 4B | 38.9 | 34.7 (187 tok) | **35.7 (196 tok)** | 92% + better completeness |
+| Qwen3 8B | 19.6 | 17.1 | **20.3** | **104%** |
+| Gemma3 4B | 35.9 | 34.7 | **36.5** | **102%** |
+| Llama 3.1 8B | 18.8 | 17.5 | 17.9 | 95% |
+| Falcon3 7B | 23.4 | 22.5 | 21.8 | 93% |
+
+Qwen2.5-32B-Instruct-4bit could not complete any non-fp16 OTRQ config on
+24 GB unified memory — see `docs/MEMORY_CONSTRAINT_FINDINGS.md`.
+
+### Engineering note
+- **Watchdog for large-model runs**: a memory-pressure poller
+  (`/tmp/memory_watchdog.sh`) terminates the benchmark process tree if
+  free + inactive memory drops below 1 GB. Validated: the watchdog caught
+  the Qwen2.5-32B run at 891 MB free and killed cleanly before MLX could
+  fault the Metal heap.
+
+## [0.3.3] — 2026-05-12
+
+### Added
+- **RVQ 1-bit quantizer** — `TurboQuantRVQ(b=1)` is now fully supported.
+  Stage 1 is a 2-level sign quantizer ({−0.798, +0.798} Gaussian Lloyd-Max);
+  stage 2 applies a 2-level Laplacian correction to the sign-quantization error.
+  Achieves **cosine 0.917 / SNR +7.6 dB** at d=128 on synthetic data, and
+  **201 coherent tokens at 97–98% of fp16 throughput** on Mistral 7B and Qwen3 8B.
+  Per-vector storage: `ceil(d / 4) + 2` bytes → **7.5× key compression** at d=128.
+  Docstring updated with supported bit-widths (b=1, 2, 3+) and expected quality.
+- **`benchmark_scripts/run_full_reports.py`** — model-agnostic 8-model × 6-config
+  sweep orchestrator. Spawns one fresh Python subprocess per (model, config) to
+  guarantee clean MLX graph state. Outputs `figures/2026-05-12/<model>/` with the
+  full 6-figure v3 report. Idempotent: skips completed models/configs unless `--force`.
+- **`_generate_figures_v3` + `run_benchmark_v3_from_results`** in `benchmark_core.py`
+  — v3 figure pipeline extended to 6 configs (fp16 / TQ 2-3-4-bit / RVQ 2-bit ★ /
+  RVQ 1-bit ★). New RVQ-1bit ★ traces appear in all 6 figures. Original v2 functions
+  left untouched.
+- **`benchmark_scripts/run_text_sweep.py`** — lightweight sweep runner used for
+  fp16/RVQ-1/RVQ-2/TQ-4 comparison across models; results go to `figures/updated_tests/text_sweep/`.
+- **`benchmark_scripts/diagnose_vlm_key_stats.py`** — VLM key-distribution diagnostic.
+  Hooks into each layer's `update_and_fetch` to capture real key tensors, then reports
+  per-layer L2 norm (image vs text tokens), post-rotation kurtosis, and RVQ-2bit cosine.
+  Saves histograms to `figures/updated_tests/qwen2_vl/key_stats/`.
+- **`benchmark_scripts/benchmark_qwen2_vl.py`** rewritten with `--run-config` subprocess
+  isolation mode. Fixes the MLX graph-reuse bug that caused 2nd+ configs to produce
+  0 tokens in the same process.
+
+### Changed
+- **`_read_model_cfg()` in `benchmark_core.py`** — new helper that robustly reads
+  `(head_dim, n_kv_heads, n_layers)` from any mlx_lm model, handling:
+  - Standard text models (Mistral, Qwen3, Llama, Phi) via `model.args`.
+  - VLM-style wrappers where `model.args.text_config` is a plain `dict` (Gemma3, Qwen2-VL).
+  - GQA models (Gemma3) where `hidden_size // n_heads` gives the wrong `head_dim` —
+    always uses direct `attn.head_dim` from layer inspection instead of derived formula.
+- **`TurboQuantMLXKVCache` and `TurboQuantRVQMLXKVCache` `update_and_fetch`** —
+  dtype-aware norm handling. Safe-norm threshold and scale factor now use `keys.dtype`
+  (bfloat16 for Qwen2-VL-7B-bf16, float16 for most text models) instead of always
+  casting to float16. Eliminates a redundant cast and preserves the wider exponent
+  range of bfloat16 for large-norm image-patch keys.
+- **`test_2bit_improvements.py`** — added RVQ b=1 synthetic check (`Extra TQ-RVQ (b=1 x2)`,
+  cosine 0.9165) with assert `cosine > 0.80`.
+
+### Fixed
+- **Gemma3 `head_dim` detection** — `_read_model_cfg` previously derived `head_dim`
+  as `hidden_size // num_attention_heads = 2560 // 8 = 320`, but Gemma3's actual
+  per-head dimension is 256. Now reads `attn.head_dim` directly from the layer.
+- **VLM benchmark prompt** — `benchmark_qwen2_vl.py` previously rejected the
+  Qwen2-VL chat template (which ends with `<|im_start|>assistant\n`) and fell back
+  to raw text, degrading quantized output quality. Now always uses the full chat
+  template unconditionally.
+
+### Results (v3 sweep, Apple M4 16GB, figures/2026-05-12/)
+
+Full 6-config benchmark across 8 models (Apple M4 16GB):
+
+| Model | fp16 tok/s | RVQ 1-bit ★ | RVQ 2-bit ★ | TQ 4-bit | RVQ 1-bit compr. | vs fp16 |
+|---|---|---|---|---|---|---|
+| Mistral 7B v0.3 | 23.3 | **22.2** (201 tok) | 22.5 (201) | 21.4 (201) | 7.53× | **95%** |
+| Falcon3 7B | 24.0 | **23.1** (200 tok) | 22.7 (200) | 22.1 (200) | 7.76× | **96%** |
+| Phi-4 | 11.9 | **11.8** (200 tok) | 11.7 (200) | 11.4 (200) | 7.53× | **99%** |
+| Qwen3 4B | 40.2 | **34.3** (187 tok) | 35.0 (197) | 33.5 (199) | 7.53× | **85%** |
+| Qwen3 8B | 20.5 | **21.1** (200 tok) | 20.7 (200) | 19.8 (200) | 7.53× | **103%** |
+| Llama 3.1 8B | 22.0 | **21.5** (201 tok) | 20.9 (201) | 20.3 (201) | 7.53× | **98%** |
+| Gemma3 4B | 32.5 | **30.5** (201 tok) | 29.2 (201) | 27.7 (201) | 7.76× | **94%** |
+| Qwen2.5 32B | 3.7 | **3.9** (200 tok) | 4.2 (200) | 3.9 (200) | 7.53× | **107%** |
+
+Notable: on Qwen3-8B, Phi-4, and Qwen2.5-32B, RVQ configs **match or exceed fp16 throughput** (all memory-bandwidth bound). At 32B scale, RVQ 2-bit achieves 4.2 tok/s vs fp16's 3.7 tok/s (114%) — the KV-cache compression benefit grows with model size. TQ single-pass 2-bit degrades severely on Qwen2.5-32B (5 tokens) and is not suitable for this model; RVQ consistently delivers full outputs across all models and bit-widths.
+
+## [0.3.2] — 2026-05-12
+
+### Added
+- VLM support for **Qwen2-VL-7B-Instruct-bf16** via `build_vlm_caches()` and
+  `KVCacheBuilder.for_model()`.
+- `benchmark_scripts/benchmark_qwen2_vl.py` — VLM benchmark with image+text prompt
+  capability (text-only path validated; image path requires mlx-vlm).
+
 ## [0.3.1] — 2026-05-10
 
 ### Changed
