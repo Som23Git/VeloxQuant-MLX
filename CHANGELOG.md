@@ -2,6 +2,74 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.3.5] — 2026-05-16
+
+### Added — RateQuant becomes a first-class library feature
+
+- **`mlx_kv_quant.allocators.allocate_bits_ratequant`** — RateQuant Theorem 2
+  closed-form reverse-waterfilling allocator (arxiv:2605.06675). Given a list
+  of per-layer sensitivities and a fractional `target_avg_bits`, returns an
+  integer-valued list of bit-widths whose mean exactly matches the target.
+  Defaults match the paper's RVQ-fitted β=3.5; configurable per quantizer.
+- **`mlx_kv_quant.allocators.calibrate_layer_sensitivities`** — one-pass
+  activation-norm probe. Runs 8 default calibration prompts (overridable),
+  collects per-token squared key L2 norm via a transparent KV-cache subclass.
+  Returns one float per attention layer; ratios above ~2× indicate
+  RateQuant will deliver measurable gains.
+- **`mlx_kv_quant.allocators.fit_distortion_curve`** — least-squares fit of
+  `D(b) = α·β^(-b)` on synthetic unit-norm Gaussian keys. Use this if
+  adapting the allocator to a different quantizer family (paper reports
+  β≈5.0 for KIVI/QuaRot vs 3.5 for TurboQuant).
+- **`KVCacheConfig.bit_width_inlier`** now accepts `int | list[int]`.
+  When a list is supplied, `KVCacheBuilder.for_model(model, config)` consumes
+  element `i` for layer `i`. Length mismatch raises `QuantizerConfigError`.
+  `KVCacheFactory.create()` continues to require an int (the list path
+  dispatches through `for_model` to per-layer factory calls).
+- **`mlx_kv_quant.cache.turboquant_rvq_cache.TurboQuantRVQKVCache`** —
+  library-grade mlx_lm-compatible cache wrapper around `TurboQuantRVQ`.
+  Exposes `compressed_key_bytes`, `fp16_key_bytes`, and `assigned_bits`
+  (never `bits` — that name collides with mlx_lm's quantized-SDPA dispatch).
+- **`mlx_kv_quant.observers.KeyNormObserver`** and `KeyNormReport` —
+  event-driven observer that accumulates per-token key L2 norm² and reports
+  mean / min / max plus a `heterogeneity_ratio` property (predicts RateQuant
+  benefit).
+- **`turboquant_rvq` registered** in `KVCacheFactory.create()` — users can
+  now configure RVQ via `method="turboquant_rvq"` in `KVCacheConfig` without
+  manually constructing the cache class.
+- **27 new tests** across `tests/allocators/`, `tests/observers/`, and
+  `tests/cache/test_turboquant_rvq_cache.py`. Full suite: 187 passing.
+
+### Changed
+- `KVCacheBuilder.with_bit_width(inlier=...)` now accepts a list for
+  per-layer RateQuant allocations.
+- Top-level package re-exports `allocate_bits_ratequant`,
+  `calibrate_layer_sensitivities`, `fit_distortion_curve`,
+  `KeyNormObserver`, and `KeyNormReport`.
+- `pyproject.toml`: version 0.3.5; added `maintainers`, `Author`, `Changelog`,
+  `Documentation` URLs so PyPI displays attribution cleanly.
+
+### Results (RateQuant V2 trial — 2 models on Apple M4 24 GB)
+
+| Model | fp16 | RVQ 1-bit | **RVQ + RateQuant V2** (b̄=1.5) | sensitivity ratio |
+|---|---|---|---|---|
+| Falcon3 7B | 22.9 | 23.1 | **22.8 (100%)** at 5.22× | 6.48× |
+| Gemma3 4B | 39.8 | 37.8 | **36.3 (91%)** at 5.22× | 14.39× |
+
+> Per-layer bit allocations from 1.6s real-activation calibration:
+> Falcon3 = 14/14 (b=2/b=1); Gemma3 = 3/11/20 (b=3/b=2/b=1).
+> Source figures: [`figures/2026-05-16/`](figures/2026-05-16/).
+
+### Known limitations vs paper
+- **Per-head granularity** not implemented (paper: L×H groups, ours: L).
+  mlx_lm's cache is per-layer; adding per-head requires splitting the cache
+  layout. Estimated gain left on the table: ~30% of the paper's headline
+  improvement.
+- **Gradient-based sensitivity** not implemented (paper uses gradient,
+  notes activation is ~1 PPL worse but both beat uniform). Gradient requires
+  backprop through `mlx_lm.generate`, which is not currently practical.
+- **K/V separate budgets** not implemented (paper's biggest single fix on
+  KIVI). Our cache currently only quantizes keys; values pass through fp16.
+
 ## [0.3.4] — 2026-05-15
 
 ### Added

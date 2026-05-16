@@ -95,11 +95,7 @@ class QuantizedLinear(nn.Module):
         # 3. Quantize via argmin over Lloyd-Max codebook
         c = self._centroids.astype(mx.float32)                      # (k,)
         dists = mx.abs(w_rot[:, :, None] - c[None, None, :])        # (out, in, k)
-        indices = mx.argmin(dists, axis=-1)                         # (out, in)
-        # Ensure indices are within valid range [0, 2^bits-1]
-        max_idx = (1 << self._bits) - 1
-        indices = mx.clip(indices, 0, max_idx)
-        self._w_indices = indices.astype(mx.uint8)
+        self._w_indices = mx.argmin(dists, axis=-1).astype(mx.uint8)
         self._w_norms = safe_norms                                   # (out, 1)
 
         if bias is not None:
@@ -122,14 +118,14 @@ class QuantizedLinear(nn.Module):
             w_rot_hat.astype(mx.float32)
         )                                                           # (out, in) fp32
 
-        # 2. Rescale rows by their original norms (stay in fp32 to avoid overflow)
-        w_hat = w_unit * self._w_norms                              # (out, in) fp32
+        # 2. Rescale rows by their original norms
+        w_hat = (w_unit * self._w_norms).astype(mx.float16)        # (out, in) fp16
 
-        # 3. Linear projection in fp32 to avoid inf for large-norm rows
-        out = x.astype(mx.float32) @ w_hat.T
+        # 3. Linear projection
+        out = x.astype(mx.float16) @ w_hat.T
         if self._bias is not None:
-            out = out + self._bias.astype(mx.float32)
-        return out.astype(mx.float16)
+            out = out + self._bias
+        return out
 
     @property
     def memory_bytes(self) -> int:
