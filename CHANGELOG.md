@@ -2,6 +2,61 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.3.4] — 2026-05-15
+
+### Added
+- **`OutlierTokenRVQMLXKVCache`** (arxiv:2505.10938, ACL 2025) — RVQ 1-bit
+  cache that routes high-L2-norm "sink" tokens through an fp16 side buffer
+  at prefill. Vectorized mask-blend implementation (no scatter) keeps decode
+  S=1 overhead-free. Catches 0.05–0.09% of tokens on Phi-4, Qwen3, Llama,
+  Gemma3 — exactly the sink-token pattern the paper predicts.
+- **`RateQuantRVQMLXKVCache`** (arxiv:2605.06675) — per-layer integer bit
+  allocation via reverse-waterfilling on a fitted distortion curve
+  D(b) = α·β^(-b). Computed once at construction, zero inference overhead.
+  Uses `.assigned_bits` (not `.bits`) to avoid triggering mlx_lm's quantized
+  SDPA path that expects a different cache layout.
+- **`benchmark_scripts/outlier_ratequant_core.py`** — 4-config figure
+  pipeline (fp16, RVQ 1-bit, RVQ 1-bit + Outlier, RVQ + RateQuant) with
+  a dedicated palette and the same 6-PNG layout as `_generate_figures_v3`.
+- **`benchmark_scripts/run_outlier_ratequant.py`** — 8-model × 4-config
+  benchmark runner with subprocess isolation. Outputs to
+  `figures/outlier_token_ratequant/<model>/`.
+- **`docs/MEMORY_CONSTRAINT_FINDINGS.md`** — documents the Qwen2.5-32B
+  memory-headroom constraint on 24 GB Apple M4 and the watchdog mechanism
+  added to protect the GPU from OOM-driven kernel events.
+- **`.github/workflows/copyright-watch.yml`** — weekly GitHub Actions job
+  that searches the public code index for distinctive class names
+  (TurboQuantRVQMLXKVCache, OutlierTokenRVQMLXKVCache, etc.) and fails
+  the workflow on any hit, triggering an email per GitHub notification
+  settings.
+- **`NOTICE`** — explicit attribution-requirements notice that strengthens
+  the MIT license terms for DMCA purposes.
+
+### Results (OTRQ sweep, 7 of 8 models, Apple M4 24 GB)
+
+Outlier-Token RVQ matches or **beats fp16 throughput** on 5 of 7 models at
+7.5× compression:
+
+| Model | fp16 | RVQ 1-bit | RVQ 1-bit + Outlier | vs fp16 |
+|---|---|---|---|---|
+| Mistral 7B | 21.4 | 21.9 | **22.2** | **104%** |
+| Phi-4 | 10.3 | 9.1 | **11.3** | **110%** |
+| Qwen3 4B | 38.9 | 34.7 (187 tok) | **35.7 (196 tok)** | 92% + better completeness |
+| Qwen3 8B | 19.6 | 17.1 | **20.3** | **104%** |
+| Gemma3 4B | 35.9 | 34.7 | **36.5** | **102%** |
+| Llama 3.1 8B | 18.8 | 17.5 | 17.9 | 95% |
+| Falcon3 7B | 23.4 | 22.5 | 21.8 | 93% |
+
+Qwen2.5-32B-Instruct-4bit could not complete any non-fp16 OTRQ config on
+24 GB unified memory — see `docs/MEMORY_CONSTRAINT_FINDINGS.md`.
+
+### Engineering note
+- **Watchdog for large-model runs**: a memory-pressure poller
+  (`/tmp/memory_watchdog.sh`) terminates the benchmark process tree if
+  free + inactive memory drops below 1 GB. Validated: the watchdog caught
+  the Qwen2.5-32B run at 891 MB free and killed cleanly before MLX could
+  fault the Metal heap.
+
 ## [0.3.3] — 2026-05-12
 
 ### Added
