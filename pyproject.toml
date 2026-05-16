@@ -4,12 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "VeloxQuant-MLX"
-version = "0.3.1"
+version = "0.3.4"
 description = "Fast KV cache quantization for Apple Silicon — TurboQuant, PolarQuant, RVQ, and QJL in MLX"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [
+    { name = "Rajveer Rathod", email = "rathodrajveer1311@gmail.com" },
+]
+maintainers = [
     { name = "Rajveer Rathod", email = "rathodrajveer1311@gmail.com" },
 ]
 keywords = [
@@ -44,9 +47,12 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rajveer43/VeloxQuant-MLX"
-Repository = "https://github.com/rajveer43/VeloxQuant-MLX"
+Homepage      = "https://github.com/rajveer43/VeloxQuant-MLX"
+Repository    = "https://github.com/rajveer43/VeloxQuant-MLX"
 "Bug Tracker" = "https://github.com/rajveer43/VeloxQuant-MLX/issues"
+Author        = "https://github.com/rajveer43"
+Changelog     = "https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGELOG.md"
+Documentation = "https://github.com/rajveer43/VeloxQuant-MLX#readme"
 
 [project.scripts]
 veloxquant = "mlx_kv_quant.__main__:main"
