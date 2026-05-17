@@ -1,0 +1,870 @@
+<!-- Deploy: drag the landing/ folder to netlify.com/drop -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
+  <meta name="description" content="VeloxQuant-MLX delivers up to 7.5× key cache compression with less than 1% throughput loss on Apple M-series chips. TurboQuant, RateQuant, PolarQuant, QJL in MLX." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #08080f;
+      --surface:   #12121e;
+      --border:    #1e1e35;
+      --accent:    #00d4ff;
+      --purple:    #7c3aed;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+      --code-bg:   #1e1e2e;
+      --code-text: #cdd6f4;
+      --radius:    12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: rgba(8,8,15,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.75rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active { color: var(--accent); }
+
+    /* ── HERO ── */
+    #hero {
+      position: relative;
+      min-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 5rem 1.5rem 4rem;
+      overflow: hidden;
+    }
+
+    /* animated grid background */
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridShift 20s linear infinite;
+      pointer-events: none;
+    }
+
+    /* radial glow centre */
+    #hero::after {
+      content: '';
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(0,212,255,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    @keyframes gridShift {
+      0%   { background-position: 0 0, 0 0; }
+      100% { background-position: 48px 48px, 48px 48px; }
+    }
+
+    .hero-content { position: relative; z-index: 1; max-width: 780px; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.9rem;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      margin-bottom: 1.5rem;
+      background: rgba(0,212,255,0.06);
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    h1 span { color: var(--accent); }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-oneliner {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 580px;
+      margin: 0 auto 2rem;
+    }
+
+    /* install block */
+    .install-block {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.7rem 1.2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--code-text);
+      margin-bottom: 2rem;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .install-block:hover { border-color: var(--accent); }
+
+    .install-block .dollar { color: var(--accent); user-select: none; }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+      font-size: 0.8rem;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .copy-btn:hover { color: var(--accent); }
+    .copy-btn.copied { color: #4ade80; }
+
+    .cta-row {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.5rem;
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-filled {
+      background: var(--accent);
+      color: #08080f;
+      border: 1px solid var(--accent);
+    }
+
+    .btn-filled:hover { background: #33ddff; }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    .hero-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .hero-meta span { margin: 0 0.4rem; opacity: 0.4; }
+
+    /* ── SECTIONS COMMON ── */
+    section {
+      padding: 5rem 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-desc {
+      color: var(--muted);
+      max-width: 560px;
+      margin-bottom: 3rem;
+    }
+
+    /* ── STAT CARDS ── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .stat-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: 0 0 24px rgba(0,212,255,0.08);
+    }
+
+    .stat-number {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    /* ── ALGO CARDS ── */
+    .algo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+
+    .algo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .algo-card:hover {
+      border-color: rgba(124,58,237,0.6);
+      transform: translateY(-3px);
+      box-shadow: 0 0 24px rgba(124,58,237,0.08);
+    }
+
+    .algo-badge {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      background: rgba(124,58,237,0.18);
+      color: #a78bfa;
+      border: 1px solid rgba(124,58,237,0.3);
+      margin-bottom: 0.85rem;
+    }
+
+    .algo-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .algo-desc {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── CODE BLOCKS ── */
+    .code-section { padding: 5rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .code-wrap {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .code-lang {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .code-copy {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-family: 'Inter', sans-serif;
+      transition: color 0.2s;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .code-copy:hover { color: var(--accent); background: rgba(0,212,255,0.06); }
+    .code-copy.copied { color: #4ade80; }
+
+    pre {
+      padding: 1.4rem 1.5rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      line-height: 1.75;
+      color: var(--code-text);
+    }
+
+    /* syntax colours */
+    .kw  { color: #cba6f7; } /* keyword */
+    .fn  { color: #89dceb; } /* function */
+    .st  { color: #a6e3a1; } /* string */
+    .cm  { color: #585b70; font-style: italic; } /* comment */
+    .nu  { color: #fab387; } /* number */
+    .op  { color: #89dceb; } /* operator */
+    .id  { color: var(--code-text); } /* identifier */
+    .at  { color: #f38ba8; } /* attribute */
+
+    /* ── BENCHMARK TABLE ── */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    thead tr {
+      background: rgba(0,212,255,0.07);
+      border-bottom: 1px solid var(--border);
+    }
+
+    thead th {
+      padding: 1rem 1.25rem;
+      text-align: left;
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    tbody td {
+      padding: 0.9rem 1.25rem;
+      color: var(--text);
+    }
+
+    .td-highlight { color: var(--accent); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+    /* ── INSTALL SECTION ── */
+    .install-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .req-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .req-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .req-list li::before {
+      content: '✓';
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      list-style: none;
+      margin-bottom: 1rem;
+    }
+
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .footer-tagline {
+      font-size: 0.75rem;
+      color: var(--border);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── FADE-IN ANIMATION ── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .stat-row { grid-template-columns: 1fr; }
+      .algo-grid { grid-template-columns: 1fr; }
+      .install-grid { grid-template-columns: 1fr; }
+      .nav-links { gap: 1rem; }
+      h1 { font-size: 2rem; }
+      .stat-number { font-size: 2.4rem; }
+    }
+
+    @media (max-width: 480px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAVIGATION ── -->
+  <nav id="navbar">
+    <a href="#hero" class="nav-logo">VeloxQuant-MLX</a>
+    <ul class="nav-links">
+      <li><a href="#algorithms">Algorithms</a></li>
+      <li><a href="#quickstart">Quickstart</a></li>
+      <li><a href="#benchmarks">Benchmarks</a></li>
+      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
+      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section id="hero">
+    <div class="hero-content">
+      <div class="badge">v0.3.6 — Now on PyPI</div>
+      <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
+      <p class="hero-sub">TurboQuant · RateQuant · PolarQuant · QJL — in MLX</p>
+      <p class="hero-oneliner">
+        VeloxQuant-MLX delivers up to 7.5× key cache compression with &lt;1% throughput loss on M-series chips.
+      </p>
+      <div class="install-block" id="hero-install" title="Click to copy">
+        <span class="dollar">$</span>
+        <span id="install-cmd">pip install VeloxQuant-MLX</span>
+        <button class="copy-btn" id="hero-copy-btn" aria-label="Copy install command">Copy</button>
+      </div>
+      <div class="cta-row">
+        <a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener" class="btn btn-outline">
+          &#9679; View on GitHub
+        </a>
+        <a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener" class="btn btn-filled">
+          PyPI Page →
+        </a>
+      </div>
+      <p class="hero-meta">
+        MIT License
+        <span>·</span>
+        Python 3.11+
+        <span>·</span>
+        Apple Silicon M1+
+      </p>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── WHY SECTION ── -->
+  <section id="why">
+    <p class="section-label">Why VeloxQuant-MLX</p>
+    <h2 class="section-title">Numbers that matter</h2>
+    <p class="section-desc">Measured on real Apple Silicon hardware with Falcon3-7B and Gemma3-4B.</p>
+    <div class="stat-row">
+      <div class="stat-card fade-in">
+        <div class="stat-number">7.5×</div>
+        <div class="stat-label">Key cache compression<br>(TurboQuant RVQ 1-bit, d=128)</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-number">100%</div>
+        <div class="stat-label">FP16 throughput retained<br>at 5.22× compression (Falcon3-7B)</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-number">14.4×</div>
+        <div class="stat-label">Sensitivity ratio detected<br>by RateQuant on Gemma3</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── ALGORITHMS ── -->
+  <section id="algorithms">
+    <p class="section-label">Algorithms</p>
+    <h2 class="section-title">Four quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality tradeoff curve.</p>
+    <div class="algo-grid">
+      <div class="algo-card fade-in">
+        <div class="algo-badge">RVQ</div>
+        <div class="algo-title">TurboQuant RVQ</div>
+        <div class="algo-desc">Two-pass scalar residual vector quantization. 1-bit, 2-bit, and 3-bit codebooks fitted to Gaussian + Laplacian key distributions. Achieves up to 7.5× compression with tight distortion bounds.</div>
+      </div>
+      <div class="algo-card fade-in">
+        <div class="algo-badge">NEW</div>
+        <div class="algo-title">RateQuant</div>
+        <div class="algo-desc">Per-layer bit allocation via reverse-waterfilling (arxiv:2605.06675). Automatically assigns more bits to high-sensitivity transformer layers. Delivers equal or better quality at lower average bit-width.</div>
+      </div>
+      <div class="algo-card fade-in">
+        <div class="algo-badge">POLAR</div>
+        <div class="algo-title">PolarQuant</div>
+        <div class="algo-desc">Recursive polar coordinate decomposition for clustered key distributions. Lossless angular encoding preserves inner-product structure critical to attention score accuracy.</div>
+      </div>
+      <div class="algo-card fade-in">
+        <div class="algo-badge">1-BIT</div>
+        <div class="algo-title">QJL</div>
+        <div class="algo-desc">Johnson-Lindenstrauss 1-bit sign sketch. An inner-product-preserving random projection for extreme compression scenarios. Minimal memory footprint with provable approximation guarantees.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── QUICKSTART ── -->
+  <section id="quickstart" class="code-section">
+    <p class="section-label">Quickstart</p>
+    <h2 class="section-title">Up and running in 5 lines</h2>
+    <p class="section-desc" style="margin-bottom:2rem;">Import, configure, build — then pass the cache directly to mlx_lm.</p>
+
+    <div class="code-wrap fade-in">
+      <div class="code-header">
+        <span class="code-lang">python</span>
+        <button class="code-copy" data-target="code1">Copy</button>
+      </div>
+      <pre id="code1"><span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="cm"># Build a TurboQuant RVQ cache at 1-bit</span>
+<span class="id">cfg</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"turboquant_rvq"</span><span class="op">,</span>
+    <span class="at">bit_width_inlier</span><span class="op">=</span><span class="nu">1</span><span class="op">,</span>
+    <span class="at">seed</span><span class="op">=</span><span class="nu">0</span><span class="op">,</span>
+<span class="op">)</span>
+<span class="id">cache</span> <span class="op">=</span> <span class="op">(</span>
+    <span class="fn">KVCacheBuilder</span><span class="op">()</span>
+    <span class="op">.</span><span class="fn">with_method</span><span class="op">(</span><span class="st">"turboquant_rvq"</span><span class="op">)</span>
+    <span class="op">.</span><span class="fn">with_head_dim</span><span class="op">(</span><span class="nu">128</span><span class="op">)</span>
+    <span class="op">.</span><span class="fn">with_bit_width</span><span class="op">(</span><span class="nu">1</span><span class="op">)</span>
+    <span class="op">.</span><span class="fn">with_seed</span><span class="op">(</span><span class="nu">0</span><span class="op">)</span>
+    <span class="op">.</span><span class="fn">build</span><span class="op">()</span>
+<span class="op">)</span></pre>
+    </div>
+
+    <div class="code-wrap fade-in">
+      <div class="code-header">
+        <span class="code-lang">python — RateQuant per-layer allocation</span>
+        <button class="code-copy" data-target="code2">Copy</button>
+      </div>
+      <pre id="code2"><span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">allocate_bits_ratequant</span><span class="op">,</span> <span class="fn">calibrate_layer_sensitivities</span>
+
+<span class="cm"># 1. Probe the model to get per-layer sensitivity scores</span>
+<span class="id">sensitivities</span> <span class="op">=</span> <span class="fn">calibrate_layer_sensitivities</span><span class="op">(</span><span class="id">model</span><span class="op">)</span>
+
+<span class="cm"># 2. Allocate bits — average 1.5 bits across all layers</span>
+<span class="id">bits</span> <span class="op">=</span> <span class="fn">allocate_bits_ratequant</span><span class="op">(</span><span class="id">sensitivities</span><span class="op">,</span> <span class="at">target_avg_bits</span><span class="op">=</span><span class="nu">1.5</span><span class="op">)</span>
+<span class="cm"># → [2, 1, 1, 3, 1, 2, ...]  one int per attention layer</span>
+
+<span class="cm"># 3. Build per-layer caches and inject into mlx_lm</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"turboquant_rvq"</span><span class="op">,</span> <span class="at">bit_width_inlier</span><span class="op">=</span><span class="id">bits</span><span class="op">,</span> <span class="at">seed</span><span class="op">=</span><span class="nu">0</span><span class="op">,</span>
+<span class="op">))</span></pre>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── BENCHMARKS ── -->
+  <section id="benchmarks">
+    <p class="section-label">Benchmarks</p>
+    <h2 class="section-title">Measured on Apple Silicon</h2>
+    <p class="section-desc">All results on Apple M4 (24 GB unified memory). FP16 baseline = 100%.</p>
+    <div class="table-wrap fade-in">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Method</th>
+            <th>Compression</th>
+            <th>Throughput vs FP16</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Falcon3-7B</td>
+            <td>TurboQuant RVQ 1-bit</td>
+            <td class="td-highlight">5.22×</td>
+            <td class="td-highlight">100%</td>
+          </tr>
+          <tr>
+            <td>Falcon3-7B</td>
+            <td>RateQuant (avg 1.5b)</td>
+            <td class="td-highlight">5.22×</td>
+            <td class="td-highlight">100%</td>
+          </tr>
+          <tr>
+            <td>Gemma3-4B</td>
+            <td>TurboQuant RVQ 1-bit</td>
+            <td class="td-highlight">5.22×</td>
+            <td class="td-highlight">98%</td>
+          </tr>
+          <tr>
+            <td>Mistral-7B</td>
+            <td>TurboQuant RVQ 2-bit</td>
+            <td class="td-highlight">3.2×</td>
+            <td class="td-highlight">99%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── INSTALL ── -->
+  <section id="install">
+    <p class="section-label">Installation</p>
+    <h2 class="section-title">Get started in seconds</h2>
+    <p class="section-desc" style="margin-bottom:2rem;">Requires Apple Silicon (M1 or later) and Python 3.11+.</p>
+    <div class="install-grid">
+      <div>
+        <div class="code-wrap fade-in">
+          <div class="code-header">
+            <span class="code-lang">pip</span>
+            <button class="code-copy" data-target="code3">Copy</button>
+          </div>
+          <pre id="code3"><span class="id">pip install VeloxQuant-MLX</span></pre>
+        </div>
+        <div class="code-wrap fade-in">
+          <div class="code-header">
+            <span class="code-lang">pip — dev extras</span>
+            <button class="code-copy" data-target="code4">Copy</button>
+          </div>
+          <pre id="code4"><span class="id">pip install "VeloxQuant-MLX[dev]"</span></pre>
+        </div>
+      </div>
+      <div class="fade-in">
+        <ul class="req-list">
+          <li>Apple Silicon M1 or later</li>
+          <li>Python 3.11 or 3.12</li>
+          <li>MLX ≥ 0.18</li>
+          <li>NumPy ≥ 1.26</li>
+          <li>Matplotlib ≥ 3.8</li>
+          <li>MIT License — free for commercial use</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <ul class="footer-links">
+      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
+      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/issues" target="_blank" rel="noopener">Issues</a></li>
+    </ul>
+    <p class="footer-copy">© 2026 Rajveer Rathod · MIT License</p>
+    <p class="footer-tagline">BUILT FOR APPLE SILICON. ENGINEERED FOR SPEED.</p>
+  </footer>
+
+  <script>
+    // ── COPY HELPERS ──
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+      });
+    }
+
+    // hero install copy
+    document.getElementById('hero-install').addEventListener('click', () => {
+      const btn = document.getElementById('hero-copy-btn');
+      copyText('pip install VeloxQuant-MLX', btn);
+    });
+
+    // code block copies
+    document.querySelectorAll('.code-copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        const pre = document.getElementById(targetId);
+        copyText(pre.innerText, btn);
+      });
+    });
+
+    // ── SCROLL FADE-IN ──
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // ── ACTIVE NAV ──
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-links a');
+
+    const navObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          navLinks.forEach(a => a.classList.remove('active'));
+          const active = document.querySelector(`.nav-links a[href="#${entry.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+
+    sections.forEach(s => navObserver.observe(s));
+  </script>
+</body>
+</html>
