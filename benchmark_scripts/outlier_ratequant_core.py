@@ -44,8 +44,8 @@ import numpy as np
 import seaborn as sns
 from mlx_lm.models.cache import KVCache as _MLXKVCache
 
-from mlx_kv_quant.quantizers.turboquant_prod import TurboQuantProd
-from mlx_kv_quant.quantizers.turboquant_rvq import TurboQuantRVQ
+from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd
+from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
 
 
 # ── Palette: 4 distinct colors keyed to the four configs ──────────────────────
@@ -794,7 +794,7 @@ def _draw_v4_figures(
 
     fig6.suptitle(
         f"Outlier-Token + RateQuant Report — {model_label}\n"
-        f"Apple M4 · mlx_kv_quant · 4 configs",
+        f"Apple M4 · veloxquant_mlx · 4 configs",
         fontsize=15, fontweight="bold", y=1.005,
     )
     fig6.savefig(f"{out_dir}/fig6_full_report.png",

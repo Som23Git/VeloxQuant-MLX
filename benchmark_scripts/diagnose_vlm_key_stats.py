@@ -38,7 +38,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from mlx_kv_quant.quantizers.turboquant_rvq import TurboQuantRVQ
+from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
 
 DEFAULT_MODEL = "mlx-community/Qwen2-VL-7B-Instruct-bf16"
 N_IMG = 256       # synthetic image patch count (typical ViT output for one image)

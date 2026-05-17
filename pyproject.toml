@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "VeloxQuant-MLX"
-version = "0.3.5"
+version = "0.3.6"
 description = "Fast KV cache quantization for Apple Silicon — TurboQuant, RVQ, RateQuant, PolarQuant, and QJL in MLX"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -56,15 +56,15 @@ Changelog     = "https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGEL
 Documentation = "https://github.com/rajveer43/VeloxQuant-MLX#readme"
 
 [project.scripts]
-veloxquant = "mlx_kv_quant.__main__:main"
-mlx-kv-quant = "mlx_kv_quant.__main__:main"
+veloxquant = "veloxquant_mlx.__main__:main"
+mlx-kv-quant = "veloxquant_mlx.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mlx_kv_quant*"]
+include = ["veloxquant_mlx*"]
 
 [tool.pytest.ini_options]
-testpaths = ["mlx_kv_quant/tests"]
+testpaths = ["veloxquant_mlx/tests"]
 addopts = "-v"
 filterwarnings = ["ignore::DeprecationWarning"]
 

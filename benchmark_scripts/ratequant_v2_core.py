@@ -58,7 +58,7 @@ import mlx.core as mx
 import numpy as np
 from mlx_lm.models.cache import KVCache as _MLXKVCache
 
-from mlx_kv_quant.quantizers.turboquant_rvq import TurboQuantRVQ
+from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
 
 
 # ─────────────────────────────────────────────────────────────────────────────

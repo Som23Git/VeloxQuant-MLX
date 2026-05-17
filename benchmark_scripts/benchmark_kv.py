@@ -19,7 +19,7 @@ import numpy as np
 import mlx_lm
 from mlx_lm.models.cache import KVCache as _MLXKVCache
 
-from mlx_kv_quant.quantizers.turboquant_prod import TurboQuantProd
+from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd
 
 MODEL_ID = "mlx-community/Llama-3.2-3B-Instruct-4bit"
 PROMPT = (

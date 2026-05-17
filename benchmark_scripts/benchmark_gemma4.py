@@ -26,7 +26,7 @@ import seaborn as sns
 from mlx_lm.models.cache import KVCache as _MLXKVCache
 from mlx_lm.models.cache import RotatingKVCache
 
-from mlx_kv_quant.quantizers.turboquant_prod import TurboQuantProd
+from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 MODEL_ID   = "mlx-community/gemma-4-e4b-it-4bit"
@@ -325,7 +325,7 @@ print(f"Saved {OUT_DIR}/fig2_hybrid_architecture.png")
 
 
 # ── Fig 3: Quality vs bits at head_dim=512 ────────────────────────────────────
-from mlx_kv_quant.quantizers.turboquant_prod import TurboQuantProd as TQP
+from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd as TQP
 
 bit_range = [2, 3, 4, 5, 6]
 dims      = [256, 512]
@@ -568,7 +568,7 @@ ax_e.legend(fontsize=9); sns.despine(ax=ax_e)
 
 fig6.suptitle(
     "TurboQuant KV Cache — Gemma 4 4B Full Benchmark Report\n"
-    "Apple M4 · Hybrid Architecture · mlx_kv_quant",
+    "Apple M4 · Hybrid Architecture · veloxquant_mlx",
     fontsize=16, fontweight="bold", y=1.005,
 )
 fig6.savefig(f"{OUT_DIR}/fig6_full_report.png", dpi=150, bbox_inches="tight")

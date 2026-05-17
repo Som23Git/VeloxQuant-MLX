@@ -13,7 +13,7 @@ A drop-in KV-cache replacement for `mlx_lm` that compresses the Key tensor by **
 
 ```python
 import mlx_lm
-from mlx_kv_quant import KVCacheBuilder, KVCacheConfig
+from veloxquant_mlx import KVCacheBuilder, KVCacheConfig
 
 model, tokenizer = mlx_lm.load("mlx-community/Mistral-7B-Instruct-v0.3-4bit")
 
@@ -30,7 +30,7 @@ response = mlx_lm.generate(model, tokenizer,
 ### Per-layer RateQuant — match fp16 throughput at fractional average bits
 
 ```python
-from mlx_kv_quant import (
+from veloxquant_mlx import (
     KVCacheBuilder, KVCacheConfig,
     calibrate_layer_sensitivities, allocate_bits_ratequant,
 )
@@ -101,7 +101,7 @@ Requires **Python ≥ 3.11** and an **Apple Silicon Mac** with MLX ≥ 0.18.
 ### Standalone KV cache (synthetic streaming)
 
 ```python
-from mlx_kv_quant import KVCacheBuilder
+from veloxquant_mlx import KVCacheBuilder
 import mlx.core as mx, numpy as np
 
 cache = (
@@ -132,7 +132,7 @@ and VLM wrappers automatically:
 
 ```python
 import mlx_lm
-from mlx_kv_quant import KVCacheBuilder, KVCacheConfig
+from veloxquant_mlx import KVCacheBuilder, KVCacheConfig
 
 model, tokenizer = mlx_lm.load("mlx-community/Mistral-7B-Instruct-v0.3-4bit")
 
@@ -157,7 +157,7 @@ average held at a user-chosen target. The library exposes both the
 sensitivity probe and the closed-form allocator:
 
 ```python
-from mlx_kv_quant import (
+from veloxquant_mlx import (
     KVCacheBuilder, KVCacheConfig,
     calibrate_layer_sensitivities,   # 1.6s, real-activation probe
     allocate_bits_ratequant,         # Theorem 2 reverse-waterfilling
@@ -206,20 +206,20 @@ already gives most of the benefit on RVQ at ≥1.5 bits.
 
 | Module | Purpose |
 |---|---|
-| [`mlx_kv_quant.quantizers.turboquant_prod`](mlx_kv_quant/quantizers/turboquant_prod.py) | Rotation + Lloyd-Max + QJL residual (b-1 + 1 bits) |
-| [`mlx_kv_quant.quantizers.turboquant_mse`](mlx_kv_quant/quantizers/turboquant_mse.py) | Rotation + Lloyd-Max only (no residual correction) |
-| [`mlx_kv_quant.quantizers.turboquant_rvq`](mlx_kv_quant/quantizers/turboquant_rvq.py) | Two-pass scalar RVQ (Gaussian + Laplacian codebooks), b=1/2/3+ |
-| [`mlx_kv_quant.quantizers.polarquant`](mlx_kv_quant/quantizers/polarquant.py) | Recursive polar coordinate decomposition |
-| [`mlx_kv_quant.quantizers.qjl`](mlx_kv_quant/quantizers/qjl.py) | Pure 1-bit JL sign sketch |
-| [`mlx_kv_quant.cache.turboquant_rvq_cache`](mlx_kv_quant/cache/turboquant_rvq_cache.py) | **NEW** — `TurboQuantRVQKVCache` mlx_lm-compatible cache wrapper |
-| [`mlx_kv_quant.allocators`](mlx_kv_quant/allocators/) | **NEW** — `allocate_bits_ratequant`, `calibrate_layer_sensitivities` |
-| [`mlx_kv_quant.observers`](mlx_kv_quant/observers/) | `DistortionObserver`, `LatencyObserver`, `MemoryObserver`, **`KeyNormObserver` (new)** |
-| [`mlx_kv_quant.codebooks`](mlx_kv_quant/codebooks/) | `ScalarCodebook`, Lloyd-Max strategies, `AdaptiveScalarCodebook` |
-| [`mlx_kv_quant.preconditioners`](mlx_kv_quant/preconditioners/) | `RotationPreconditioner` (QR), `HadamardPreconditioner` (Metal) |
-| [`mlx_kv_quant.cache`](mlx_kv_quant/cache/) | `TurboQuantKVCache` standalone, mlx_lm `KVCache` subclasses |
-| [`mlx_kv_quant.weight`](mlx_kv_quant/weight/) | `QuantizedLinear` for model weight quantization |
-| [`mlx_kv_quant.dsa.bit_pack`](mlx_kv_quant/dsa/bit_pack.py) | Sub-byte index packing |
-| [`mlx_kv_quant.outlier`](mlx_kv_quant/outlier/) | Two-stream cache for high-variance channels |
+| [`veloxquant_mlx.quantizers.turboquant_prod`](veloxquant_mlx/quantizers/turboquant_prod.py) | Rotation + Lloyd-Max + QJL residual (b-1 + 1 bits) |
+| [`veloxquant_mlx.quantizers.turboquant_mse`](veloxquant_mlx/quantizers/turboquant_mse.py) | Rotation + Lloyd-Max only (no residual correction) |
+| [`veloxquant_mlx.quantizers.turboquant_rvq`](veloxquant_mlx/quantizers/turboquant_rvq.py) | Two-pass scalar RVQ (Gaussian + Laplacian codebooks), b=1/2/3+ |
+| [`veloxquant_mlx.quantizers.polarquant`](veloxquant_mlx/quantizers/polarquant.py) | Recursive polar coordinate decomposition |
+| [`veloxquant_mlx.quantizers.qjl`](veloxquant_mlx/quantizers/qjl.py) | Pure 1-bit JL sign sketch |
+| [`veloxquant_mlx.cache.turboquant_rvq_cache`](veloxquant_mlx/cache/turboquant_rvq_cache.py) | **NEW** — `TurboQuantRVQKVCache` mlx_lm-compatible cache wrapper |
+| [`veloxquant_mlx.allocators`](veloxquant_mlx/allocators/) | **NEW** — `allocate_bits_ratequant`, `calibrate_layer_sensitivities` |
+| [`veloxquant_mlx.observers`](veloxquant_mlx/observers/) | `DistortionObserver`, `LatencyObserver`, `MemoryObserver`, **`KeyNormObserver` (new)** |
+| [`veloxquant_mlx.codebooks`](veloxquant_mlx/codebooks/) | `ScalarCodebook`, Lloyd-Max strategies, `AdaptiveScalarCodebook` |
+| [`veloxquant_mlx.preconditioners`](veloxquant_mlx/preconditioners/) | `RotationPreconditioner` (QR), `HadamardPreconditioner` (Metal) |
+| [`veloxquant_mlx.cache`](veloxquant_mlx/cache/) | `TurboQuantKVCache` standalone, mlx_lm `KVCache` subclasses |
+| [`veloxquant_mlx.weight`](veloxquant_mlx/weight/) | `QuantizedLinear` for model weight quantization |
+| [`veloxquant_mlx.dsa.bit_pack`](veloxquant_mlx/dsa/bit_pack.py) | Sub-byte index packing |
+| [`veloxquant_mlx.outlier`](veloxquant_mlx/outlier/) | Two-stream cache for high-variance channels |
 
 ---
 
@@ -387,7 +387,7 @@ Design patterns used (10): Abstract Base Classes, Factory, Chain of Responsibili
 ### Precompute artifacts (rotation matrices, JL matrices, codebooks)
 
 ```bash
-python -m mlx_kv_quant precompute \
+python -m veloxquant_mlx precompute \
     --head_dim 128 --bits 1 2 3 4 --jl_dim 128 --seed 42 \
     --output_dir ./artifacts/
 ```
@@ -395,7 +395,7 @@ python -m mlx_kv_quant precompute \
 Then pass an `NpyArtifactStore` to the builder to load instead of recompute:
 
 ```python
-from mlx_kv_quant.artifacts import NpyArtifactStore
+from veloxquant_mlx.artifacts import NpyArtifactStore
 cache = (KVCacheBuilder()
     .with_method("turboquant_rvq")
     .with_head_dim(128).with_bit_width(inlier=2)
@@ -406,7 +406,7 @@ cache = (KVCacheBuilder()
 ### Benchmark a single configuration
 
 ```bash
-python -m mlx_kv_quant benchmark \
+python -m veloxquant_mlx benchmark \
     --method turboquant_rvq --head_dim 128 --bits 2 --seq_len 1000
 ```
 
@@ -424,7 +424,7 @@ python benchmark_<model>.py                 # original 4-config script (figures/
 
 ```bash
 # Tests
-pytest mlx_kv_quant/tests/ -v
+pytest veloxquant_mlx/tests/ -v
 
 # 2-bit improvement validation (synthetic, fast)
 python test_2bit_improvements.py

@@ -2,21 +2,32 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.3.6] — 2026-05-17
+
+### Breaking Change — Package namespace renamed
+
+- **`mlx_kv_quant` → `veloxquant_mlx`**: The Python import namespace now
+  matches the PyPI distribution name `VeloxQuant-MLX`. All imports must be
+  updated: `from mlx_kv_quant import ...` → `from veloxquant_mlx import ...`.
+  No backward-compatibility shim is provided; this is a clean break at pre-1.0.
+
+---
+
 ## [0.3.5] — 2026-05-16
 
 ### Added — RateQuant becomes a first-class library feature
 
-- **`mlx_kv_quant.allocators.allocate_bits_ratequant`** — RateQuant Theorem 2
+- **`veloxquant_mlx.allocators.allocate_bits_ratequant`** — RateQuant Theorem 2
   closed-form reverse-waterfilling allocator (arxiv:2605.06675). Given a list
   of per-layer sensitivities and a fractional `target_avg_bits`, returns an
   integer-valued list of bit-widths whose mean exactly matches the target.
   Defaults match the paper's RVQ-fitted β=3.5; configurable per quantizer.
-- **`mlx_kv_quant.allocators.calibrate_layer_sensitivities`** — one-pass
+- **`veloxquant_mlx.allocators.calibrate_layer_sensitivities`** — one-pass
   activation-norm probe. Runs 8 default calibration prompts (overridable),
   collects per-token squared key L2 norm via a transparent KV-cache subclass.
   Returns one float per attention layer; ratios above ~2× indicate
   RateQuant will deliver measurable gains.
-- **`mlx_kv_quant.allocators.fit_distortion_curve`** — least-squares fit of
+- **`veloxquant_mlx.allocators.fit_distortion_curve`** — least-squares fit of
   `D(b) = α·β^(-b)` on synthetic unit-norm Gaussian keys. Use this if
   adapting the allocator to a different quantizer family (paper reports
   β≈5.0 for KIVI/QuaRot vs 3.5 for TurboQuant).
@@ -25,11 +36,11 @@ All notable changes to **VeloxQuant-MLX** are documented here.
   element `i` for layer `i`. Length mismatch raises `QuantizerConfigError`.
   `KVCacheFactory.create()` continues to require an int (the list path
   dispatches through `for_model` to per-layer factory calls).
-- **`mlx_kv_quant.cache.turboquant_rvq_cache.TurboQuantRVQKVCache`** —
+- **`veloxquant_mlx.cache.turboquant_rvq_cache.TurboQuantRVQKVCache`** —
   library-grade mlx_lm-compatible cache wrapper around `TurboQuantRVQ`.
   Exposes `compressed_key_bytes`, `fp16_key_bytes`, and `assigned_bits`
   (never `bits` — that name collides with mlx_lm's quantized-SDPA dispatch).
-- **`mlx_kv_quant.observers.KeyNormObserver`** and `KeyNormReport` —
+- **`veloxquant_mlx.observers.KeyNormObserver`** and `KeyNormReport` —
   event-driven observer that accumulates per-token key L2 norm² and reports
   mean / min / max plus a `heterogeneity_ratio` property (predicts RateQuant
   benefit).

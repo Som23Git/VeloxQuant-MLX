@@ -13,8 +13,8 @@ import math
 import mlx.core as mx
 import numpy as np
 
-from mlx_kv_quant.quantizers.turboquant_prod import TurboQuantProd
-from mlx_kv_quant.quantizers.turboquant_rvq import TurboQuantRVQ
+from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd
+from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
 
 
 D = 128

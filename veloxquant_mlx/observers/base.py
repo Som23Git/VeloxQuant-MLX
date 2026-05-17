@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Dict
+
+from veloxquant_mlx.core.abstractions import QuantizationObserver
+
+
+@dataclass
+class QuantizationEvent:
+    """Data emitted by the quantization pipeline at key checkpoints.
+
+    Attributes:
+        stage: Handler name that emitted this event.
+        input_shape: Shape of the input tensor at this stage.
+        elapsed_ms: Wall-clock time for this stage in milliseconds.
+        memory_delta_bytes: Change in process RSS during this stage.
+        metadata: Stage-specific extra data.
+    """
+
+    stage: str
+    input_shape: tuple
+    elapsed_ms: float = 0.0
+    memory_delta_bytes: int = 0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __repr__(self) -> str:
+        return (
+            f"QuantizationEvent(stage={self.stage!r}, "
+            f"shape={self.input_shape}, "
+            f"elapsed_ms={self.elapsed_ms:.3f})"
+        )

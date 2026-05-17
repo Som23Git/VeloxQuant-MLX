@@ -13,8 +13,8 @@ import numpy as np
 import seaborn as sns
 from mlx_lm.models.cache import KVCache as _MLXKVCache
 
-from mlx_kv_quant.quantizers.turboquant_prod import TurboQuantProd
-from mlx_kv_quant.quantizers.turboquant_rvq import TurboQuantRVQ
+from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd
+from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
 
 PALETTE = {
     "fp16":  "#4C72B0",
@@ -496,7 +496,7 @@ def generate_figures(
     ax_e.legend(fontsize=9); sns.despine(ax=ax_e)
 
     fig6.suptitle(
-        f"TurboQuant KV Cache — {model_label} Full Benchmark Report\nApple M4 · mlx_kv_quant",
+        f"TurboQuant KV Cache — {model_label} Full Benchmark Report\nApple M4 · veloxquant_mlx",
         fontsize=16, fontweight="bold", y=1.005,
     )
     fig6.savefig(f"{out_dir}/fig6_full_report.png", dpi=150, bbox_inches="tight")
@@ -866,7 +866,7 @@ def _generate_figures_v2(
 
     fig6.suptitle(
         f"TurboQuant KV Cache (v2 with RVQ) — {model_label}\n"
-        f"Apple M4 · mlx_kv_quant",
+        f"Apple M4 · veloxquant_mlx",
         fontsize=16, fontweight="bold", y=1.005,
     )
     fig6.savefig(f"{out_dir}/fig6_full_report.png", dpi=150, bbox_inches="tight")
@@ -1371,7 +1371,7 @@ def _generate_figures_v3(
 
     fig6.suptitle(
         f"TurboQuant KV Cache (v3 · 6 configs) — {model_label}\n"
-        f"Apple M4 · mlx_kv_quant · RVQ 1-bit & 2-bit ★",
+        f"Apple M4 · veloxquant_mlx · RVQ 1-bit & 2-bit ★",
         fontsize=15, fontweight="bold", y=1.005,
     )
     fig6.savefig(f"{out_dir}/fig6_full_report.png", dpi=150, bbox_inches="tight")
