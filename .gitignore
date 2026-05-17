@@ -28,4 +28,4 @@ artifacts/
 # Old turboquant-mlx directory
 turboquant-mlx/
 
-.bench_tmp/
+.bench_tmp/.claude/
