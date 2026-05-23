@@ -7,10 +7,16 @@ from __future__ import annotations
 
 from veloxquant_mlx.allocators import (
     allocate_bits_ratequant,
+    apply_dual_transform_keys,
+    apply_dual_transform_queries,
     calibrate_layer_sensitivities,
+    calibrate_smooth_factors,
     fit_distortion_curve,
+    train_codebook,
+    walsh_hadamard_matrix,
 )
 from veloxquant_mlx.cache.base import KVCacheBuilder, KVCacheConfig, KVCacheFactory
+from veloxquant_mlx.cache.vecinfer_cache import VecInferKVCache
 from veloxquant_mlx.core.abstractions import (
     ArtifactStore,
     KVCache,
@@ -52,9 +58,16 @@ __all__ = [
     "allocate_bits_ratequant",
     "calibrate_layer_sensitivities",
     "fit_distortion_curve",
+    # VecInfer
+    "VecInferKVCache",
+    "apply_dual_transform_keys",
+    "apply_dual_transform_queries",
+    "calibrate_smooth_factors",
+    "train_codebook",
+    "walsh_hadamard_matrix",
     # Observers
     "KeyNormObserver",
     "KeyNormReport",
 ]
 
-__version__ = "0.3.6"
+__version__ = "0.5.0"

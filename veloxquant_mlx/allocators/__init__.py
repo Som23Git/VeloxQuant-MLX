@@ -29,9 +29,28 @@ from veloxquant_mlx.allocators.ratequant import (
     calibrate_layer_sensitivities,
     fit_distortion_curve,
 )
+from veloxquant_mlx.allocators.vecinfer import (
+    apply_dual_transform_keys,
+    apply_dual_transform_queries,
+    calibrate_smooth_factors,
+    compute_query_lut,
+    dequantize_vq,
+    quantize_vq,
+    train_codebook,
+    walsh_hadamard_matrix,
+)
 
 __all__ = [
     "allocate_bits_ratequant",
     "calibrate_layer_sensitivities",
     "fit_distortion_curve",
+    # VecInfer primitives
+    "apply_dual_transform_keys",
+    "apply_dual_transform_queries",
+    "calibrate_smooth_factors",
+    "compute_query_lut",
+    "dequantize_vq",
+    "quantize_vq",
+    "train_codebook",
+    "walsh_hadamard_matrix",
 ]

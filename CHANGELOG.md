@@ -2,6 +2,37 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.5.0] — 2026-05-23
+
+### Added — VecInfer (vector quantization with outlier-suppressing dual transform)
+
+- **`veloxquant_mlx.allocators.vecinfer`** — algorithmic primitives for
+  VecInfer (arxiv:2510.06175, Yao et al. 2025):
+  - `calibrate_smooth_factors(keys)` → per-(head, channel) `lambda_i = sqrt(max|K_i|)`.
+  - `walsh_hadamard_matrix(d)` → orthonormal rotation; `d` must be power-of-2.
+  - `apply_dual_transform_keys / queries` → preserve `q @ K.T` under
+    smooth + Hadamard (Eq. 7), with GQA fallback when smooth was
+    calibrated on more heads than the cache stores.
+  - `train_codebook`, `quantize_vq`, `dequantize_vq` → product VQ with a
+    pure-numpy Lloyd's k-means.
+  - `compute_query_lut` → optional fused-score fast path.
+- **`veloxquant_mlx.cache.vecinfer_cache.VecInferKVCache`** — mlx_lm
+  `update_and_fetch` wrapper that quantizes and immediately dequantizes
+  keys/values so downstream SDPA sees standard fp16 tensors. Tracks
+  `compressed_key_bytes`, `fp16_key_bytes`, `codebook_bytes`,
+  `assigned_avg_bits`. Selectable via `KVCacheConfig(method="vecinfer", ...)`.
+- **Benchmarks**: 8× key compression at 2-bit, 16× at 1-bit on
+  Llama-3.2-1B/3B-Instruct-4bit. Plots and `results.json` under
+  `figures/vecinfer/<model>/`. Run:
+  `PYTHONPATH=. python benchmark_scripts/benchmark_vecinfer.py --model <hf-id>`
+- **Tradeoff**: throughput drops vs fp16 (the paper's CUDA kernel fusion
+  is not portable to Metal). The win on Apple Silicon is memory
+  compression, not raw speed.
+- 18 new tests (`tests/allocators/test_vecinfer.py`,
+  `tests/cache/test_vecinfer_cache.py`).
+
+---
+
 ## [0.3.6] — 2026-05-17
 
 ### Breaking Change — Package namespace renamed

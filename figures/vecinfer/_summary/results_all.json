@@ -1,0 +1,806 @@
+{
+  "per_model": {
+    "mlx-community/Falcon3-7B-Instruct-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 17.276111492837195,
+        "peak_mb": 4116.84485244751,
+        "key_compression": 1.0,
+        "tokens_generated": 120,
+        "elapsed_s": 6.946007499995176,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 15.910958740175564,
+        "peak_mb": 4085.2801818847656,
+        "key_compression": 11.636363636363637,
+        "tokens_generated": 78,
+        "elapsed_s": 4.9022815830103355,
+        "key_kb": 558.25
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 20.23794411327287,
+        "peak_mb": 4085.6549224853516,
+        "key_compression": 6.7368421052631575,
+        "tokens_generated": 120,
+        "elapsed_s": 5.929456041994854,
+        "key_kb": 1238.5625
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 21.62431167429547,
+        "peak_mb": 4086.3115978240967,
+        "key_compression": 4.7407407407407405,
+        "tokens_generated": 120,
+        "elapsed_s": 5.549309583002469,
+        "key_kb": 1760.0625
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 20.820125865980227,
+        "peak_mb": 4094.717441558838,
+        "key_compression": 3.9384615384615387,
+        "tokens_generated": 120,
+        "elapsed_s": 5.763653917005286,
+        "key_kb": 2118.59375
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 21.689204334307473,
+        "peak_mb": 4093.841878890991,
+        "key_compression": 7.757575757575758,
+        "tokens_generated": 120,
+        "elapsed_s": 5.532706416997826,
+        "key_kb": 1075.59375
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 0.0,
+        "peak_mb": 4839.650554656982,
+        "key_compression": 8.0,
+        "tokens_generated": 0,
+        "elapsed_s": 0.4484992079960648,
+        "key_kb": 210.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 16.979271867944707,
+        "peak_mb": 4919.572666168213,
+        "key_compression": 16.0,
+        "tokens_generated": 103,
+        "elapsed_s": 6.066220082997461,
+        "key_kb": 521.5
+      }
+    ],
+    "mlx-community/Llama-3.1-8B-Instruct-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 20.49960820733101,
+        "peak_mb": 4460.51770401001,
+        "key_compression": 1.0,
+        "tokens_generated": 121,
+        "elapsed_s": 5.90255183300178,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 19.827188119540704,
+        "peak_mb": 4434.020978927612,
+        "key_compression": 9.142857142857142,
+        "tokens_generated": 117,
+        "elapsed_s": 5.900988042005338,
+        "key_kb": 1232.0
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 14.309219927752071,
+        "peak_mb": 4434.677473068237,
+        "key_compression": 5.818181818181818,
+        "tokens_generated": 18,
+        "elapsed_s": 1.2579302079975605,
+        "key_kb": 814.0
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 20.676009682472515,
+        "peak_mb": 4435.990476608276,
+        "key_compression": 4.266666666666667,
+        "tokens_generated": 121,
+        "elapsed_s": 5.852193041995633,
+        "key_kb": 2640.0
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 20.810308557832553,
+        "peak_mb": 4449.708990097046,
+        "key_compression": 3.878787878787879,
+        "tokens_generated": 121,
+        "elapsed_s": 5.814426041004481,
+        "key_kb": 2904.0
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 20.63470094506945,
+        "peak_mb": 4447.958364486694,
+        "key_compression": 7.529411764705882,
+        "tokens_generated": 121,
+        "elapsed_s": 5.8639085839968175,
+        "key_kb": 1496.0
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 10.650628904318332,
+        "peak_mb": 5372.534954071045,
+        "key_compression": 8.0,
+        "tokens_generated": 67,
+        "elapsed_s": 6.290708332991926,
+        "key_kb": 1408.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 19.612756703341912,
+        "peak_mb": 5314.879199981689,
+        "key_compression": 16.0,
+        "tokens_generated": 122,
+        "elapsed_s": 6.22044120800274,
+        "key_kb": 704.0
+      }
+    ],
+    "mlx-community/Llama-3.2-1B-Instruct-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 105.38787585250398,
+        "peak_mb": 786.3818855285645,
+        "key_compression": 1.0,
+        "tokens_generated": 61,
+        "elapsed_s": 0.578814209002303,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 75.47269674862952,
+        "peak_mb": 735.4994029998779,
+        "key_compression": 6.4,
+        "tokens_generated": 53,
+        "elapsed_s": 0.7022407080075936,
+        "key_kb": 290.0
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 54.00168135706618,
+        "peak_mb": 735.9370250701904,
+        "key_compression": 4.571428571428571,
+        "tokens_generated": 33,
+        "elapsed_s": 0.6110920840001199,
+        "key_kb": 406.0
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 98.77344832143969,
+        "peak_mb": 736.7029094696045,
+        "key_compression": 3.5555555555555554,
+        "tokens_generated": 61,
+        "elapsed_s": 0.6175748749956256,
+        "key_kb": 522.0
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 102.07537937897048,
+        "peak_mb": 745.9699096679688,
+        "key_compression": 3.764705882352941,
+        "tokens_generated": 61,
+        "elapsed_s": 0.5975975829933304,
+        "key_kb": 493.0
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 104.34787076999086,
+        "peak_mb": 744.8602447509766,
+        "key_compression": 7.111111111111111,
+        "tokens_generated": 61,
+        "elapsed_s": 0.5845830830076011,
+        "key_kb": 261.0
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 60.42371024493511,
+        "peak_mb": 1659.7875289916992,
+        "key_compression": 8.0,
+        "tokens_generated": 41,
+        "elapsed_s": 0.6785415829945123,
+        "key_kb": 232.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 91.24178005999181,
+        "peak_mb": 1799.5746154785156,
+        "key_compression": 16.0,
+        "tokens_generated": 61,
+        "elapsed_s": 0.6685533749987371,
+        "key_kb": 116.0
+      }
+    ],
+    "mlx-community/Llama-3.2-3B-Instruct-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 47.602652392696115,
+        "peak_mb": 1919.1403884887695,
+        "key_compression": 1.0,
+        "tokens_generated": 121,
+        "elapsed_s": 2.5418751669931225,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 20.574365561722075,
+        "peak_mb": 1826.186285018921,
+        "key_compression": 9.142857142857142,
+        "tokens_generated": 8,
+        "elapsed_s": 0.3888333750073798,
+        "key_kb": 392.0
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 45.17611839732346,
+        "peak_mb": 1826.9521236419678,
+        "key_compression": 5.818181818181818,
+        "tokens_generated": 120,
+        "elapsed_s": 2.6562707080011023,
+        "key_kb": 1694.0
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 45.19457407449006,
+        "peak_mb": 1828.4838161468506,
+        "key_compression": 4.266666666666667,
+        "tokens_generated": 121,
+        "elapsed_s": 2.6773125420004362,
+        "key_kb": 2310.0
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 46.19802135391882,
+        "peak_mb": 1838.2977142333984,
+        "key_compression": 3.878787878787879,
+        "tokens_generated": 121,
+        "elapsed_s": 2.6191597919969354,
+        "key_kb": 2541.0
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 46.20870392861481,
+        "peak_mb": 1836.5471725463867,
+        "key_compression": 7.529411764705882,
+        "tokens_generated": 121,
+        "elapsed_s": 2.6185542919993168,
+        "key_kb": 1309.0
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 39.684361737653035,
+        "peak_mb": 2759.359941482544,
+        "key_compression": 8.0,
+        "tokens_generated": 121,
+        "elapsed_s": 3.049060000004829,
+        "key_kb": 1232.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 40.2463921779466,
+        "peak_mb": 3118.224452972412,
+        "key_compression": 16.0,
+        "tokens_generated": 121,
+        "elapsed_s": 3.006480667012511,
+        "key_kb": 616.0
+      }
+    ],
+    "mlx-community/Mistral-7B-Instruct-v0.3-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 23.58565520282034,
+        "peak_mb": 4015.867473602295,
+        "key_compression": 1.0,
+        "tokens_generated": 121,
+        "elapsed_s": 5.130236957993475,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 22.54740049253761,
+        "peak_mb": 3978.4694423675537,
+        "key_compression": 9.142857142857142,
+        "tokens_generated": 121,
+        "elapsed_s": 5.366472292007529,
+        "key_kb": 1022.0
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 22.592764830417796,
+        "peak_mb": 3978.7509365081787,
+        "key_compression": 5.818181818181818,
+        "tokens_generated": 121,
+        "elapsed_s": 5.355696875005378,
+        "key_kb": 1606.0
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 22.518611294873512,
+        "peak_mb": 3979.313940048218,
+        "key_compression": 4.266666666666667,
+        "tokens_generated": 121,
+        "elapsed_s": 5.373333125011413,
+        "key_kb": 2190.0
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 22.861534681548264,
+        "peak_mb": 3985.799835205078,
+        "key_compression": 3.878787878787879,
+        "tokens_generated": 121,
+        "elapsed_s": 5.292733042006148,
+        "key_kb": 2409.0
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 22.827534620802687,
+        "peak_mb": 3985.0492095947266,
+        "key_compression": 7.529411764705882,
+        "tokens_generated": 121,
+        "elapsed_s": 5.300616208012798,
+        "key_kb": 1241.0
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 21.183002587646083,
+        "peak_mb": 4730.879661560059,
+        "key_compression": 8.0,
+        "tokens_generated": 120,
+        "elapsed_s": 5.664919290997204,
+        "key_kb": 1168.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 9.801218669821237,
+        "peak_mb": 4802.976322174072,
+        "key_compression": 16.0,
+        "tokens_generated": 56,
+        "elapsed_s": 5.713575207992108,
+        "key_kb": 584.0
+      }
+    ],
+    "mlx-community/Phi-4-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 10.427631293818772,
+        "peak_mb": 7987.900638580322,
+        "key_compression": 1.0,
+        "tokens_generated": 120,
+        "elapsed_s": 11.507886749997851,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 9.591799395187724,
+        "peak_mb": 7963.593090057373,
+        "key_compression": 9.142857142857142,
+        "tokens_generated": 120,
+        "elapsed_s": 12.51068700000178,
+        "key_kb": 1618.75
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 9.170177926968776,
+        "peak_mb": 7963.905895233154,
+        "key_compression": 5.818181818181818,
+        "tokens_generated": 120,
+        "elapsed_s": 13.08589658299752,
+        "key_kb": 2543.75
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 8.7037717788036,
+        "peak_mb": 7964.531562805176,
+        "key_compression": 4.266666666666667,
+        "tokens_generated": 120,
+        "elapsed_s": 13.7871262080007,
+        "key_kb": 3468.75
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 8.433402461760005,
+        "peak_mb": 7959.866600036621,
+        "key_compression": 3.878787878787879,
+        "tokens_generated": 120,
+        "elapsed_s": 14.22913237499597,
+        "key_kb": 3815.625
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 8.096669920631495,
+        "peak_mb": 7959.240795135498,
+        "key_compression": 7.529411764705882,
+        "tokens_generated": 120,
+        "elapsed_s": 14.820907999994233,
+        "key_kb": 1965.625
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 7.212720227174159,
+        "peak_mb": 8697.36642074585,
+        "key_compression": 8.0,
+        "tokens_generated": 120,
+        "elapsed_s": 16.637273624990485,
+        "key_kb": 1850.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 3.9816189288813226,
+        "peak_mb": 8783.496562957764,
+        "key_compression": 16.0,
+        "tokens_generated": 64,
+        "elapsed_s": 16.073863707992132,
+        "key_kb": 925.0
+      }
+    ],
+    "mlx-community/Qwen2.5-7B-Instruct-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 21.020687815237284,
+        "peak_mb": 4210.964199066162,
+        "key_compression": 1.0,
+        "tokens_generated": 120,
+        "elapsed_s": 5.708661917000427,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 12.02655764592918,
+        "peak_mb": 4178.482954025269,
+        "key_compression": 9.142857142857142,
+        "tokens_generated": 66,
+        "elapsed_s": 5.487854624996544,
+        "key_kb": 520.625
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 22.020628130598986,
+        "peak_mb": 4178.7644329071045,
+        "key_compression": 5.818181818181818,
+        "tokens_generated": 120,
+        "elapsed_s": 5.449435832997551,
+        "key_kb": 818.125
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 23.21799133563542,
+        "peak_mb": 4179.32735824585,
+        "key_compression": 4.266666666666667,
+        "tokens_generated": 126,
+        "elapsed_s": 5.426826041002641,
+        "key_kb": 1115.625
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 22.507924242213857,
+        "peak_mb": 4187.363090515137,
+        "key_compression": 3.878787878787879,
+        "tokens_generated": 122,
+        "elapsed_s": 5.42031324999698,
+        "key_kb": 1227.1875
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 20.702328015823632,
+        "peak_mb": 4186.65940284729,
+        "key_compression": 7.529411764705882,
+        "tokens_generated": 112,
+        "elapsed_s": 5.410019584000111,
+        "key_kb": 632.1875
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 21.282868972179067,
+        "peak_mb": 4813.64338684082,
+        "key_compression": 8.0,
+        "tokens_generated": 120,
+        "elapsed_s": 5.638337583004613,
+        "key_kb": 595.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 21.485851866178326,
+        "peak_mb": 4903.501792907715,
+        "key_compression": 16.0,
+        "tokens_generated": 121,
+        "elapsed_s": 5.631612875004066,
+        "key_kb": 297.5
+      }
+    ],
+    "mlx-community/Qwen3-8B-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 20.30208286936381,
+        "peak_mb": 4531.8381996154785,
+        "key_compression": 1.0,
+        "tokens_generated": 120,
+        "elapsed_s": 5.910723583001527,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 19.441168472523167,
+        "peak_mb": 4488.438985824585,
+        "key_compression": 9.142857142857142,
+        "tokens_generated": 120,
+        "elapsed_s": 6.172468500008108,
+        "key_kb": 1173.375
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 18.7800553012033,
+        "peak_mb": 4488.814260482788,
+        "key_compression": 5.818181818181818,
+        "tokens_generated": 120,
+        "elapsed_s": 6.389757541997824,
+        "key_kb": 1843.875
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 18.543533330012497,
+        "peak_mb": 4489.705450057983,
+        "key_compression": 4.266666666666667,
+        "tokens_generated": 120,
+        "elapsed_s": 6.471258625009796,
+        "key_kb": 2514.375
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 19.424976975343398,
+        "peak_mb": 4496.663106918335,
+        "key_compression": 3.878787878787879,
+        "tokens_generated": 120,
+        "elapsed_s": 6.177613499996369,
+        "key_kb": 2765.8125
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 19.58243250249224,
+        "peak_mb": 4495.787397384644,
+        "key_compression": 7.529411764705882,
+        "tokens_generated": 120,
+        "elapsed_s": 6.127941458995338,
+        "key_kb": 1424.8125
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 17.860528113344927,
+        "peak_mb": 5329.992427825928,
+        "key_compression": 8.0,
+        "tokens_generated": 119,
+        "elapsed_s": 6.662736915997812,
+        "key_kb": 1341.0
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 2.3995183265715943,
+        "peak_mb": 5439.0500831604,
+        "key_compression": 16.0,
+        "tokens_generated": 16,
+        "elapsed_s": 6.6680049169954145,
+        "key_kb": 670.5
+      }
+    ],
+    "mlx-community/SmolLM2-135M-Instruct": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 250.363787968573,
+        "peak_mb": 296.06744384765625,
+        "key_compression": 1.0,
+        "tokens_generated": 120,
+        "elapsed_s": 0.47930254200764466,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 70.38247007207428,
+        "peak_mb": 280.8139305114746,
+        "key_compression": 6.4,
+        "tokens_generated": 51,
+        "elapsed_s": 0.7246122500073398,
+        "key_kb": 295.3125
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 166.50311723078835,
+        "peak_mb": 280.38758087158203,
+        "key_compression": 4.571428571428571,
+        "tokens_generated": 119,
+        "elapsed_s": 0.714701333999983,
+        "key_kb": 413.4375
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 164.2740671471755,
+        "peak_mb": 280.7403373718262,
+        "key_compression": 3.5555555555555554,
+        "tokens_generated": 121,
+        "elapsed_s": 0.7365739590022713,
+        "key_kb": 531.5625
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 170.63534062418242,
+        "peak_mb": 281.4736557006836,
+        "key_compression": 3.764705882352941,
+        "tokens_generated": 120,
+        "elapsed_s": 0.7032540830114158,
+        "key_kb": 502.03125
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 188.48606691969357,
+        "peak_mb": 281.06379890441895,
+        "key_compression": 7.111111111111111,
+        "tokens_generated": 120,
+        "elapsed_s": 0.6366518330032704,
+        "key_kb": 265.78125
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 163.0367016855707,
+        "peak_mb": 679.6299057006836,
+        "key_compression": 8.0,
+        "tokens_generated": 110,
+        "elapsed_s": 0.6746947089995956,
+        "key_kb": 236.25
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 175.8415453631897,
+        "peak_mb": 657.6297836303711,
+        "key_compression": 16.0,
+        "tokens_generated": 120,
+        "elapsed_s": 0.6824325829948066,
+        "key_kb": 118.125
+      }
+    ],
+    "mlx-community/gemma-3-4b-it-4bit": [
+      {
+        "name": "fp16-baseline",
+        "throughput_tok_s": 26.043457260836206,
+        "peak_mb": 2536.7513904571533,
+        "key_compression": 1.0,
+        "tokens_generated": 121,
+        "elapsed_s": 4.646080541002448,
+        "key_kb": 0.0
+      },
+      {
+        "name": "TQ-2bit",
+        "throughput_tok_s": 22.733998489356207,
+        "peak_mb": 2515.482109069824,
+        "key_compression": 11.636363636363637,
+        "tokens_generated": 121,
+        "elapsed_s": 5.322424915997544,
+        "key_kb": 859.03125
+      },
+      {
+        "name": "TQ-3bit",
+        "throughput_tok_s": 24.062732142439465,
+        "peak_mb": 2515.720724105835,
+        "key_compression": 6.7368421052631575,
+        "tokens_generated": 121,
+        "elapsed_s": 5.028522916007205,
+        "key_kb": 1483.78125
+      },
+      {
+        "name": "TQ-4bit",
+        "throughput_tok_s": 24.811900123942404,
+        "peak_mb": 2516.2682180404663,
+        "key_compression": 4.7407407407407405,
+        "tokens_generated": 121,
+        "elapsed_s": 4.876692207995802,
+        "key_kb": 2108.53125
+      },
+      {
+        "name": "RVQ-2bit",
+        "throughput_tok_s": 24.36325349367729,
+        "peak_mb": 2517.3644218444824,
+        "key_compression": 3.9384615384615387,
+        "tokens_generated": 121,
+        "elapsed_s": 4.966495957996813,
+        "key_kb": 2538.046875
+      },
+      {
+        "name": "RVQ-1bit",
+        "throughput_tok_s": 24.218768334557318,
+        "peak_mb": 2516.8481044769287,
+        "key_compression": 7.757575757575758,
+        "tokens_generated": 121,
+        "elapsed_s": 4.996125249992474,
+        "key_kb": 1288.546875
+      },
+      {
+        "name": "VecInfer-2bit",
+        "throughput_tok_s": 22.64753841848552,
+        "peak_mb": 3224.5530643463135,
+        "key_compression": 8.0,
+        "tokens_generated": 121,
+        "elapsed_s": 5.342743999994127,
+        "key_kb": 1249.5
+      },
+      {
+        "name": "VecInfer-1bit",
+        "throughput_tok_s": 22.591339609950246,
+        "peak_mb": 3302.606470108032,
+        "key_compression": 16.0,
+        "tokens_generated": 121,
+        "elapsed_s": 5.356034750002436,
+        "key_kb": 624.75
+      }
+    ]
+  },
+  "meta": {
+    "mlx-community/Falcon3-7B-Instruct-4bit": {
+      "head_dim": 256,
+      "n_kv_heads": 4,
+      "n_q_heads": 12,
+      "n_layers": 28
+    },
+    "mlx-community/Llama-3.1-8B-Instruct-4bit": {
+      "head_dim": 128,
+      "n_kv_heads": 8,
+      "n_q_heads": 32,
+      "n_layers": 32
+    },
+    "mlx-community/Llama-3.2-1B-Instruct-4bit": {
+      "head_dim": 64,
+      "n_kv_heads": 8,
+      "n_q_heads": 32,
+      "n_layers": 16
+    },
+    "mlx-community/Llama-3.2-3B-Instruct-4bit": {
+      "head_dim": 128,
+      "n_kv_heads": 8,
+      "n_q_heads": 24,
+      "n_layers": 28
+    },
+    "mlx-community/Mistral-7B-Instruct-v0.3-4bit": {
+      "head_dim": 128,
+      "n_kv_heads": 8,
+      "n_q_heads": 32,
+      "n_layers": 32
+    },
+    "mlx-community/Phi-4-4bit": {
+      "head_dim": 128,
+      "n_kv_heads": 10,
+      "n_q_heads": 40,
+      "n_layers": 40
+    },
+    "mlx-community/Qwen2.5-7B-Instruct-4bit": {
+      "head_dim": 128,
+      "n_kv_heads": 4,
+      "n_q_heads": 28,
+      "n_layers": 28
+    },
+    "mlx-community/Qwen3-8B-4bit": {
+      "head_dim": 128,
+      "n_kv_heads": 8,
+      "n_q_heads": 32,
+      "n_layers": 36
+    },
+    "mlx-community/SmolLM2-135M-Instruct": {
+      "head_dim": 64,
+      "n_kv_heads": 3,
+      "n_q_heads": 9,
+      "n_layers": 30
+    },
+    "mlx-community/gemma-3-4b-it-4bit": {
+      "head_dim": 256,
+      "n_kv_heads": 4,
+      "n_q_heads": 8,
+      "n_layers": 34
+    }
+  }
+}

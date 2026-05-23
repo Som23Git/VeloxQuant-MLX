@@ -31,7 +31,10 @@ class KVCacheConfig:
         observers: List of QuantizationObserver instances.
     """
 
-    method: Literal["turboquant_prod", "turboquant_mse", "turboquant_rvq", "polar", "qjl"] = "turboquant_prod"
+    method: Literal[
+        "turboquant_prod", "turboquant_mse", "turboquant_rvq",
+        "polar", "qjl", "vecinfer",
+    ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
     bit_width_outlier: Optional[int] = None
@@ -47,6 +50,15 @@ class KVCacheConfig:
     sliding_window: Optional[int] = None
     store: Optional[ArtifactStore] = None
     observers: list = field(default_factory=list)
+    # --- VecInfer-specific configuration -------------------------------
+    key_sub_dim: int = 4
+    value_sub_dim: int = 8
+    key_codebook_bits: int = 12
+    value_codebook_bits: int = 8
+    residual_length: int = 128
+    smooth_factors: Any = None         # mx.array | np.ndarray | None
+    key_codebook: Any = None           # mx.array | np.ndarray | None
+    value_codebook: Any = None         # mx.array | np.ndarray | None
 
     def __repr__(self) -> str:
         return (
@@ -73,11 +85,12 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.sliding_window_cache import SlidingWindowKVCache
         from veloxquant_mlx.cache.turboquant_cache import TurboQuantKVCache
         from veloxquant_mlx.cache.turboquant_rvq_cache import TurboQuantRVQKVCache
+        from veloxquant_mlx.cache.vecinfer_cache import VecInferKVCache
 
         d = config.head_dim
         seed = config.seed
         b = config.bit_width_inlier
-        if isinstance(b, list):
+        if isinstance(b, list) and config.method != "vecinfer":
             raise QuantizerConfigError(
                 "KVCacheFactory.create() requires bit_width_inlier to be a single int. "
                 "List-form bit_width_inlier (per-layer allocation) is consumed by "
@@ -94,10 +107,13 @@ class KVCacheFactory:
             cache = PolarQuantKVCache(config)
         elif config.method == "qjl":
             cache = QJLKVCache(config)
+        elif config.method == "vecinfer":
+            cache = VecInferKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
-                f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, polar, qjl."
+                f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
+                f"polar, qjl, vecinfer."
             )
 
         if config.sliding_window is not None:

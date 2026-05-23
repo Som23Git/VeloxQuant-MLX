@@ -1,13 +1,13 @@
 # VeloxQuant-MLX
 
-**Fast KV-cache quantization for Apple Silicon — TurboQuant, RVQ, RateQuant, PolarQuant, and QJL in MLX.**
+**Fast KV-cache quantization for Apple Silicon — TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, and QJL in MLX.**
 
-[![PyPI version](https://img.shields.io/badge/pypi-0.3.5-blue.svg)](https://pypi.org/project/VeloxQuant-MLX/)
+[![PyPI version](https://img.shields.io/badge/pypi-0.5.0-blue.svg)](https://pypi.org/project/VeloxQuant-MLX/)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Apple%20Silicon-black.svg)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A drop-in KV-cache replacement for `mlx_lm` that compresses the Key tensor by **3–9×** with near-lossless quality at 4-bit, **functional 2-bit and 1-bit** via Residual Vector Quantization, and **per-layer mixed-precision** allocation via RateQuant. Validated end-to-end on 8 production models (Mistral, Falcon, Phi, Qwen3, Llama 3.1, Gemma3, Qwen2.5).
+A drop-in KV-cache replacement for `mlx_lm` that compresses the Key tensor by **3–16×** with near-lossless quality at 4-bit, **functional 2-bit and 1-bit** via Residual Vector Quantization, up to **16× via VecInfer product VQ**, and **per-layer mixed-precision** allocation via RateQuant. Validated end-to-end on **10 production models** (Mistral, Falcon, Phi-4, Qwen3, Qwen2.5, Llama 3.1/3.2, Gemma3, SmolLM2).
 
 ### Uniform 1-bit RVQ — 7.5× key compression, 95–104% of fp16 throughput
 
@@ -67,7 +67,8 @@ caches = KVCacheBuilder.for_model(model, config)
 
 ## Highlights
 
-- **RVQ 1-bit (new in 0.3.4)** — sign-quantizer stage + Laplacian residual delivers **7.5× key compression with cosine 0.92**, generates full 200-token output on every tested model, and **matches or beats fp16 throughput** on 5 of 7 7-8B models (best: Phi-4 at 110% of fp16).
+- **VecInfer product VQ (new in 0.5.0)** — smooth scaling + Walsh-Hadamard dual transform + K-means codebook delivers **16× key compression at 1 bit/elem**. On Qwen2.5-7B (strong GQA) VecInfer-1bit *exceeds* fp16 throughput at 16× compression. Benchmarked across 10 models — see [v6 results](#v6-results--vecinfer-10-model-comparative-study-050).
+- **RVQ 1-bit (new in 0.3.4)** — sign-quantizer stage + Laplacian residual delivers **7.5× key compression with cosine 0.92**, generates full 200-token output on every tested model, and **matches or beats fp16 throughput** on most 7–8B models.
 - **RateQuant per-layer allocation (new in 0.3.5)** — Theorem 2 reverse-waterfilling on real activation sensitivities. Pass `bit_width_inlier=alloc_list` to `KVCacheConfig`, let `KVCacheBuilder.for_model()` consume per layer. 1.6s one-time calibration, zero inference overhead.
 - **RVQ 2-bit** — two-pass residual quantization brings 2-bit cosine from **0.69 → 0.98**.
 - **End-to-end fp16 throughput parity** on Mistral, Falcon, Phi-4, Qwen3, Gemma3 after the throughput optimizations.
@@ -202,6 +203,47 @@ already gives most of the benefit on RVQ at ≥1.5 bits.
 
 ---
 
+## VecInfer — vector quantization with outlier-suppressing dual transform
+
+**New in 0.5.0.** [VecInfer](https://arxiv.org/abs/2510.06175) (Yao et al. 2025)
+compresses the KV cache via product vector quantization against a pre-trained
+K-means codebook. To handle outlier channels that wreck codebook utilization
+at low bit-widths, VecInfer applies a **dual transform** before quantization:
+per-channel smooth scaling (`lambda_i = sqrt(max|K_i|)`) followed by a
+Walsh–Hadamard rotation. The inverse transform is absorbed into the queries,
+so `q_tilde @ K_tilde.T == q @ K.T` exactly.
+
+```python
+import mlx.core as mx
+from mlx_lm import load, generate
+from veloxquant_mlx import KVCacheConfig, KVCacheBuilder
+
+model, tokenizer = load("mlx-community/Llama-3.2-3B-Instruct-4bit")
+
+config = KVCacheConfig(
+    method="vecinfer",
+    key_codebook_bits=8, key_sub_dim=4,       # 2 bits/elem on keys
+    value_codebook_bits=8, value_sub_dim=4,   # 2 bits/elem on values
+    # smooth_factors / key_codebook / value_codebook can be passed pre-calibrated;
+    # omitted = random init (useful only for wiring tests)
+)
+caches = KVCacheBuilder.for_model(model, config)
+out = generate(model, tokenizer, prompt="Explain Hadamard rotation", max_tokens=80,
+               prompt_cache=caches)
+```
+
+**Realized compression** (Llama-3.2-3B-Instruct-4bit, this repo):
+8× on keys at 2 bits/elem, 16× at 1 bit/elem.
+
+**Tradeoff to know up front:** the paper's CUDA kernel fuses dequantization
+into attention, eliminating the dequant overhead. That fusion is not
+portable to Metal — on Apple Silicon you should expect throughput to
+*drop* vs fp16 (the win is memory, not speed). See
+[`benchmark_scripts/benchmark_vecinfer.py`](benchmark_scripts/benchmark_vecinfer.py)
+and `figures/vecinfer/` for measured numbers.
+
+---
+
 ## What's inside
 
 | Module | Purpose |
@@ -211,8 +253,10 @@ already gives most of the benefit on RVQ at ≥1.5 bits.
 | [`veloxquant_mlx.quantizers.turboquant_rvq`](veloxquant_mlx/quantizers/turboquant_rvq.py) | Two-pass scalar RVQ (Gaussian + Laplacian codebooks), b=1/2/3+ |
 | [`veloxquant_mlx.quantizers.polarquant`](veloxquant_mlx/quantizers/polarquant.py) | Recursive polar coordinate decomposition |
 | [`veloxquant_mlx.quantizers.qjl`](veloxquant_mlx/quantizers/qjl.py) | Pure 1-bit JL sign sketch |
-| [`veloxquant_mlx.cache.turboquant_rvq_cache`](veloxquant_mlx/cache/turboquant_rvq_cache.py) | **NEW** — `TurboQuantRVQKVCache` mlx_lm-compatible cache wrapper |
-| [`veloxquant_mlx.allocators`](veloxquant_mlx/allocators/) | **NEW** — `allocate_bits_ratequant`, `calibrate_layer_sensitivities` |
+| [`veloxquant_mlx.cache.turboquant_rvq_cache`](veloxquant_mlx/cache/turboquant_rvq_cache.py) | `TurboQuantRVQKVCache` mlx_lm-compatible cache wrapper |
+| [`veloxquant_mlx.cache.vecinfer_cache`](veloxquant_mlx/cache/vecinfer_cache.py) | **NEW (0.5.0)** — `VecInferKVCache` smooth + Hadamard + product VQ |
+| [`veloxquant_mlx.allocators.vecinfer`](veloxquant_mlx/allocators/vecinfer.py) | **NEW (0.5.0)** — `calibrate_smooth_factors`, `walsh_hadamard_matrix`, `train_codebook`, `quantize_vq` |
+| [`veloxquant_mlx.allocators`](veloxquant_mlx/allocators/) | `allocate_bits_ratequant`, `calibrate_layer_sensitivities` |
 | [`veloxquant_mlx.observers`](veloxquant_mlx/observers/) | `DistortionObserver`, `LatencyObserver`, `MemoryObserver`, **`KeyNormObserver` (new)** |
 | [`veloxquant_mlx.codebooks`](veloxquant_mlx/codebooks/) | `ScalarCodebook`, Lloyd-Max strategies, `AdaptiveScalarCodebook` |
 | [`veloxquant_mlx.preconditioners`](veloxquant_mlx/preconditioners/) | `RotationPreconditioner` (QR), `HadamardPreconditioner` (Metal) |
@@ -276,6 +320,43 @@ measured on Apple M4 24 GB. Source figures: [`figures/2026-05-16/`](figures/2026
 
 > Per-layer allocations were computed from a 1.6s real-activation calibration:
 > Falcon3 split 14/14 (b=2/b=1); Gemma3 split 3/11/20 (b=3/b=2/b=1).
+
+### v6 results — VecInfer 10-model comparative study (0.5.0)
+
+8-config head-to-head across 10 models. Full data and per-model plots in [`figures/vecinfer/`](figures/vecinfer/). Cross-model chart: [`figures/vecinfer/_summary/cross_model_comparison.png`](figures/vecinfer/_summary/cross_model_comparison.png).
+
+**Key compression ratio:**
+
+| Model | head_dim | TQ-2bit | RVQ-1bit | VecInfer-2bit | VecInfer-1bit |
+|---|---:|---:|---:|---:|---:|
+| SmolLM2-135M | 64 | 6.4× | 7.1× | 8.0× | **16.0×** |
+| Llama-3.2-1B | 64 | 6.4× | 7.1× | 8.0× | **16.0×** |
+| Llama-3.2-3B | 128 | 9.1× | 7.5× | 8.0× | **16.0×** |
+| Llama-3.1-8B | 128 | 9.1× | 7.5× | 8.0× | **16.0×** |
+| Mistral-7B | 128 | 9.1× | 7.5× | 8.0× | **16.0×** |
+| Qwen2.5-7B | 128 | 9.1× | 7.5× | 8.0× | **16.0×** |
+| Qwen3-8B | 128 | 9.1× | 7.5× | 8.0× | **16.0×** |
+| Phi-4 | 128 | 9.1× | 7.5× | 8.0× | **16.0×** |
+| Falcon3-7B | 256 | 11.6× | 7.8× | — (OOM) | **16.0×** |
+| gemma-3-4b | 256 | 11.6× | 7.8× | 8.0× | **16.0×** |
+
+**Throughput (tok/s):**
+
+| Model | fp16 | TQ-2bit | RVQ-1bit | VecInfer-2bit | VecInfer-1bit |
+|---|---:|---:|---:|---:|---:|
+| SmolLM2-135M | 250.4 | 70.4 | 188.5 | 163.0 | 175.8 |
+| Llama-3.2-1B | 105.4 | 75.5 | **104.3** | 60.4 | 91.2 |
+| Llama-3.2-3B | 47.6 | 20.6 | **46.2** | 39.7 | 40.2 |
+| Llama-3.1-8B | 20.5 | 19.8 | **20.6** | 10.7 | 19.6 |
+| Mistral-7B | 23.6 | 22.5 | **22.8** | 21.2 | 9.8 |
+| Qwen2.5-7B | 21.0 | 12.0 | 20.7 | 21.3 | **21.5** ← exceeds fp16 at 16× |
+| Qwen3-8B | 20.3 | 19.4 | **19.6** | 17.9 | 2.4 |
+| Phi-4 | 10.4 | **9.6** | 8.1 | 7.2 | 4.0 |
+| Falcon3-7B | 17.3 | 15.9 | **21.7** | — | 17.0 |
+| gemma-3-4b | 26.0 | 22.7 | 24.2 | **22.6** | **22.6** |
+
+> **VecInfer wins on raw compression** (16× on every model). **RVQ-1bit wins on throughput/memory balance** — within 5% of fp16 on most 7–8B models with zero calibration overhead. **Qwen2.5-7B is the standout**: VecInfer-1bit exceeds fp16 at 16× compression, likely due to its strong GQA ratio (28q/4kv heads).
+> See [`figures/vecinfer/_summary/SUMMARY.md`](figures/vecinfer/_summary/SUMMARY.md) for the full analysis.
 
 ### Cross-model summary (single-pass quality at 3-bit and 4-bit)
 
@@ -437,10 +518,41 @@ python scripts/plot_optimization_journey.py
 
 ## References
 
+### Implemented in this library
+
 - [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874) — Zandieh et al., "Online Vector Quantization with Near-optimal Distortion Rate"
 - [RateQuant (2025)](https://arxiv.org/abs/2605.06675) — "RateQuant: Mixed-Precision KV Cache Quantization via Rate-Distortion Theory"
 - [PolarQuant (AISTATS 2026)](https://arxiv.org/abs/2502.02617) — "PolarQuant: Quantizing KV Caches with Polar Transformation"
 - [QJL (2024)](https://arxiv.org/abs/2406.03482) — Zandieh et al., "QJL: 1-Bit Quantized JL Transform for KV Cache Quantization"
+
+### Related work — quantization
+
+- [KIVI (ICML 2024)](https://arxiv.org/abs/2402.02750) — Liu et al., "A Tuning-Free Asymmetric 2-Bit Quantization for KV Cache"
+- [KVQuant (NeurIPS 2024)](https://arxiv.org/abs/2401.18079) — Hooper et al., "Towards 10 Million Context Length LLM Inference with KV Cache Quantization"
+- [Coupled Quantization (NeurIPS 2024)](https://arxiv.org/abs/2405.03917) — Zhang et al., "KV Cache is 1 Bit Per Channel: Efficient LLM Inference with Coupled Quantization"
+- [KVTuner (ICML 2025)](https://arxiv.org/abs/2502.04420) — Li et al., "Sensitivity-Aware Layer-Wise Mixed-Precision KV Cache Quantization"
+- [MixKVQ (2024)](https://arxiv.org/abs/2512.19206) — Zhang et al., "Query-Aware Mixed-Precision KV Cache Quantization for Long-Context Reasoning"
+- [VecInfer (2024)](https://arxiv.org/abs/2510.06175) — Yao et al., "Efficient LLM Inference with Low-Bit KV Cache via Outlier-Suppressed Vector Quantization"
+- [FibQuant (2025)](https://arxiv.org/abs/2605.11478) — "Universal Vector Quantization for Random-Access KV-Cache Compression"
+
+### Related work — token eviction & sparse attention
+
+- [SnapKV (2024)](https://arxiv.org/abs/2404.14469) — Li et al., "LLM Knows What You are Looking for Before Generation"
+- [PyramidKV (2024)](https://arxiv.org/abs/2406.02069) — Cai et al., "Dynamic KV Cache Compression based on Pyramidal Information Funneling"
+- [RocketKV (ICML 2025)](https://arxiv.org/abs/2502.14051) — Behnam et al., "Accelerating Long-Context LLM Inference via Two-Stage KV Cache Compression"
+- [MagicPIG (ICLR 2025 Spotlight)](https://arxiv.org/abs/2410.16179) — Chen et al., "LSH Sampling for Efficient LLM Generation"
+
+### Related work — low-rank & cross-layer compression
+
+- [xKV (2025)](https://arxiv.org/abs/2503.18893) — Chang et al., "Cross-Layer SVD for KV-Cache Compression"
+- [Expected Attention / KVPress (2024)](https://arxiv.org/abs/2510.00636) — "KV Cache Compression by Estimating Attention from Future Queries Distribution"
+
+### Survey
+
+- [KV Cache Management Survey (2024)](https://arxiv.org/abs/2412.19442) — "A Survey on Large Language Model Acceleration based on KV Cache Management"
+
+### Framework
+
 - [Apple MLX](https://github.com/ml-explore/mlx)
 - Internal docs: [BENCHMARK_RESULTS.md](BENCHMARK_RESULTS.md), [OPTIMIZATION_FINDINGS.md](OPTIMIZATION_FINDINGS.md), [MEDIUM_BLOG.md](MEDIUM_BLOG.md)
 

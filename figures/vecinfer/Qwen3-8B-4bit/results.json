@@ -1,0 +1,83 @@
+{
+  "model": "mlx-community/Qwen3-8B-4bit",
+  "head_dim": 128,
+  "n_kv_heads": 8,
+  "n_q_heads": 32,
+  "n_layers": 36,
+  "max_tokens": 120,
+  "prompt": "Explain the theory of relativity in simple terms, covering both special and general relativity with examples.",
+  "results": [
+    {
+      "name": "fp16-baseline",
+      "throughput_tok_s": 20.30208286936381,
+      "peak_mb": 4531.8381996154785,
+      "key_compression": 1.0,
+      "tokens_generated": 120,
+      "elapsed_s": 5.910723583001527,
+      "key_kb": 0.0
+    },
+    {
+      "name": "TQ-2bit",
+      "throughput_tok_s": 19.441168472523167,
+      "peak_mb": 4488.438985824585,
+      "key_compression": 9.142857142857142,
+      "tokens_generated": 120,
+      "elapsed_s": 6.172468500008108,
+      "key_kb": 1173.375
+    },
+    {
+      "name": "TQ-3bit",
+      "throughput_tok_s": 18.7800553012033,
+      "peak_mb": 4488.814260482788,
+      "key_compression": 5.818181818181818,
+      "tokens_generated": 120,
+      "elapsed_s": 6.389757541997824,
+      "key_kb": 1843.875
+    },
+    {
+      "name": "TQ-4bit",
+      "throughput_tok_s": 18.543533330012497,
+      "peak_mb": 4489.705450057983,
+      "key_compression": 4.266666666666667,
+      "tokens_generated": 120,
+      "elapsed_s": 6.471258625009796,
+      "key_kb": 2514.375
+    },
+    {
+      "name": "RVQ-2bit",
+      "throughput_tok_s": 19.424976975343398,
+      "peak_mb": 4496.663106918335,
+      "key_compression": 3.878787878787879,
+      "tokens_generated": 120,
+      "elapsed_s": 6.177613499996369,
+      "key_kb": 2765.8125
+    },
+    {
+      "name": "RVQ-1bit",
+      "throughput_tok_s": 19.58243250249224,
+      "peak_mb": 4495.787397384644,
+      "key_compression": 7.529411764705882,
+      "tokens_generated": 120,
+      "elapsed_s": 6.127941458995338,
+      "key_kb": 1424.8125
+    },
+    {
+      "name": "VecInfer-2bit",
+      "throughput_tok_s": 17.860528113344927,
+      "peak_mb": 5329.992427825928,
+      "key_compression": 8.0,
+      "tokens_generated": 119,
+      "elapsed_s": 6.662736915997812,
+      "key_kb": 1341.0
+    },
+    {
+      "name": "VecInfer-1bit",
+      "throughput_tok_s": 2.3995183265715943,
+      "peak_mb": 5439.0500831604,
+      "key_compression": 16.0,
+      "tokens_generated": 16,
+      "elapsed_s": 6.6680049169954145,
+      "key_kb": 670.5
+    }
+  ]
+}

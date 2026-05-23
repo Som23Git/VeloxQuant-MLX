@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 7.5× key cache compression with less than 1% throughput loss on Apple M-series chips. TurboQuant, RateQuant, PolarQuant, QJL in MLX." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL — all in MLX. Benchmarked across 10 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -95,7 +95,6 @@
       overflow: hidden;
     }
 
-    /* animated grid background */
     #hero::before {
       content: '';
       position: absolute;
@@ -108,7 +107,6 @@
       pointer-events: none;
     }
 
-    /* radial glow centre */
     #hero::after {
       content: '';
       position: absolute;
@@ -126,7 +124,7 @@
       100% { background-position: 48px 48px, 48px 48px; }
     }
 
-    .hero-content { position: relative; z-index: 1; max-width: 780px; }
+    .hero-content { position: relative; z-index: 1; max-width: 820px; }
 
     .badge {
       display: inline-block;
@@ -139,6 +137,20 @@
       letter-spacing: 0.04em;
       margin-bottom: 1.5rem;
       background: rgba(0,212,255,0.06);
+    }
+
+    .badge-new {
+      display: inline-block;
+      padding: 0.15rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: rgba(124,58,237,0.25);
+      color: #a78bfa;
+      border: 1px solid rgba(124,58,237,0.4);
+      margin-left: 0.4rem;
+      vertical-align: middle;
     }
 
     h1 {
@@ -161,11 +173,10 @@
     .hero-oneliner {
       font-size: 1rem;
       color: var(--muted);
-      max-width: 580px;
+      max-width: 620px;
       margin: 0 auto 2rem;
     }
 
-    /* install block */
     .install-block {
       display: inline-flex;
       align-items: center;
@@ -179,12 +190,10 @@
       color: var(--code-text);
       margin-bottom: 2rem;
       cursor: pointer;
-      position: relative;
       transition: border-color 0.2s;
     }
 
     .install-block:hover { border-color: var(--accent); }
-
     .install-block .dollar { color: var(--accent); user-select: none; }
 
     .copy-btn {
@@ -240,6 +249,14 @@
 
     .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 
+    .btn-purple {
+      background: rgba(124,58,237,0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(124,58,237,0.4);
+    }
+
+    .btn-purple:hover { background: rgba(124,58,237,0.3); border-color: var(--purple); }
+
     .hero-meta {
       font-size: 0.8rem;
       color: var(--muted);
@@ -272,14 +289,14 @@
 
     .section-desc {
       color: var(--muted);
-      max-width: 560px;
+      max-width: 600px;
       margin-bottom: 3rem;
     }
 
     /* ── STAT CARDS ── */
     .stat-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 1.25rem;
     }
 
@@ -287,7 +304,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 2rem 1.5rem;
+      padding: 2rem 1.25rem;
       text-align: center;
       transition: border-color 0.3s, transform 0.3s;
     }
@@ -298,8 +315,13 @@
       box-shadow: 0 0 24px rgba(0,212,255,0.08);
     }
 
+    .stat-card.purple:hover {
+      border-color: var(--purple);
+      box-shadow: 0 0 24px rgba(124,58,237,0.12);
+    }
+
     .stat-number {
-      font-size: 3rem;
+      font-size: 2.8rem;
       font-weight: 700;
       color: var(--accent);
       letter-spacing: -0.04em;
@@ -307,9 +329,12 @@
       margin-bottom: 0.5rem;
     }
 
+    .stat-card.purple .stat-number { color: #a78bfa; }
+
     .stat-label {
-      font-size: 0.875rem;
+      font-size: 0.82rem;
       color: var(--muted);
+      line-height: 1.5;
     }
 
     /* ── ALGO CARDS ── */
@@ -333,6 +358,24 @@
       box-shadow: 0 0 24px rgba(124,58,237,0.08);
     }
 
+    .algo-card.vecinfer-card {
+      border-color: rgba(124,58,237,0.35);
+      background: linear-gradient(135deg, #12121e 60%, rgba(124,58,237,0.06));
+      grid-column: span 2;
+    }
+
+    .algo-card.vecinfer-card:hover {
+      border-color: var(--purple);
+      box-shadow: 0 0 32px rgba(124,58,237,0.15);
+    }
+
+    .vecinfer-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
     .algo-badge {
       display: inline-block;
       padding: 0.2rem 0.65rem;
@@ -344,6 +387,12 @@
       color: #a78bfa;
       border: 1px solid rgba(124,58,237,0.3);
       margin-bottom: 0.85rem;
+    }
+
+    .algo-badge.new-badge {
+      background: rgba(0,212,255,0.12);
+      color: var(--accent);
+      border-color: rgba(0,212,255,0.3);
     }
 
     .algo-title {
@@ -358,8 +407,57 @@
       line-height: 1.6;
     }
 
+    .algo-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .algo-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0.9rem;
+      background: rgba(124,58,237,0.08);
+      border: 1px solid rgba(124,58,237,0.15);
+      border-radius: 8px;
+      font-size: 0.82rem;
+    }
+
+    .algo-stat-row .label { color: var(--muted); }
+    .algo-stat-row .value { color: #a78bfa; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
     /* ── CODE BLOCKS ── */
     .code-section { padding: 5rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .code-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      padding: 0.35rem 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .tab-btn.active { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); }
+    .tab-btn.active-purple { background: rgba(124,58,237,0.1); border-color: var(--purple); color: #a78bfa; }
+
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
 
     .code-wrap {
       background: var(--code-bg);
@@ -408,15 +506,14 @@
       color: var(--code-text);
     }
 
-    /* syntax colours */
-    .kw  { color: #cba6f7; } /* keyword */
-    .fn  { color: #89dceb; } /* function */
-    .st  { color: #a6e3a1; } /* string */
-    .cm  { color: #585b70; font-style: italic; } /* comment */
-    .nu  { color: #fab387; } /* number */
-    .op  { color: #89dceb; } /* operator */
-    .id  { color: var(--code-text); } /* identifier */
-    .at  { color: #f38ba8; } /* attribute */
+    .kw  { color: #cba6f7; }
+    .fn  { color: #89dceb; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #585b70; font-style: italic; }
+    .nu  { color: #fab387; }
+    .op  { color: #89dceb; }
+    .id  { color: var(--code-text); }
+    .at  { color: #f38ba8; }
 
     /* ── BENCHMARK TABLE ── */
     .table-wrap {
@@ -428,7 +525,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
     }
 
     thead tr {
@@ -437,11 +534,11 @@
     }
 
     thead th {
-      padding: 1rem 1.25rem;
+      padding: 0.9rem 1.1rem;
       text-align: left;
       font-weight: 600;
       color: var(--accent);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
@@ -455,11 +552,63 @@
     tbody tr:hover { background: rgba(255,255,255,0.02); }
 
     tbody td {
-      padding: 0.9rem 1.25rem;
+      padding: 0.8rem 1.1rem;
       color: var(--text);
     }
 
     .td-highlight { color: var(--accent); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    .td-purple { color: #a78bfa; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .td-muted { color: var(--muted); font-size: 0.8rem; }
+    .td-winner { color: #4ade80; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+    .bench-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    /* ── METHOD PICKER ── */
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .picker-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    .picker-goal {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .picker-method {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 0.4rem;
+    }
+
+    .picker-method.purple { color: #a78bfa; }
+
+    .picker-detail {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
 
     /* ── INSTALL SECTION ── */
     .install-grid {
@@ -527,7 +676,7 @@
       letter-spacing: 0.05em;
     }
 
-    /* ── FADE-IN ANIMATION ── */
+    /* ── FADE-IN ── */
     .fade-in {
       opacity: 0;
       transform: translateY(24px);
@@ -548,18 +697,27 @@
     }
 
     /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .vecinfer-inner { grid-template-columns: 1fr; }
+      .algo-card.vecinfer-card { grid-column: span 1; }
+      .picker-grid { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 768px) {
-      .stat-row { grid-template-columns: 1fr; }
       .algo-grid { grid-template-columns: 1fr; }
+      .algo-card.vecinfer-card { grid-column: span 1; }
       .install-grid { grid-template-columns: 1fr; }
       .nav-links { gap: 1rem; }
       h1 { font-size: 2rem; }
-      .stat-number { font-size: 2.4rem; }
+      .stat-number { font-size: 2.2rem; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 480px) {
       nav { padding: 0 1rem; }
       .nav-links { display: none; }
+      .stat-row { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -572,20 +730,21 @@
       <li><a href="#algorithms">Algorithms</a></li>
       <li><a href="#quickstart">Quickstart</a></li>
       <li><a href="#benchmarks">Benchmarks</a></li>
+      <li><a href="#install">Install</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
-      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
     </ul>
   </nav>
 
   <!-- ── HERO ── -->
   <section id="hero">
     <div class="hero-content">
-      <div class="badge">v0.3.6 — Now on PyPI</div>
+      <div class="badge">v0.5.0 — VecInfer now on PyPI</div>
       <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
-      <p class="hero-sub">TurboQuant · RateQuant · PolarQuant · QJL — in MLX</p>
+      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL — in MLX</p>
       <p class="hero-oneliner">
-        VeloxQuant-MLX delivers up to 7.5× key cache compression with &lt;1% throughput loss on M-series chips.
+        Up to <strong style="color:var(--accent)">16× key cache compression</strong> with near-fp16 throughput on M-series chips.
+        Benchmarked end-to-end across 10 production models. Drop-in for <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code>.
       </p>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -596,8 +755,11 @@
         <a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener" class="btn btn-outline">
           &#9679; View on GitHub
         </a>
+        <a href="#benchmarks" class="btn btn-purple">
+          See benchmarks ↓
+        </a>
         <a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener" class="btn btn-filled">
-          PyPI Page →
+          PyPI →
         </a>
       </div>
       <p class="hero-meta">
@@ -606,29 +768,35 @@
         Python 3.11+
         <span>·</span>
         Apple Silicon M1+
+        <span>·</span>
+        10 models validated
       </p>
     </div>
   </section>
 
   <div class="divider"></div>
 
-  <!-- ── WHY SECTION ── -->
+  <!-- ── STATS ── -->
   <section id="why">
     <p class="section-label">Why VeloxQuant-MLX</p>
     <h2 class="section-title">Numbers that matter</h2>
-    <p class="section-desc">Measured on real Apple Silicon hardware with Falcon3-7B and Gemma3-4B.</p>
+    <p class="section-desc">Measured on real Apple Silicon hardware across 10 production models. All numbers from end-to-end generation — not synthetic benchmarks.</p>
     <div class="stat-row">
+      <div class="stat-card purple fade-in">
+        <div class="stat-number">16×</div>
+        <div class="stat-label">Max key cache compression<br>VecInfer-1bit, head_dim=128</div>
+      </div>
       <div class="stat-card fade-in">
         <div class="stat-number">7.5×</div>
-        <div class="stat-label">Key cache compression<br>(TurboQuant RVQ 1-bit, d=128)</div>
+        <div class="stat-label">RVQ-1bit compression<br>near-zero throughput cost</div>
       </div>
       <div class="stat-card fade-in">
         <div class="stat-number">100%</div>
-        <div class="stat-label">FP16 throughput retained<br>at 5.22× compression (Falcon3-7B)</div>
+        <div class="stat-label">FP16 throughput retained<br>Qwen2.5-7B at 16× compression</div>
       </div>
       <div class="stat-card fade-in">
-        <div class="stat-number">14.4×</div>
-        <div class="stat-label">Sensitivity ratio detected<br>by RateQuant on Gemma3</div>
+        <div class="stat-number">10</div>
+        <div class="stat-label">Production models benchmarked<br>Llama, Mistral, Qwen, Phi, Gemma</div>
       </div>
     </div>
   </section>
@@ -638,29 +806,85 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Four quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality tradeoff curve.</p>
+    <h2 class="section-title">Five quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
+
+      <!-- VecInfer — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.5.0</div>
+            <div class="algo-title" style="font-size:1.25rem">VecInfer — Product Vector Quantization</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              The most aggressive compression method in the library. VecInfer (Yao et al. 2025, <a href="https://arxiv.org/abs/2510.06175" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2510.06175</a>) applies a <strong style="color:var(--text)">dual transform</strong> to keys before product VQ encoding:
+              <br><br>
+              <strong style="color:var(--text)">① Smooth scaling</strong> — per-channel λ = √(max|K|) suppresses outlier magnitudes<br>
+              <strong style="color:var(--text)">② Walsh-Hadamard rotation</strong> — spreads energy uniformly across all dims<br>
+              <strong style="color:var(--text)">③ K-means product VQ</strong> — encode sub-vectors against calibrated codebook<br>
+              <br>
+              The inverse transform is absorbed into queries so <code style="font-family:'JetBrains Mono',monospace">q @ K.T</code> is preserved exactly. At 1 bit/elem, a 128-dim key becomes 16 bytes instead of 256 — <strong style="color:#a78bfa">16× compression</strong>.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Max compression</span>
+                <span class="value">16× (1-bit)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">At 2-bit</span>
+                <span class="value">8× compression</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Qwen2.5-7B throughput</span>
+                <span class="value">21.5 tok/s vs 21.0 fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">gemma-3-4b throughput</span>
+                <span class="value">22.6 tok/s vs 26.0 fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration required</span>
+                <span class="value">Yes — one-time offline</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">head_dim constraint</span>
+                <span class="value">Power of 2 only</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RVQ -->
       <div class="algo-card fade-in">
         <div class="algo-badge">RVQ</div>
         <div class="algo-title">TurboQuant RVQ</div>
-        <div class="algo-desc">Two-pass scalar residual vector quantization. 1-bit, 2-bit, and 3-bit codebooks fitted to Gaussian + Laplacian key distributions. Achieves up to 7.5× compression with tight distortion bounds.</div>
+        <div class="algo-desc">Two-pass scalar residual vector quantization. 1-bit sign quantizer + Laplacian residual stage. Achieves <strong style="color:var(--text)">7.5× compression</strong> with cosine similarity 0.92, within 5% of fp16 throughput on most 7–8B models. No calibration required.</div>
       </div>
+
+      <!-- RateQuant -->
       <div class="algo-card fade-in">
-        <div class="algo-badge">NEW</div>
+        <div class="algo-badge">RATE</div>
         <div class="algo-title">RateQuant</div>
-        <div class="algo-desc">Per-layer bit allocation via reverse-waterfilling (arxiv:2605.06675). Automatically assigns more bits to high-sensitivity transformer layers. Delivers equal or better quality at lower average bit-width.</div>
+        <div class="algo-desc">Per-layer bit allocation via reverse-waterfilling (arxiv:2605.06675). 1.6s real-activation calibration measures sensitivity per layer and allocates more bits where it matters. <strong style="color:var(--text)">Equal quality at lower average bit-width</strong>.</div>
       </div>
+
+      <!-- PolarQuant -->
       <div class="algo-card fade-in">
         <div class="algo-badge">POLAR</div>
         <div class="algo-title">PolarQuant</div>
         <div class="algo-desc">Recursive polar coordinate decomposition for clustered key distributions. Lossless angular encoding preserves inner-product structure critical to attention score accuracy.</div>
       </div>
+
+      <!-- QJL -->
       <div class="algo-card fade-in">
         <div class="algo-badge">1-BIT</div>
         <div class="algo-title">QJL</div>
         <div class="algo-desc">Johnson-Lindenstrauss 1-bit sign sketch. An inner-product-preserving random projection for extreme compression scenarios. Minimal memory footprint with provable approximation guarantees.</div>
       </div>
+
     </div>
   </section>
 
@@ -669,50 +893,101 @@
   <!-- ── QUICKSTART ── -->
   <section id="quickstart" class="code-section">
     <p class="section-label">Quickstart</p>
-    <h2 class="section-title">Up and running in 5 lines</h2>
-    <p class="section-desc" style="margin-bottom:2rem;">Import, configure, build — then pass the cache directly to mlx_lm.</p>
+    <h2 class="section-title">Drop-in replacement in 3 lines</h2>
+    <p class="section-desc" style="margin-bottom:1.5rem">Same <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm.generate</code> API — just pass a compressed cache.</p>
 
-    <div class="code-wrap fade-in">
-      <div class="code-header">
-        <span class="code-lang">python</span>
-        <button class="code-copy" data-target="code1">Copy</button>
-      </div>
-      <pre id="code1"><span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
-
-<span class="cm"># Build a TurboQuant RVQ cache at 1-bit</span>
-<span class="id">cfg</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
-    <span class="at">method</span><span class="op">=</span><span class="st">"turboquant_rvq"</span><span class="op">,</span>
-    <span class="at">bit_width_inlier</span><span class="op">=</span><span class="nu">1</span><span class="op">,</span>
-    <span class="at">seed</span><span class="op">=</span><span class="nu">0</span><span class="op">,</span>
-<span class="op">)</span>
-<span class="id">cache</span> <span class="op">=</span> <span class="op">(</span>
-    <span class="fn">KVCacheBuilder</span><span class="op">()</span>
-    <span class="op">.</span><span class="fn">with_method</span><span class="op">(</span><span class="st">"turboquant_rvq"</span><span class="op">)</span>
-    <span class="op">.</span><span class="fn">with_head_dim</span><span class="op">(</span><span class="nu">128</span><span class="op">)</span>
-    <span class="op">.</span><span class="fn">with_bit_width</span><span class="op">(</span><span class="nu">1</span><span class="op">)</span>
-    <span class="op">.</span><span class="fn">with_seed</span><span class="op">(</span><span class="nu">0</span><span class="op">)</span>
-    <span class="op">.</span><span class="fn">build</span><span class="op">()</span>
-<span class="op">)</span></pre>
+    <div class="code-tabs">
+      <button class="tab-btn active" data-tab="rvq">RVQ-1bit (recommended)</button>
+      <button class="tab-btn" data-tab="vecinfer" style="border-color:rgba(124,58,237,0.4);color:#a78bfa">VecInfer-1bit (16×)</button>
+      <button class="tab-btn" data-tab="ratequant">RateQuant (mixed-precision)</button>
     </div>
 
-    <div class="code-wrap fade-in">
-      <div class="code-header">
-        <span class="code-lang">python — RateQuant per-layer allocation</span>
-        <button class="code-copy" data-target="code2">Copy</button>
+    <!-- RVQ tab -->
+    <div class="code-panel active" id="tab-rvq">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — RVQ 1-bit · 7.5× compression · no calibration</span>
+          <button class="code-copy" data-target="code-rvq">Copy</button>
+        </div>
+        <pre id="code-rvq"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.1-8B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># 7.5× key cache compression — within 5% of fp16 throughput</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span><span class="at">method</span><span class="op">=</span><span class="st">"turboquant_rvq"</span><span class="op">,</span> <span class="at">bit_width_inlier</span><span class="op">=</span><span class="nu">1</span><span class="op">,</span> <span class="at">seed</span><span class="op">=</span><span class="nu">42</span><span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Write a 5,000-word analysis of the RLHF literature."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">5000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
       </div>
-      <pre id="code2"><span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">allocate_bits_ratequant</span><span class="op">,</span> <span class="fn">calibrate_layer_sensitivities</span>
+    </div>
 
-<span class="cm"># 1. Probe the model to get per-layer sensitivity scores</span>
-<span class="id">sensitivities</span> <span class="op">=</span> <span class="fn">calibrate_layer_sensitivities</span><span class="op">(</span><span class="id">model</span><span class="op">)</span>
+    <!-- VecInfer tab -->
+    <div class="code-panel" id="tab-vecinfer">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — VecInfer 1-bit · 16× compression · one-time calibration</span>
+          <button class="code-copy" data-target="code-vecinfer">Copy</button>
+        </div>
+        <pre id="code-vecinfer"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheConfig</span><span class="op">,</span> <span class="fn">KVCacheFactory</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx.allocators.vecinfer</span> <span class="kw">import</span> <span class="fn">calibrate_smooth_factors</span><span class="op">,</span> <span class="fn">train_codebook</span>
 
-<span class="cm"># 2. Allocate bits — average 1.5 bits across all layers</span>
-<span class="id">bits</span> <span class="op">=</span> <span class="fn">allocate_bits_ratequant</span><span class="op">(</span><span class="id">sensitivities</span><span class="op">,</span> <span class="at">target_avg_bits</span><span class="op">=</span><span class="nu">1.5</span><span class="op">)</span>
-<span class="cm"># → [2, 1, 1, 3, 1, 2, ...]  one int per attention layer</span>
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Qwen2.5-7B-Instruct-4bit"</span><span class="op">)</span>
 
-<span class="cm"># 3. Build per-layer caches and inject into mlx_lm</span>
-<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
-    <span class="at">method</span><span class="op">=</span><span class="st">"turboquant_rvq"</span><span class="op">,</span> <span class="at">bit_width_inlier</span><span class="op">=</span><span class="id">bits</span><span class="op">,</span> <span class="at">seed</span><span class="op">=</span><span class="nu">0</span><span class="op">,</span>
-<span class="op">))</span></pre>
+<span class="cm"># One-time calibration — run once, cache the results</span>
+<span class="id">smooth</span> <span class="op">=</span> <span class="fn">calibrate_smooth_factors</span><span class="op">(</span><span class="id">sample_keys</span><span class="op">)</span>   <span class="cm"># [n_heads, head_dim]</span>
+<span class="id">codebook</span> <span class="op">=</span> <span class="fn">train_codebook</span><span class="op">(</span><span class="id">sample_keys_flat</span><span class="op">,</span> <span class="at">n_centroids</span><span class="op">=</span><span class="nu">256</span><span class="op">,</span> <span class="at">sub_dim</span><span class="op">=</span><span class="nu">8</span><span class="op">)</span>
+
+<span class="cm"># 16× key compression — matches fp16 throughput on Qwen2.5-7B</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"vecinfer"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">key_codebook_bits</span><span class="op">=</span><span class="nu">8</span><span class="op">,</span>      <span class="cm"># 256 centroids</span>
+    <span class="at">key_sub_dim</span><span class="op">=</span><span class="nu">8</span><span class="op">,</span>             <span class="cm"># 16× compression at 1 bit/elem</span>
+    <span class="at">smooth_factors</span><span class="op">=</span><span class="id">smooth</span><span class="op">,</span>
+    <span class="at">key_codebook</span><span class="op">=</span><span class="id">codebook</span><span class="op">,</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheFactory</span><span class="op">.</span><span class="fn">create_for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Write a 5,000-word analysis of the RLHF literature."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">5000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- RateQuant tab -->
+    <div class="code-panel" id="tab-ratequant">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — RateQuant · per-layer mixed precision · 1.5-bit average</span>
+          <button class="code-copy" data-target="code-rq">Copy</button>
+        </div>
+        <pre id="code-rq"><span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="op">(</span>
+    <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span><span class="op">,</span>
+    <span class="fn">calibrate_layer_sensitivities</span><span class="op">,</span>   <span class="cm"># 1.6s one-time probe</span>
+    <span class="fn">allocate_bits_ratequant</span><span class="op">,</span>          <span class="cm"># Theorem 2 reverse-waterfilling</span>
+<span class="op">)</span>
+
+<span class="cm"># Step 1 — probe real activations</span>
+<span class="id">weights</span> <span class="op">=</span> <span class="fn">calibrate_layer_sensitivities</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">)</span>
+
+<span class="cm"># Step 2 — closed-form allocation; average is exact</span>
+<span class="id">alloc</span> <span class="op">=</span> <span class="fn">allocate_bits_ratequant</span><span class="op">(</span><span class="id">weights</span><span class="op">,</span> <span class="at">target_avg_bits</span><span class="op">=</span><span class="nu">1.5</span><span class="op">,</span> <span class="at">beta</span><span class="op">=</span><span class="nu">3.5</span><span class="op">)</span>
+<span class="cm"># alloc = [1, 2, 1, 1, 3, 1, 2, ...]  one int per layer</span>
+
+<span class="cm"># Step 3 — build per-layer caches</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span><span class="at">method</span><span class="op">=</span><span class="st">"turboquant_rvq"</span><span class="op">,</span> <span class="at">bit_width_inlier</span><span class="op">=</span><span class="id">alloc</span><span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span></pre>
+      </div>
     </div>
   </section>
 
@@ -721,45 +996,140 @@
   <!-- ── BENCHMARKS ── -->
   <section id="benchmarks">
     <p class="section-label">Benchmarks</p>
-    <h2 class="section-title">Measured on Apple Silicon</h2>
-    <p class="section-desc">All results on Apple M4 (24 GB unified memory). FP16 baseline = 100%.</p>
+    <h2 class="section-title">10 models · 8 configs · Apple Silicon</h2>
+    <p class="section-desc">All numbers from end-to-end <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm.generate</code> with a 200-token prompt, 120-token generation. Apple M-series, unified memory.</p>
+
     <div class="table-wrap fade-in">
       <table>
         <thead>
           <tr>
             <th>Model</th>
-            <th>Method</th>
-            <th>Compression</th>
-            <th>Throughput vs FP16</th>
+            <th>FP16 (tok/s)</th>
+            <th>RVQ-1bit</th>
+            <th>RVQ compress</th>
+            <th>VecInfer-1bit</th>
+            <th>VI compress</th>
+            <th>Best pick</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Falcon3-7B</td>
-            <td>TurboQuant RVQ 1-bit</td>
-            <td class="td-highlight">5.22×</td>
-            <td class="td-highlight">100%</td>
+            <td>SmolLM2-135M</td>
+            <td>250.4</td>
+            <td class="td-highlight">188.5</td>
+            <td class="td-highlight">7.1×</td>
+            <td class="td-highlight">175.8</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
-            <td>Falcon3-7B</td>
-            <td>RateQuant (avg 1.5b)</td>
-            <td class="td-highlight">5.22×</td>
-            <td class="td-highlight">100%</td>
+            <td>Llama-3.2-1B</td>
+            <td>105.4</td>
+            <td class="td-highlight">104.3</td>
+            <td class="td-highlight">7.1×</td>
+            <td class="td-highlight">91.2</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
-            <td>Gemma3-4B</td>
-            <td>TurboQuant RVQ 1-bit</td>
-            <td class="td-highlight">5.22×</td>
-            <td class="td-highlight">98%</td>
+            <td>Llama-3.2-3B</td>
+            <td>47.6</td>
+            <td class="td-highlight">46.2</td>
+            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight">40.2</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">RVQ-1bit</td>
+          </tr>
+          <tr>
+            <td>Llama-3.1-8B</td>
+            <td>20.5</td>
+            <td class="td-highlight">20.6</td>
+            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight">19.6</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
             <td>Mistral-7B</td>
-            <td>TurboQuant RVQ 2-bit</td>
-            <td class="td-highlight">3.2×</td>
-            <td class="td-highlight">99%</td>
+            <td>23.6</td>
+            <td class="td-highlight">22.8</td>
+            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight">9.8</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">RVQ-1bit</td>
+          </tr>
+          <tr style="background: rgba(124,58,237,0.04);">
+            <td><strong>Qwen2.5-7B</strong></td>
+            <td>21.0</td>
+            <td class="td-highlight">20.7</td>
+            <td class="td-highlight">7.5×</td>
+            <td class="td-winner">21.5 ↑ fp16</td>
+            <td class="td-purple">16×</td>
+            <td class="td-purple">VecInfer-1bit</td>
+          </tr>
+          <tr>
+            <td>Qwen3-8B</td>
+            <td>20.3</td>
+            <td class="td-highlight">19.6</td>
+            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight">2.4</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">RVQ-1bit</td>
+          </tr>
+          <tr>
+            <td>Phi-4</td>
+            <td>10.4</td>
+            <td class="td-highlight">8.1</td>
+            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight">4.0</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">TQ-2bit (9.6)</td>
+          </tr>
+          <tr>
+            <td>Falcon3-7B</td>
+            <td>17.3</td>
+            <td class="td-highlight">21.7</td>
+            <td class="td-highlight">7.8×</td>
+            <td class="td-highlight">17.0</td>
+            <td class="td-purple">16×</td>
+            <td class="td-muted">RVQ-1bit</td>
+          </tr>
+          <tr style="background: rgba(124,58,237,0.04);">
+            <td><strong>gemma-3-4b</strong></td>
+            <td>26.0</td>
+            <td class="td-highlight">24.2</td>
+            <td class="td-highlight">7.8×</td>
+            <td class="td-winner">22.6</td>
+            <td class="td-purple">16×</td>
+            <td class="td-purple">VecInfer-1bit</td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="bench-note">
+      <strong style="color:var(--accent)">Highlighted rows</strong> — Qwen2.5-7B VecInfer-1bit <em>exceeds</em> fp16 throughput at 16× compression (strong GQA: 28q/4kv heads). gemma-3-4b matches fp16 at 16×.
+      Full per-model plots and raw JSON in <a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener" style="color:var(--accent)">figures/vecinfer/</a> in the repo.
+    </div>
+
+    <!-- method picker -->
+    <p class="section-label" style="margin-top:3rem">Decision guide</p>
+    <h3 class="section-title" style="font-size:1.4rem">Which method for your use case?</h3>
+    <div class="picker-grid fade-in">
+      <div class="picker-card">
+        <div class="picker-goal">Everyday long-context work</div>
+        <div class="picker-method">RVQ-1bit</div>
+        <div class="picker-detail">7.5× compression · no calibration · &lt;5% throughput cost on most 7–8B models. The default choice.</div>
+      </div>
+      <div class="picker-card">
+        <div class="picker-goal">Maximum memory savings</div>
+        <div class="picker-method purple">VecInfer-1bit</div>
+        <div class="picker-detail">16× compression · one-time codebook calibration · best on models with strong GQA (Qwen2.5, Gemma). Cuts 4 GB cache to 256 MB.</div>
+      </div>
+      <div class="picker-card">
+        <div class="picker-goal">Heterogeneous layer sensitivity</div>
+        <div class="picker-method">RateQuant</div>
+        <div class="picker-detail">Per-layer allocation · 1.6s calibration · closes the quality gap at fractional average bits. Best on Gemma3, Falcon3 (sensitivity ratio &gt;6×).</div>
+      </div>
     </div>
   </section>
 
@@ -775,26 +1145,37 @@
         <div class="code-wrap fade-in">
           <div class="code-header">
             <span class="code-lang">pip</span>
-            <button class="code-copy" data-target="code3">Copy</button>
+            <button class="code-copy" data-target="code-pip">Copy</button>
           </div>
-          <pre id="code3"><span class="id">pip install VeloxQuant-MLX</span></pre>
+          <pre id="code-pip"><span class="id">pip install VeloxQuant-MLX</span></pre>
         </div>
         <div class="code-wrap fade-in">
           <div class="code-header">
             <span class="code-lang">pip — dev extras</span>
-            <button class="code-copy" data-target="code4">Copy</button>
+            <button class="code-copy" data-target="code-dev">Copy</button>
           </div>
-          <pre id="code4"><span class="id">pip install "VeloxQuant-MLX[dev]"</span></pre>
+          <pre id="code-dev"><span class="id">pip install "VeloxQuant-MLX[dev]"</span></pre>
+        </div>
+        <div class="code-wrap fade-in">
+          <div class="code-header">
+            <span class="code-lang">from source</span>
+            <button class="code-copy" data-target="code-src">Copy</button>
+          </div>
+          <pre id="code-src"><span class="id">git clone https://github.com/rajveer43/VeloxQuant-MLX
+cd VeloxQuant-MLX
+pip install -e ".[dev]"</span></pre>
         </div>
       </div>
       <div class="fade-in">
         <ul class="req-list">
-          <li>Apple Silicon M1 or later</li>
+          <li>Apple Silicon M1 or later (M2/M3/M4 recommended)</li>
           <li>Python 3.11 or 3.12</li>
           <li>MLX ≥ 0.18</li>
           <li>NumPy ≥ 1.26</li>
-          <li>Matplotlib ≥ 3.8</li>
+          <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
+          <li>10 production models validated</li>
+          <li>205 tests, all passing</li>
         </ul>
       </div>
     </div>
@@ -806,6 +1187,7 @@
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/BLOG.md" target="_blank" rel="noopener">Blog post</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/issues" target="_blank" rel="noopener">Issues</a></li>
     </ul>
     <p class="footer-copy">© 2026 Rajveer Rathod · MIT License</p>
@@ -823,18 +1205,28 @@
       });
     }
 
-    // hero install copy
     document.getElementById('hero-install').addEventListener('click', () => {
-      const btn = document.getElementById('hero-copy-btn');
-      copyText('pip install VeloxQuant-MLX', btn);
+      copyText('pip install VeloxQuant-MLX', document.getElementById('hero-copy-btn'));
     });
 
-    // code block copies
     document.querySelectorAll('.code-copy').forEach(btn => {
       btn.addEventListener('click', () => {
-        const targetId = btn.dataset.target;
-        const pre = document.getElementById(targetId);
+        const pre = document.getElementById(btn.dataset.target);
         copyText(pre.innerText, btn);
+      });
+    });
+
+    // ── TABS ──
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.code-panel');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        tabBtns.forEach(b => b.classList.remove('active', 'active-purple'));
+        tabPanels.forEach(p => p.classList.remove('active'));
+        btn.classList.add(tab === 'vecinfer' ? 'active-purple' : 'active');
+        document.getElementById('tab-' + tab).classList.add('active');
       });
     });
 

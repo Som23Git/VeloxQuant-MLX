@@ -1,0 +1,90 @@
+{
+  "model": "mlx-community/Qwen3-4B-4bit",
+  "head_dim": 80,
+  "n_kv_heads": 8,
+  "n_q_heads": 32,
+  "n_layers": 36,
+  "max_tokens": 120,
+  "prompt": "Explain the theory of relativity in simple terms, covering both special and general relativity with examples.",
+  "results": [
+    {
+      "name": "fp16-baseline",
+      "throughput_tok_s": 36.49617184678652,
+      "peak_mb": 2290.6399784088135,
+      "key_compression": 1.0,
+      "tokens_generated": 120,
+      "elapsed_s": 3.288016082995455,
+      "key_kb": 0.0
+    },
+    {
+      "name": "TQ-2bit",
+      "error": "[broadcast_shapes] Shapes (224,128) and (80) cannot be broadcast.",
+      "throughput_tok_s": 0.0,
+      "peak_mb": NaN,
+      "key_compression": 0.0,
+      "tokens_generated": 0,
+      "elapsed_s": 0.0,
+      "key_kb": 0.0
+    },
+    {
+      "name": "TQ-3bit",
+      "error": "[broadcast_shapes] Shapes (224,128) and (80) cannot be broadcast.",
+      "throughput_tok_s": 0.0,
+      "peak_mb": NaN,
+      "key_compression": 0.0,
+      "tokens_generated": 0,
+      "elapsed_s": 0.0,
+      "key_kb": 0.0
+    },
+    {
+      "name": "TQ-4bit",
+      "error": "[broadcast_shapes] Shapes (224,128) and (80) cannot be broadcast.",
+      "throughput_tok_s": 0.0,
+      "peak_mb": NaN,
+      "key_compression": 0.0,
+      "tokens_generated": 0,
+      "elapsed_s": 0.0,
+      "key_kb": 0.0
+    },
+    {
+      "name": "RVQ-2bit",
+      "error": "[broadcast_shapes] Shapes (224,128) and (80) cannot be broadcast.",
+      "throughput_tok_s": 0.0,
+      "peak_mb": NaN,
+      "key_compression": 0.0,
+      "tokens_generated": 0,
+      "elapsed_s": 0.0,
+      "key_kb": 0.0
+    },
+    {
+      "name": "RVQ-1bit",
+      "error": "[broadcast_shapes] Shapes (224,128) and (80) cannot be broadcast.",
+      "throughput_tok_s": 0.0,
+      "peak_mb": NaN,
+      "key_compression": 0.0,
+      "tokens_generated": 0,
+      "elapsed_s": 0.0,
+      "key_kb": 0.0
+    },
+    {
+      "name": "VecInfer-2bit",
+      "error": "builder: walsh_hadamard_matrix: d=80 must be a power of 2.",
+      "throughput_tok_s": 0.0,
+      "peak_mb": NaN,
+      "key_compression": 0.0,
+      "tokens_generated": 0,
+      "elapsed_s": 0.0,
+      "key_kb": 0.0
+    },
+    {
+      "name": "VecInfer-1bit",
+      "error": "builder: walsh_hadamard_matrix: d=80 must be a power of 2.",
+      "throughput_tok_s": 0.0,
+      "peak_mb": NaN,
+      "key_compression": 0.0,
+      "tokens_generated": 0,
+      "elapsed_s": 0.0,
+      "key_kb": 0.0
+    }
+  ]
+}
