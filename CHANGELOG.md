@@ -2,6 +2,46 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.5.1] — 2026-05-25
+
+### Added — Metal compute kernels for VecInfer (Phase 1)
+
+- **`veloxquant_mlx.metal`** — new subpackage with hand-written Metal
+  Shading Language shaders that replace pure-MLX hot paths in
+  `VecInferKVCache`. JIT-compiled on first use via `mx.fast.metal_kernel`.
+  - `vecinfer_quantize_metal` — fused nearest-centroid argmin. Squared
+    distance is accumulated in thread-local registers so the kernel never
+    materializes the `[chunk, n_centroids, sub_dim]` diff tensor that
+    OOMed Falcon3-7B-style configurations on the pure-MLX path.
+    **Measured: 6.9–13× speedup, 98% peak-memory reduction at the OOM
+    trigger shape (head_dim=256, n_centroids=256, sub_dim=4).**
+  - `vecinfer_dequant_metal` — bit-exact drop-in for `dequantize_vq`.
+    Ships at MLX `mx.take` parity (no speedup); included as a building
+    block for the Phase-2 fused dequant+SDPA kernel.
+  - `metal_available()` capability probe.
+- **`KVCacheConfig.use_metal_kernels`** — three-state opt-in flag.
+  `None` (default) auto-detects, `True` requires Metal, `False` forces
+  the pure-MLX path for debugging/parity testing.
+- **`VecInferKVCache`** now dispatches to the Metal kernels when
+  available — zero public-API change. Existing benchmark scripts pick
+  up the speedup automatically.
+- **Tests**: `veloxquant_mlx/tests/cache/test_vecinfer_metal_parity.py`
+  — 7 new tests covering flag resolution, shape/dtype preservation,
+  reconstruction-MSE parity vs pure-MLX, no `.bits` leak, byte-account
+  consistency, head_dim=256 sanity. **All 212 tests pass.**
+- **Scripts** (`scripts/`):
+  - `metal_quantize_proof.py` — correctness + speedup + memory benchmark.
+  - `metal_dequant_proof.py` — same for the dequant kernel.
+  - `metal_end_to_end_smoke.py` — `mlx_lm.generate` parity smoke test.
+  - `metal_falcon3_unblock.py` — Falcon3-7B-shape sanity check.
+
+### Notes
+
+- Phase 2 (fused dequant+SDPA so fp16 keys are never materialized) is
+  scoped but not yet implemented.
+- The dequant kernel is at-parity with MLX's tuned `mx.take`; the win
+  here is the quantize kernel.
+
 ## [0.5.0] — 2026-05-23
 
 ### Added — VecInfer (vector quantization with outlier-suppressing dual transform)

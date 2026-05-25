@@ -1,8 +1,11 @@
 # VeloxQuant-MLX
 
+### 🌐 [veloxquant-mlx.netlify.app](https://veloxquant-mlx.netlify.app/) — interactive landing page with benchmarks, algorithm explainers, and copy-paste code snippets.
+
 **Fast KV-cache quantization for Apple Silicon — TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, and QJL in MLX.**
 
-[![PyPI version](https://img.shields.io/badge/pypi-0.5.0-blue.svg)](https://pypi.org/project/VeloxQuant-MLX/)
+[![Landing page](https://img.shields.io/badge/landing-veloxquant--mlx.netlify.app-7c3aed.svg)](https://veloxquant-mlx.netlify.app/)
+[![PyPI version](https://img.shields.io/badge/pypi-0.5.1-blue.svg)](https://pypi.org/project/VeloxQuant-MLX/)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Apple%20Silicon-black.svg)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)

@@ -33,6 +33,7 @@ from veloxquant_mlx.allocators.vecinfer import (
     quantize_vq,
     walsh_hadamard_matrix,
 )
+from veloxquant_mlx.metal import metal_available
 
 
 class VecInferKVCache(_MLXKVCache):
@@ -123,6 +124,35 @@ class VecInferKVCache(_MLXKVCache):
         self._tokens_seen = 0
         self._tokens_quantized = 0
 
+        # Resolve Metal acceleration flag.  Three-state:
+        #   None  → auto-detect (silent fallback)
+        #   True  → require (raise if unavailable)
+        #   False → forced pure-MLX path
+        requested = getattr(config, "use_metal_kernels", None)
+        available = metal_available()
+        if requested is True and not available:
+            raise RuntimeError(
+                "VecInferKVCache: use_metal_kernels=True but Metal kernels "
+                "are not available on this build of mlx."
+            )
+        self._use_metal: bool = bool(available if requested is None else requested) and available
+
+    # ------------------------------------------------------------------
+    # Quantize/dequantize dispatch — Metal fast path or pure-MLX fallback
+    # ------------------------------------------------------------------
+    def _quantize(self, x: mx.array, codebook: mx.array, sub_dim: int) -> mx.array:
+        if self._use_metal:
+            # Lazy import — keeps cold-start cost off the import path.
+            from veloxquant_mlx.metal.kernels import vecinfer_quantize_metal
+            return vecinfer_quantize_metal(x, codebook, sub_dim)
+        return quantize_vq(x, codebook, sub_dim)
+
+    def _dequantize(self, indices: mx.array, codebook: mx.array) -> mx.array:
+        if self._use_metal:
+            from veloxquant_mlx.metal.kernels import vecinfer_dequant_metal
+            return vecinfer_dequant_metal(indices, codebook)
+        return dequantize_vq(indices, codebook)
+
     # ------------------------------------------------------------------
     # mlx_lm protocol
     # ------------------------------------------------------------------
@@ -140,8 +170,8 @@ class VecInferKVCache(_MLXKVCache):
             k_tilde = k32 @ self._H
 
         # Quantize -> dequantize on the transformed space
-        k_idx = quantize_vq(k_tilde, self._key_codebook, self._key_sub_dim)
-        k_hat_tilde = dequantize_vq(k_idx, self._key_codebook)
+        k_idx = self._quantize(k_tilde, self._key_codebook, self._key_sub_dim)
+        k_hat_tilde = self._dequantize(k_idx, self._key_codebook)
 
         # Invert: K_hat = (K_tilde_hat @ H.T) * lambda  (H is orthonormal)
         k_hat = k_hat_tilde @ self._H.T
@@ -159,8 +189,8 @@ class VecInferKVCache(_MLXKVCache):
 
         # ---- Value path: VQ directly (no smooth/Hadamard per paper) ------
         v32 = values.astype(mx.float32)
-        v_idx = quantize_vq(v32, self._value_codebook, self._value_sub_dim)
-        v_hat = dequantize_vq(v_idx, self._value_codebook).astype(vdtype)
+        v_idx = self._quantize(v32, self._value_codebook, self._value_sub_dim)
+        v_hat = self._dequantize(v_idx, self._value_codebook).astype(vdtype)
 
         # ---- Byte accounting -------------------------------------------
         # Indices per token = D / sub_dim, each stored at b bits

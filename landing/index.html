@@ -296,7 +296,7 @@
     /* ── STAT CARDS ── */
     .stat-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 1.25rem;
     }
 
@@ -728,6 +728,7 @@
     <a href="#hero" class="nav-logo">VeloxQuant-MLX</a>
     <ul class="nav-links">
       <li><a href="#algorithms">Algorithms</a></li>
+      <li><a href="#metal">Metal Kernels</a></li>
       <li><a href="#quickstart">Quickstart</a></li>
       <li><a href="#benchmarks">Benchmarks</a></li>
       <li><a href="#install">Install</a></li>
@@ -739,12 +740,12 @@
   <!-- ── HERO ── -->
   <section id="hero">
     <div class="hero-content">
-      <div class="badge">v0.5.0 — VecInfer now on PyPI</div>
+      <div class="badge">v0.5.1 — Hand-written Metal kernels shipped</div>
       <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
       <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL — in MLX</p>
       <p class="hero-oneliner">
         Up to <strong style="color:var(--accent)">16× key cache compression</strong> with near-fp16 throughput on M-series chips.
-        Benchmarked end-to-end across 10 production models. Drop-in for <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code>.
+        Now with <strong style="color:#a78bfa">custom Metal kernels</strong> — 13× faster quantize, 98% less peak memory on long contexts. Drop-in for <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code>.
       </p>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -786,6 +787,14 @@
         <div class="stat-number">16×</div>
         <div class="stat-label">Max key cache compression<br>VecInfer-1bit, head_dim=128</div>
       </div>
+      <div class="stat-card purple fade-in">
+        <div class="stat-number">13×</div>
+        <div class="stat-label">Metal kernel speedup<br>on quantize_vq at S=2048+</div>
+      </div>
+      <div class="stat-card purple fade-in">
+        <div class="stat-number">98%</div>
+        <div class="stat-label">Peak memory reduction<br>at Falcon3-7B OOM trigger shape</div>
+      </div>
       <div class="stat-card fade-in">
         <div class="stat-number">7.5×</div>
         <div class="stat-label">RVQ-1bit compression<br>near-zero throughput cost</div>
@@ -814,7 +823,7 @@
       <div class="algo-card vecinfer-card fade-in">
         <div class="vecinfer-inner">
           <div>
-            <div class="algo-badge new-badge">NEW IN 0.5.0</div>
+            <div class="algo-badge new-badge">METAL-ACCELERATED IN 0.5.1</div>
             <div class="algo-title" style="font-size:1.25rem">VecInfer — Product Vector Quantization</div>
             <div class="algo-desc" style="margin-top:0.6rem">
               The most aggressive compression method in the library. VecInfer (Yao et al. 2025, <a href="https://arxiv.org/abs/2510.06175" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2510.06175</a>) applies a <strong style="color:var(--text)">dual transform</strong> to keys before product VQ encoding:
@@ -824,6 +833,8 @@
               <strong style="color:var(--text)">③ K-means product VQ</strong> — encode sub-vectors against calibrated codebook<br>
               <br>
               The inverse transform is absorbed into queries so <code style="font-family:'JetBrains Mono',monospace">q @ K.T</code> is preserved exactly. At 1 bit/elem, a 128-dim key becomes 16 bytes instead of 256 — <strong style="color:#a78bfa">16× compression</strong>.
+              <br><br>
+              <strong style="color:#a78bfa">New in 0.5.1:</strong> hand-written Metal compute kernel for <code style="font-family:'JetBrains Mono',monospace">quantize_vq</code> keeps argmin in thread-local registers — <strong style="color:var(--text)">13× faster, 98% less peak memory</strong>, no API change required.
             </div>
           </div>
           <div>
@@ -833,16 +844,16 @@
                 <span class="value">16× (1-bit)</span>
               </div>
               <div class="algo-stat-row">
-                <span class="label">At 2-bit</span>
-                <span class="value">8× compression</span>
+                <span class="label">Metal kernel speedup</span>
+                <span class="value">6.9× – 14.7×</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Peak memory (Falcon3 shape)</span>
+                <span class="value">729 MB → 12 MB</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Qwen2.5-7B throughput</span>
                 <span class="value">21.5 tok/s vs 21.0 fp16</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">gemma-3-4b throughput</span>
-                <span class="value">22.6 tok/s vs 26.0 fp16</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Calibration required</span>
@@ -890,6 +901,77 @@
 
   <div class="divider"></div>
 
+  <!-- ── METAL KERNELS ── -->
+  <section id="metal">
+    <p class="section-label">New in 0.5.1</p>
+    <h2 class="section-title">Hand-written Metal compute kernels</h2>
+    <p class="section-desc">The VecInfer hot path is now a 30-line Metal Shading Language shader, JIT-compiled by <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mx.fast.metal_kernel</code> on first use. Same Python API; the cache auto-detects Metal and dispatches to the fast path.</p>
+
+    <!-- Headline benchmark figure -->
+    <div class="fade-in" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
+      <img src="assets/metal_summary.png" alt="Metal kernel benchmark — quantize latency, speedup, and peak memory" style="width:100%;display:block;border-radius:8px;" />
+      <p style="font-size:0.78rem;color:var(--muted);margin-top:0.75rem;text-align:center;">
+        Benchmarked on Apple Silicon GPU. Generated by <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">scripts/plot_metal_benchmarks.py</code>.
+      </p>
+    </div>
+
+    <!-- Three stat cards summarizing the kernel results -->
+    <div class="picker-grid fade-in">
+      <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
+        <div class="picker-goal">Quantize latency at S=8192</div>
+        <div class="picker-method purple">228 ms → 15.6 ms</div>
+        <div class="picker-detail">14.7× faster per call. The longer your context, the bigger the win — pure-MLX scales linearly with sequence length, the kernel stays flat.</div>
+      </div>
+      <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
+        <div class="picker-goal">Peak memory at Falcon3-7B shape</div>
+        <div class="picker-method purple">729 MB → 12 MB</div>
+        <div class="picker-detail">98% reduction at head_dim=256, sub_dim=4. The argmin accumulator lives in thread-local registers — the <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">[N, n_centroids, sub_dim]</code> diff tensor never gets materialized.</div>
+      </div>
+      <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
+        <div class="picker-goal">Integration cost</div>
+        <div class="picker-method purple">Zero API change</div>
+        <div class="picker-detail">Auto-detected. Opt out with <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">use_metal_kernels=False</code> for parity testing. 7 dedicated parity tests; all 212 tests pass.</div>
+      </div>
+    </div>
+
+    <!-- The kernel snippet itself -->
+    <div class="code-wrap fade-in" style="margin-top:2rem;">
+      <div class="code-header">
+        <span class="code-lang">Metal Shading Language — the entire fused argmin kernel</span>
+        <button class="code-copy" data-target="code-metal">Copy</button>
+      </div>
+      <pre id="code-metal"><span class="cm">// One thread per sub-vector. Argmin lives in registers — no diff tensor.</span>
+<span class="kw">uint</span> vec_idx <span class="op">=</span> thread_position_in_grid<span class="op">.</span>x<span class="op">;</span>
+<span class="kw">uint</span> N_total <span class="op">=</span> x_shape<span class="op">[</span><span class="nu">0</span><span class="op">];</span>
+<span class="kw">if</span> <span class="op">(</span>vec_idx <span class="op">&gt;=</span> N_total<span class="op">)</span> <span class="op">{</span> <span class="kw">return</span><span class="op">;</span> <span class="op">}</span>
+
+<span class="kw">uint</span> n_centroids <span class="op">=</span> codebook_shape<span class="op">[</span><span class="nu">0</span><span class="op">];</span>
+<span class="kw">uint</span> sub_dim     <span class="op">=</span> codebook_shape<span class="op">[</span><span class="nu">1</span><span class="op">];</span>
+<span class="kw">uint</span> x_base      <span class="op">=</span> vec_idx <span class="op">*</span> sub_dim<span class="op">;</span>
+
+<span class="kw">float</span> best_dist <span class="op">=</span> INFINITY<span class="op">;</span>
+<span class="kw">uint</span>  best_idx  <span class="op">=</span> <span class="nu">0</span><span class="op">;</span>
+
+<span class="kw">for</span> <span class="op">(</span><span class="kw">uint</span> c <span class="op">=</span> <span class="nu">0</span><span class="op">;</span> c <span class="op">&lt;</span> n_centroids<span class="op">;</span> <span class="op">++</span>c<span class="op">)</span> <span class="op">{</span>
+    <span class="kw">uint</span> cb_base <span class="op">=</span> c <span class="op">*</span> sub_dim<span class="op">;</span>
+    <span class="kw">float</span> dist <span class="op">=</span> <span class="nu">0.0f</span><span class="op">;</span>
+    <span class="kw">for</span> <span class="op">(</span><span class="kw">uint</span> i <span class="op">=</span> <span class="nu">0</span><span class="op">;</span> i <span class="op">&lt;</span> sub_dim<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span> <span class="op">{</span>
+        <span class="kw">float</span> d <span class="op">=</span> <span class="kw">float</span><span class="op">(</span>x<span class="op">[</span>x_base <span class="op">+</span> i<span class="op">])</span> <span class="op">-</span> <span class="kw">float</span><span class="op">(</span>codebook<span class="op">[</span>cb_base <span class="op">+</span> i<span class="op">]);</span>
+        dist <span class="op">+=</span> d <span class="op">*</span> d<span class="op">;</span>
+    <span class="op">}</span>
+    <span class="kw">if</span> <span class="op">(</span>dist <span class="op">&lt;</span> best_dist<span class="op">)</span> <span class="op">{</span> best_dist <span class="op">=</span> dist<span class="op">;</span> best_idx <span class="op">=</span> c<span class="op">;</span> <span class="op">}</span>
+<span class="op">}</span>
+
+out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=</span> best_idx<span class="op">;</span></pre>
+    </div>
+
+    <div class="bench-note" style="margin-top:1.5rem;">
+      <strong style="color:#a78bfa">Honest caveat:</strong> the kernel pays a ~50–200µs launch overhead per call on Apple Silicon. On tiny models (SmolLM2 135M, 30 layers, ~60 launches/token) that overhead can exceed the work saved. The kernel is built for the regime that needs it — 7B+ models with realistic context lengths. <strong style="color:var(--text)">Phase 2</strong> (fused dequant + SDPA, never materializing fp16 keys) is on the roadmap. See the full writeup: <a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/MEDIUM_BLOG_METAL_KERNELS.md" target="_blank" rel="noopener" style="color:var(--accent)">Metal kernels blog post</a>.
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
   <!-- ── QUICKSTART ── -->
   <section id="quickstart" class="code-section">
     <p class="section-label">Quickstart</p>
@@ -931,7 +1013,7 @@
     <div class="code-panel" id="tab-vecinfer">
       <div class="code-wrap fade-in">
         <div class="code-header">
-          <span class="code-lang">python — VecInfer 1-bit · 16× compression · one-time calibration</span>
+          <span class="code-lang">python — VecInfer 1-bit · 16× compression · Metal kernels auto-detected</span>
           <button class="code-copy" data-target="code-vecinfer">Copy</button>
         </div>
         <pre id="code-vecinfer"><span class="kw">import</span> <span class="id">mlx_lm</span>
@@ -944,7 +1026,7 @@
 <span class="id">smooth</span> <span class="op">=</span> <span class="fn">calibrate_smooth_factors</span><span class="op">(</span><span class="id">sample_keys</span><span class="op">)</span>   <span class="cm"># [n_heads, head_dim]</span>
 <span class="id">codebook</span> <span class="op">=</span> <span class="fn">train_codebook</span><span class="op">(</span><span class="id">sample_keys_flat</span><span class="op">,</span> <span class="at">n_centroids</span><span class="op">=</span><span class="nu">256</span><span class="op">,</span> <span class="at">sub_dim</span><span class="op">=</span><span class="nu">8</span><span class="op">)</span>
 
-<span class="cm"># 16× key compression — matches fp16 throughput on Qwen2.5-7B</span>
+<span class="cm"># 16× key compression — Metal kernel auto-detected for 13x faster quantize</span>
 <span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
     <span class="at">method</span><span class="op">=</span><span class="st">"vecinfer"</span><span class="op">,</span>
     <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
@@ -952,6 +1034,7 @@
     <span class="at">key_sub_dim</span><span class="op">=</span><span class="nu">8</span><span class="op">,</span>             <span class="cm"># 16× compression at 1 bit/elem</span>
     <span class="at">smooth_factors</span><span class="op">=</span><span class="id">smooth</span><span class="op">,</span>
     <span class="at">key_codebook</span><span class="op">=</span><span class="id">codebook</span><span class="op">,</span>
+    <span class="at">use_metal_kernels</span><span class="op">=</span><span class="kw">None</span><span class="op">,</span>      <span class="cm"># None=auto, True=require, False=forbid</span>
 <span class="op">)</span>
 <span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheFactory</span><span class="op">.</span><span class="fn">create_for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
 
@@ -1175,7 +1258,7 @@ pip install -e ".[dev]"</span></pre>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
           <li>10 production models validated</li>
-          <li>205 tests, all passing</li>
+          <li>212 tests, all passing (incl. 7 Metal parity tests)</li>
         </ul>
       </div>
     </div>
@@ -1187,7 +1270,8 @@ pip install -e ".[dev]"</span></pre>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
-      <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/BLOG.md" target="_blank" rel="noopener">Blog post</a></li>
+      <li><a href="https://medium.com/@rajveer.rathod1301/stop-losing-80-of-your-macs-memory-to-llm-inference-here-s-how-00b6d4d7a0d0" target="_blank" rel="noopener">Blog: 10-model study</a></li>
+      <li><a href="https://medium.com/@rajveer.rathod1301/i-wrote-a-30-line-metal-shader-that-fixed-an-oom-bug-and-made-kv-cache-quantization-13-faster-4840a2bd6347" target="_blank" rel="noopener">Blog: Metal kernels</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/issues" target="_blank" rel="noopener">Issues</a></li>
     </ul>
     <p class="footer-copy">© 2026 Rajveer Rathod · MIT License</p>

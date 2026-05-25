@@ -4,80 +4,80 @@
   "n_kv_heads": 8,
   "n_q_heads": 32,
   "n_layers": 16,
-  "max_tokens": 60,
+  "max_tokens": 80,
   "prompt": "Explain the theory of relativity in simple terms, covering both special and general relativity with examples.",
   "results": [
     {
       "name": "fp16-baseline",
-      "throughput_tok_s": 105.38787585250398,
-      "peak_mb": 786.3818855285645,
+      "throughput_tok_s": 111.24681864463798,
+      "peak_mb": 786.3850059509277,
       "key_compression": 1.0,
-      "tokens_generated": 61,
-      "elapsed_s": 0.578814209002303,
+      "tokens_generated": 81,
+      "elapsed_s": 0.7281107090238947,
       "key_kb": 0.0
     },
     {
       "name": "TQ-2bit",
-      "throughput_tok_s": 75.47269674862952,
+      "throughput_tok_s": 43.44767065300573,
       "peak_mb": 735.4994029998779,
       "key_compression": 6.4,
-      "tokens_generated": 53,
-      "elapsed_s": 0.7022407080075936,
-      "key_kb": 290.0
+      "tokens_generated": 34,
+      "elapsed_s": 0.7825505830114707,
+      "key_kb": 340.0
     },
     {
       "name": "TQ-3bit",
-      "throughput_tok_s": 54.00168135706618,
+      "throughput_tok_s": 100.61539119529007,
       "peak_mb": 735.9370250701904,
       "key_compression": 4.571428571428571,
-      "tokens_generated": 33,
-      "elapsed_s": 0.6110920840001199,
-      "key_kb": 406.0
+      "tokens_generated": 74,
+      "elapsed_s": 0.7354739580187015,
+      "key_kb": 462.0
     },
     {
       "name": "TQ-4bit",
-      "throughput_tok_s": 98.77344832143969,
-      "peak_mb": 736.7029094696045,
+      "throughput_tok_s": 106.3315806581081,
+      "peak_mb": 736.9372844696045,
       "key_compression": 3.5555555555555554,
-      "tokens_generated": 61,
-      "elapsed_s": 0.6175748749956256,
-      "key_kb": 522.0
+      "tokens_generated": 81,
+      "elapsed_s": 0.7617680419934914,
+      "key_kb": 612.0
     },
     {
       "name": "RVQ-2bit",
-      "throughput_tok_s": 102.07537937897048,
+      "throughput_tok_s": 108.91681937998901,
       "peak_mb": 745.9699096679688,
       "key_compression": 3.764705882352941,
-      "tokens_generated": 61,
-      "elapsed_s": 0.5975975829933304,
-      "key_kb": 493.0
+      "tokens_generated": 81,
+      "elapsed_s": 0.743686792004155,
+      "key_kb": 578.0
     },
     {
       "name": "RVQ-1bit",
-      "throughput_tok_s": 104.34787076999086,
+      "throughput_tok_s": 62.11568223187963,
       "peak_mb": 744.8602447509766,
       "key_compression": 7.111111111111111,
-      "tokens_generated": 61,
-      "elapsed_s": 0.5845830830076011,
-      "key_kb": 261.0
+      "tokens_generated": 14,
+      "elapsed_s": 0.22538591700140387,
+      "key_kb": 159.75
     },
     {
       "name": "VecInfer-2bit",
-      "throughput_tok_s": 60.42371024493511,
-      "peak_mb": 1659.7875289916992,
+      "throughput_tok_s": 67.76215177528213,
+      "peak_mb": 758.1207809448242,
       "key_compression": 8.0,
-      "tokens_generated": 41,
-      "elapsed_s": 0.6785415829945123,
-      "key_kb": 232.0
+      "tokens_generated": 63,
+      "elapsed_s": 0.9297225420014001,
+      "key_kb": 272.0
     },
     {
       "name": "VecInfer-1bit",
-      "throughput_tok_s": 91.24178005999181,
-      "peak_mb": 1799.5746154785156,
+      "throughput_tok_s": 72.61781083975936,
+      "peak_mb": 757.7721481323242,
       "key_compression": 16.0,
-      "tokens_generated": 61,
-      "elapsed_s": 0.6685533749987371,
-      "key_kb": 116.0
+      "tokens_generated": 81,
+      "elapsed_s": 1.1154288329998963,
+      "key_kb": 136.0
     }
   ]
 }

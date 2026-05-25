@@ -59,6 +59,12 @@ class KVCacheConfig:
     smooth_factors: Any = None         # mx.array | np.ndarray | None
     key_codebook: Any = None           # mx.array | np.ndarray | None
     value_codebook: Any = None         # mx.array | np.ndarray | None
+    # --- Metal kernel acceleration (Phase 1, 0.5.1+) -------------------
+    # Three-state flag for VecInfer quantize/dequant Metal fast path:
+    #   None  → auto-detect (use Metal if available, fall back silently)
+    #   True  → require Metal; raise at cache-construction time if missing
+    #   False → force pure-MLX path (debug / parity testing)
+    use_metal_kernels: Optional[bool] = None
 
     def __repr__(self) -> str:
         return (
