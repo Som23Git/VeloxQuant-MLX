@@ -28,7 +28,7 @@
 
 ---
 
-A drop-in KV-cache replacement for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships six quantization strategies — from zero-calibration 1-bit RVQ to product-VQ with dual outlier suppression — plus hand-written Metal compute kernels that make the hot path **13× faster** and **98% lighter on peak memory** at long context lengths.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships six quantization strategies — from zero-calibration 1-bit RVQ to product-VQ with dual outlier suppression — plus hand-written Metal compute kernels that make the hot path **13× faster** and **98% lighter on peak memory** at long context lengths. Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
