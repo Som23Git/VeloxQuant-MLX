@@ -119,6 +119,12 @@
       pointer-events: none;
     }
 
+    .particles-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
     @keyframes gridShift {
       0%   { background-position: 0 0, 0 0; }
       100% { background-position: 48px 48px, 48px 48px; }
@@ -688,6 +694,457 @@
       transform: translateY(0);
     }
 
+    /* ── FLOATING PARTICLES ── */
+    @keyframes float-particle {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.3; }
+      25% { transform: translate(40px, -30px) rotate(90deg); opacity: 0.6; }
+      50% { transform: translate(20px, -60px) rotate(180deg); opacity: 0.4; }
+      75% { transform: translate(-30px, -40px) rotate(270deg); opacity: 0.5; }
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float-particle 20s ease-in-out infinite;
+    }
+
+    .particle:nth-child(1) { left: 15%; top: 20%; animation-delay: 0s; }
+    .particle:nth-child(2) { left: 75%; top: 30%; animation-delay: 3s; }
+    .particle:nth-child(3) { left: 45%; top: 50%; animation-delay: 6s; animation-duration: 25s; }
+    .particle:nth-child(4) { left: 85%; top: 60%; animation-delay: 2s; animation-duration: 22s; }
+    .particle:nth-child(5) { left: 25%; top: 70%; animation-delay: 5s; animation-duration: 28s; }
+
+    /* ── STAT CARD COUNTER ── */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 24px rgba(0,212,255,0.08); }
+      50% { box-shadow: 0 0 32px rgba(0,212,255,0.16); }
+    }
+
+    .stat-card {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    .stat-number {
+      display: inline-block;
+    }
+
+    /* ── NUMBER COUNTER ── */
+    @keyframes number-pop {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .stat-number.counting {
+      animation: number-pop 0.8s ease-out;
+    }
+
+    /* ── CARD HOVER EFFECTS ── */
+    .stat-card:hover {
+      animation: none;
+      box-shadow: 0 0 32px rgba(0,212,255,0.16) !important;
+    }
+
+    @keyframes card-shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+
+    .algo-card:hover {
+      background-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        transparent 100%
+      );
+      background-position: -1000px 0;
+      animation: card-shimmer 0.6s ease-in-out;
+    }
+
+    .algo-card.vecinfer-card:hover {
+      background: linear-gradient(135deg, #12121e 60%, rgba(124,58,237,0.06)),
+                  linear-gradient(90deg, transparent 0%, rgba(124,58,237,0.1) 50%, transparent 100%);
+      background-position: 0 0, -1000px 0;
+      animation: card-shimmer 0.6s ease-in-out;
+    }
+
+    /* ── BUTTON ANIMATIONS ── */
+    .btn {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover {
+      transition: all 0.3s ease;
+    }
+
+    .btn-filled:hover {
+      animation: button-glow 1.5s ease-in-out infinite;
+    }
+
+    @keyframes button-glow {
+      0%, 100% {
+        box-shadow: 0 0 0 rgba(51, 221, 255, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 16px rgba(51, 221, 255, 0.6);
+      }
+    }
+
+    .btn span[data-icon] {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    .btn:hover span[data-icon] {
+      transform: translateX(4px);
+    }
+
+    /* ── CODE TAB FADE ── */
+    .code-panel {
+      animation: fade-out 0.15s ease-out;
+    }
+
+    .code-panel.active {
+      animation: fade-in-code 0.25s ease-in;
+    }
+
+    @keyframes fade-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    @keyframes fade-in-code {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ── COPY BUTTON FEEDBACK ── */
+    .copy-btn.copied {
+      animation: button-pop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    @keyframes button-pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── TABLE ROW HOVER ── */
+    tbody tr:hover {
+      background: rgba(0, 212, 255, 0.06) !important;
+      transition: background 0.3s ease;
+    }
+
+    .td-winner:hover {
+      animation: winner-pulse 0.6s ease;
+    }
+
+    @keyframes winner-pulse {
+      0%, 100% { text-shadow: 0 0 0px rgba(74, 222, 128, 0.5); }
+      50% { text-shadow: 0 0 8px rgba(74, 222, 128, 0.8); }
+    }
+
+    /* ── HERO HEADLINE STAGGER ── */
+    h1 {
+      animation: headline-slide-in 0.8s ease-out;
+    }
+
+    @keyframes headline-slide-in {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 span {
+      position: relative;
+      display: inline-block;
+    }
+
+    h1 span::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--accent);
+      animation: accent-underline 0.6s ease-out 0.3s backwards;
+    }
+
+    @keyframes accent-underline {
+      from {
+        width: 0;
+        opacity: 0;
+      }
+      to {
+        width: 100%;
+        opacity: 1;
+      }
+    }
+
+    /* ── INSTALL BLOCK PULSE ── */
+    .install-block {
+      animation: install-pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes install-pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.3);
+        border-color: var(--border);
+      }
+      50% {
+        box-shadow: 0 0 12px 3px rgba(0, 212, 255, 0.15);
+        border-color: rgba(0, 212, 255, 0.5);
+      }
+    }
+
+    /* ── NAV INDICATOR ── */
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .nav-links a {
+      position: relative;
+    }
+
+    .nav-links a:hover::after,
+    .nav-links a.active::after {
+      width: 100%;
+    }
+
+    /* ── DIVIDER ANIMATION ── */
+    .divider {
+      animation: divider-fade-in 0.8s ease-in;
+    }
+
+    @keyframes divider-fade-in {
+      from {
+        opacity: 0;
+        transform: scaleX(0);
+      }
+      to {
+        opacity: 1;
+        transform: scaleX(1);
+      }
+    }
+
+    /* ── 1. AURORA BACKGROUND BLOBS ── */
+    .aurora-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .aurora-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      mix-blend-mode: screen;
+      opacity: 0.18;
+    }
+
+    .aurora-blob-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, #00d4ff 0%, transparent 70%);
+      top: -100px; left: 10%;
+      animation: aurora-drift-1 18s ease-in-out infinite;
+    }
+
+    .aurora-blob-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #7c3aed 0%, transparent 70%);
+      top: 50px; right: 5%;
+      animation: aurora-drift-2 22s ease-in-out infinite;
+    }
+
+    .aurora-blob-3 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #0d47a1 0%, transparent 70%);
+      bottom: 0; left: 35%;
+      animation: aurora-drift-3 26s ease-in-out infinite;
+    }
+
+    @keyframes aurora-drift-1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%       { transform: translate(80px, 60px) scale(1.1); }
+      66%       { transform: translate(-40px, 100px) scale(0.95); }
+    }
+
+    @keyframes aurora-drift-2 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%       { transform: translate(-90px, 50px) scale(1.05); }
+      66%       { transform: translate(50px, -60px) scale(1.15); }
+    }
+
+    @keyframes aurora-drift-3 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50%       { transform: translate(60px, -80px) scale(1.1); }
+    }
+
+    /* ── 2. BADGE TYPING CURSOR ── */
+    .badge-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 0.85em;
+      background: var(--accent);
+      vertical-align: middle;
+      margin-left: 2px;
+      animation: blink-cursor 0.7s step-end infinite;
+    }
+
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* ── 3. ANIMATED GRADIENT BORDER — VECINFER CARD ── */
+    .algo-card.vecinfer-card {
+      position: relative;
+    }
+
+    .algo-card.vecinfer-card::before {
+      content: '';
+      position: absolute;
+      inset: -1.5px;
+      border-radius: calc(var(--radius) + 1px);
+      background: conic-gradient(
+        from var(--angle, 0deg),
+        #00d4ff 0%,
+        #7c3aed 25%,
+        #00d4ff 50%,
+        #7c3aed 75%,
+        #00d4ff 100%
+      );
+      z-index: -1;
+      animation: border-rotate 4s linear infinite;
+      opacity: 0.7;
+    }
+
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    @keyframes border-rotate {
+      to { --angle: 360deg; }
+    }
+
+    /* Fallback for browsers without @property */
+    @supports not (background: conic-gradient(from 0deg, red, blue)) {
+      .algo-card.vecinfer-card::before {
+        background: linear-gradient(135deg, #00d4ff, #7c3aed);
+        animation: border-fade 3s ease-in-out infinite;
+      }
+
+      @keyframes border-fade {
+        0%, 100% { opacity: 0.4; }
+        50%       { opacity: 0.9; }
+      }
+    }
+
+    /* ── 4. SCANLINE ON STAT CARDS ── */
+    .stat-card {
+      overflow: hidden;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      left: 0; top: -100%;
+      width: 100%; height: 60%;
+      background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 212, 255, 0.06) 50%,
+        transparent 100%
+      );
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+
+    .stat-card:hover::after {
+      opacity: 1;
+      animation: scanline 0.7s ease-out forwards;
+    }
+
+    @keyframes scanline {
+      0%   { top: -60%; }
+      100% { top: 110%; }
+    }
+
+    /* keep stat-card position relative for the pseudo */
+    .stat-card { position: relative; }
+
+    /* ── 5. DATA STREAM (MATRIX RAIN) ── */
+    #matrix-canvas {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.045;
+      z-index: 0;
+    }
+
+    /* ── 6. SCROLL PARALLAX — handled in JS ── */
+
+    /* ── 7. CODE BLOCK TERMINAL BOOT ── */
+    .code-boot-char {
+      opacity: 0;
+      animation: char-appear 0.02s forwards;
+    }
+
+    @keyframes char-appear {
+      to { opacity: 1; }
+    }
+
+    .code-cursor-blink {
+      display: inline-block;
+      width: 0.55em; height: 1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: blink-cursor 0.6s step-end infinite;
+      margin-left: 1px;
+    }
+
+    /* ── 8. MAGNETIC BUTTON — handled in JS ── */
+    .btn {
+      will-change: transform;
+      transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+                  background 0.2s ease,
+                  box-shadow 0.2s ease,
+                  border-color 0.2s ease,
+                  color 0.2s ease;
+    }
+
+    /* ── REDUCE MOTION ── */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .aurora-blob, #matrix-canvas { display: none; }
+    }
+
     /* ── DIVIDER ── */
     .divider {
       height: 1px;
@@ -739,8 +1196,21 @@
 
   <!-- ── HERO ── -->
   <section id="hero">
+    <canvas id="matrix-canvas"></canvas>
+    <div class="aurora-container">
+      <div class="aurora-blob aurora-blob-1"></div>
+      <div class="aurora-blob aurora-blob-2"></div>
+      <div class="aurora-blob aurora-blob-3"></div>
+    </div>
+    <div class="particles-container">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
     <div class="hero-content">
-      <div class="badge">v0.5.1 — Hand-written Metal kernels shipped</div>
+      <div class="badge" id="hero-badge"></div>
       <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
       <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL — in MLX</p>
       <p class="hero-oneliner">
@@ -757,10 +1227,10 @@
           &#9679; View on GitHub
         </a>
         <a href="#benchmarks" class="btn btn-purple">
-          See benchmarks ↓
+          See benchmarks <span data-icon>↓</span>
         </a>
         <a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener" class="btn btn-filled">
-          PyPI →
+          PyPI <span data-icon>→</span>
         </a>
       </div>
       <p class="hero-meta">
@@ -1314,11 +1784,100 @@ pip install -e ".[dev]"</span></pre>
       });
     });
 
+    // ── 2. BADGE TYPING ANIMATION ──
+    (function typeBadge() {
+      const badge = document.getElementById('hero-badge');
+      const text = 'v0.5.1 — Hand-written Metal kernels shipped';
+      let i = 0;
+      badge.innerHTML = '';
+      const cursor = document.createElement('span');
+      cursor.className = 'badge-cursor';
+      badge.appendChild(cursor);
+
+      const interval = setInterval(() => {
+        badge.insertBefore(document.createTextNode(text[i]), cursor);
+        i++;
+        if (i >= text.length) {
+          clearInterval(interval);
+          // remove blinking cursor after typing completes (keep it 1.5s)
+          setTimeout(() => cursor.remove(), 1500);
+        }
+      }, 35);
+    })();
+
+    // ── 5. MATRIX RAIN ──
+    (function initMatrix() {
+      const canvas = document.getElementById('matrix-canvas');
+      const hero = document.getElementById('hero');
+      const ctx = canvas.getContext('2d');
+      const chars = '01ABCDEFx+=<>[]{}∑∫ΔΩπ';
+      const fontSize = 13;
+      let cols, drops;
+
+      function resize() {
+        canvas.width  = hero.offsetWidth;
+        canvas.height = hero.offsetHeight;
+        cols  = Math.floor(canvas.width / fontSize);
+        drops = Array.from({ length: cols }, () => Math.random() * -50);
+      }
+
+      resize();
+      new ResizeObserver(resize).observe(hero);
+
+      function draw() {
+        ctx.fillStyle = 'rgba(8,8,15,0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#00d4ff';
+        ctx.font = fontSize + 'px JetBrains Mono, monospace';
+        for (let i = 0; i < cols; i++) {
+          const ch = chars[Math.floor(Math.random() * chars.length)];
+          ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
+          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+          drops[i] += 0.4;
+        }
+      }
+
+      setInterval(draw, 60);
+    })();
+
+    // ── NUMBER COUNTER ──
+    function animateCounter(element, target, suffix) {
+      const steps = 50;
+      const duration = 900;
+      let i = 0;
+      const interval = setInterval(() => {
+        i++;
+        const progress = i / steps;
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const val = target * eased;
+        const disp = Number.isInteger(target) ? Math.round(val) : parseFloat(val.toFixed(1));
+        element.textContent = disp + suffix;
+        if (i >= steps) {
+          element.textContent = target + suffix;
+          element.classList.add('counting');
+          clearInterval(interval);
+        }
+      }, duration / steps);
+    }
+
     // ── SCROLL FADE-IN ──
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry, i) => {
         if (entry.isIntersecting) {
-          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+            // Trigger number counters for stat cards
+            if (entry.target.classList.contains('stat-card')) {
+              const statNum = entry.target.querySelector('.stat-number');
+              if (statNum && !statNum.dataset.animated) {
+                statNum.dataset.animated = 'true';
+                const raw = statNum.textContent.trim();
+                const num = parseFloat(raw);
+                const suffix = raw.replace(/[\d.]/g, '');
+                if (!isNaN(num)) animateCounter(statNum, num, suffix);
+              }
+            }
+          }, i * 80);
           observer.unobserve(entry.target);
         }
       });
@@ -1341,6 +1900,98 @@ pip install -e ".[dev]"</span></pre>
     }, { rootMargin: '-40% 0px -55% 0px' });
 
     sections.forEach(s => navObserver.observe(s));
+
+    // ── 6. SCROLL PARALLAX (hero radial gradient + aurora) ──
+    const heroEl = document.getElementById('hero');
+    const auroraContainer = heroEl.querySelector('.aurora-container');
+
+    window.addEventListener('scroll', () => {
+      const scrollY = window.scrollY;
+      const heroH   = heroEl.offsetHeight;
+      if (scrollY > heroH) return;
+      const pct = scrollY / heroH;
+      auroraContainer.style.transform = `translateY(${pct * 60}px)`;
+    }, { passive: true });
+
+    // ── 7. TERMINAL BOOT — code blocks ──
+    function bootCode(preEl) {
+      if (preEl.dataset.booted) return;
+      preEl.dataset.booted = 'true';
+
+      // Collect all child nodes (text + span elements) preserving HTML
+      const original = preEl.innerHTML;
+      preEl.innerHTML = '';
+
+      const tmp = document.createElement('div');
+      tmp.innerHTML = original;
+
+      const cursor = document.createElement('span');
+      cursor.className = 'code-cursor-blink';
+      preEl.appendChild(cursor);
+
+      const nodes = Array.from(tmp.childNodes);
+      let nodeIdx = 0;
+      let charIdx = 0;
+      let delay = 0;
+
+      function nextTick() {
+        if (nodeIdx >= nodes.length) {
+          cursor.remove();
+          return;
+        }
+        const node = nodes[nodeIdx];
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent;
+          if (charIdx < text.length) {
+            preEl.insertBefore(document.createTextNode(text[charIdx]), cursor);
+            charIdx++;
+            delay = 12;
+          } else {
+            nodeIdx++;
+            charIdx = 0;
+            delay = 0;
+          }
+        } else {
+          // span — insert whole element at once for syntax coloring
+          const clone = node.cloneNode(true);
+          preEl.insertBefore(clone, cursor);
+          nodeIdx++;
+          charIdx = 0;
+          delay = 18;
+        }
+        setTimeout(nextTick, delay);
+      }
+
+      setTimeout(nextTick, 120);
+    }
+
+    const codeObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const pre = entry.target.querySelector('pre');
+          if (pre) bootCode(pre);
+          codeObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.25 });
+
+    document.querySelectorAll('.code-wrap').forEach(el => codeObserver.observe(el));
+
+    // ── 8. MAGNETIC BUTTONS ──
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('mousemove', e => {
+        const rect = btn.getBoundingClientRect();
+        const cx = rect.left + rect.width  / 2;
+        const cy = rect.top  + rect.height / 2;
+        const dx = (e.clientX - cx) / (rect.width  / 2);
+        const dy = (e.clientY - cy) / (rect.height / 2);
+        btn.style.transform = `translate(${dx * 7}px, ${dy * 5}px)`;
+      });
+
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = '';
+      });
+    });
   </script>
 </body>
 </html>
