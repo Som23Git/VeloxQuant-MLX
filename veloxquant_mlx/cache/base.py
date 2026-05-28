@@ -33,7 +33,7 @@ class KVCacheConfig:
 
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
-        "polar", "qjl", "vecinfer",
+        "polar", "qjl", "vecinfer", "spectral",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -59,12 +59,32 @@ class KVCacheConfig:
     smooth_factors: Any = None         # mx.array | np.ndarray | None
     key_codebook: Any = None           # mx.array | np.ndarray | None
     value_codebook: Any = None         # mx.array | np.ndarray | None
+    # --- SpectralQuant configuration (data-aware, calibration-based) ----
+    spectral_key_d_eff: int = 4        # signal dimensions for keys (paper: ~4)
+    spectral_val_d_eff: int = 50       # signal dimensions for values (paper: ~50)
+    spectral_apply_qjl: bool = True    # apply QJL on signal dims only
+    spectral_model_name: str = "model" # identifier for rotation cache on disk
     # --- Metal kernel acceleration (Phase 1, 0.5.1+) -------------------
     # Three-state flag for VecInfer quantize/dequant Metal fast path:
     #   None  → auto-detect (use Metal if available, fall back silently)
     #   True  → require Metal; raise at cache-construction time if missing
     #   False → force pure-MLX path (debug / parity testing)
     use_metal_kernels: Optional[bool] = None
+    # --- Fused dequant+SDPA Metal kernel (Phase 2, 0.6.0+) -------------
+    # When True (or auto-detected at None), the cache stores K/V as
+    # codebook indices only and exposes a fused_sdpa() method that
+    # mlx_lm's dispatcher (after patch_mlx_lm_for_fused_sdpa()) routes
+    # attention to.  Avoids materializing the fp16 K_hat tensor entirely.
+    #   None  → False today (opt-in; will flip to auto-detect later)
+    #   True  → require, raise if Metal/shape unsupported
+    #   False → run the standard dequant→SDPA path (current 0.5.x default)
+    fused_sdpa: Optional[bool] = False
+    # Pre-allocated index ring-buffer capacity (in tokens) when
+    # fused_sdpa=True.  At construction time we allocate
+    # [B, H_kv, fused_sdpa_max_ctx, n_sub] uint32 once and slice-write
+    # into it on each update_and_fetch — avoids O(S²) per-step concat.
+    # If a generation exceeds this length, the cache raises RuntimeError.
+    fused_sdpa_max_ctx: int = 8192
 
     def __repr__(self) -> str:
         return (
@@ -89,6 +109,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
         from veloxquant_mlx.cache.sliding_window_cache import SlidingWindowKVCache
+        from veloxquant_mlx.cache.spectral_cache import SpectralQuantKVCache
         from veloxquant_mlx.cache.turboquant_cache import TurboQuantKVCache
         from veloxquant_mlx.cache.turboquant_rvq_cache import TurboQuantRVQKVCache
         from veloxquant_mlx.cache.vecinfer_cache import VecInferKVCache
@@ -115,11 +136,13 @@ class KVCacheFactory:
             cache = QJLKVCache(config)
         elif config.method == "vecinfer":
             cache = VecInferKVCache(config)
+        elif config.method == "spectral":
+            cache = SpectralQuantKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
-                f"polar, qjl, vecinfer."
+                f"polar, qjl, vecinfer, spectral."
             )
 
         if config.sliding_window is not None:

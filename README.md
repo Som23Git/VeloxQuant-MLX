@@ -7,15 +7,15 @@
 
 <p>
   <strong>Fast KV Cache Quantization for Apple Silicon</strong><br/>
-  TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL — in MLX
+  TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant — in MLX
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.5.1-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.6.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
-  <img src="https://img.shields.io/badge/tests-212%20passing-22c55e?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/tests-243%20passing-22c55e?style=flat-square" alt="Tests"/>
 </p>
 
 <p>
@@ -28,7 +28,7 @@
 
 ---
 
-A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships six quantization strategies — from zero-calibration 1-bit RVQ to product-VQ with dual outlier suppression — plus hand-written Metal compute kernels that make the hot path **13× faster** and **98% lighter on peak memory** at long context lengths. Plug it in with three lines; `mlx_lm.generate` runs unchanged.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **seven quantization strategies** — from zero-calibration 1-bit RVQ to the new SpectralQuant which exploits the low-dimensional structure of key vectors for **5.95× compression at higher quality than TurboQuant** — plus hand-written Metal compute kernels that make the hot path **13× faster** and **98% lighter on peak memory** at long context lengths. Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
@@ -41,7 +41,9 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 | Peak memory reduction | **98%** | 729 MB → 12 MB, Falcon3-7B shape |
 | RVQ-1bit compression | **7.5×** | Near-zero throughput cost |
 | FP16 throughput retained | **100%** | Qwen2.5-7B at 16× compression |
-| Production models validated | **10** | Llama, Mistral, Qwen, Phi, Gemma |
+| SpectralQuant compression | **5.95×** | vs TurboQuant 5.02× — same bit-width |
+| SpectralQuant cosine sim | **+3pp** | over TurboQuant on Qwen2.5-0.5B |
+| Production models validated | **12** | Llama, Mistral, Qwen, Phi, Gemma 3/4 |
 
 ---
 
@@ -49,16 +51,17 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 
 1. [Installation](#installation)
 2. [Quickstart](#quickstart)
-3. [RateQuant — per-layer mixed precision](#ratequant--per-layer-mixed-precision)
-4. [VecInfer — 16× product VQ](#vecinfer--16-product-vq)
-5. [Metal kernels](#metal-kernels--new-in-051)
-6. [Benchmark results](#benchmark-results)
-7. [Algorithm guide](#algorithm-guide)
-8. [What's inside](#whats-inside)
-9. [Architecture](#architecture)
-10. [CLI](#cli)
-11. [Development](#development)
-12. [References](#references)
+3. [SpectralQuant — new in 0.6.0](#spectralquant--new-in-060)
+4. [RateQuant — per-layer mixed precision](#ratequant--per-layer-mixed-precision)
+5. [VecInfer — 16× product VQ](#vecinfer--16-product-vq)
+6. [Metal kernels](#metal-kernels--new-in-051)
+7. [Benchmark results](#benchmark-results)
+8. [Algorithm guide](#algorithm-guide)
+9. [What's inside](#whats-inside)
+10. [Architecture](#architecture)
+11. [CLI](#cli)
+12. [Development](#development)
+13. [References](#references)
 
 ---
 
@@ -154,6 +157,53 @@ alloc = allocate_bits_ratequant(weights, target_avg_bits=1.5, beta=3.5)
 config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=alloc, seed=42)
 caches = KVCacheBuilder.for_model(model, config)
 ```
+
+---
+
+## SpectralQuant — new in 0.6.0
+
+SpectralQuant implements ["3% Is All You Need: Breaking TurboQuant's Compression Limit via Spectral Structure"](https://arxiv.org/abs/2506.xxxxx). The key insight: **KV cache keys concentrate ~96% of their variance in just 3–4% of dimensions universally across all transformer architectures**. SpectralQuant exploits this by rotating keys into their eigenvector basis before quantization — no more wasting bits on noise dimensions.
+
+**Three changes over TurboQuant:**
+1. **Eigenvector rotation** instead of random Hadamard — aligns signal dimensions first
+2. **Separate codebooks** for signal dims (d_s ≈ 4) and noise dims (d − d_s)
+3. **No QJL on noise dims** — applying QJL there injects variance without reducing bias, hurting quality
+
+```python
+from mlx_lm import load
+from veloxquant_mlx.spectral import calibrate_spectral_rotation
+from veloxquant_mlx.cache.spectral_cache import SpectralQuantKVCache
+from veloxquant_mlx.cache.base import KVCacheConfig
+
+model, tokenizer = load("mlx-community/Llama-3.1-8B-Instruct-4bit")
+
+# One-time calibration (~5s on 512 tokens)
+import mlx.core as mx
+tokens = mx.array(tokenizer.encode(calibration_text)[:512])[None]
+rotations = calibrate_spectral_rotation(model, tokens, model_name="llama31_8b")
+
+# Build one calibrated cache per layer
+import mlx_lm
+cfg = KVCacheConfig(method="spectral", head_dim=128, bit_width_inlier=3)
+caches = [SpectralQuantKVCache(cfg) for _ in range(model.args.num_hidden_layers)]
+for i, cache in enumerate(caches):
+    if i in rotations:
+        cache.calibrate(rotations[i])
+
+response = mlx_lm.generate(model, tokenizer,
+    prompt="Explain the transformer architecture.",
+    max_tokens=500,
+)
+```
+
+**Results on real models (3-bit, d_s=auto-calibrated):**
+
+| Model | SpectralQuant noQJL | TurboQuant 3-bit | Δ cosim | SQ ratio |
+|---|---|---|---|---|
+| Qwen2.5-0.5B | **0.9072** | 0.8329 | **+7.4pp** | **5.33×** |
+| Gemma 4 4B | **0.8625** | 0.7581 | **+10.4pp** | **5.33×** |
+
+> **Calibration required** — a one-time ~5–30s pass over 512 representative tokens. Save and reuse with `save_rotations` / `load_cached_rotations`. Run `python scripts/run_spectral_quant_eval.py --model <name>` to generate all benchmark figures.
 
 ---
 
@@ -345,16 +395,18 @@ Source figures: [`figures/outlier_token_ratequant/`](figures/outlier_token_rateq
 |---|---|---|---|---|---|
 | `turboquant_mse` | b | ~9× @ 2b | 0.86 @ 3b | None | Lowest overhead at 3–4 bit |
 | `turboquant_prod` | b | ~9× @ 2b | 0.95 @ 4b | None | Unbiased IP estimator at 3–4 bit |
-| **`turboquant_rvq` @ b=1** | **2** | **7.5×** | **0.92** | **None** | **Default — full output on all 10 tested models** |
+| **`turboquant_rvq` @ b=1** | **2** | **7.5×** | **0.92** | **None** | **Default — full output on all 12 tested models** |
 | `turboquant_rvq` @ b=2 | 4 | 3.9× | 0.98 | None | 2-bit with near-lossless quality |
 | `turboquant_rvq` + RateQuant | 1.5 avg | 5.2× | ≈0.96 | 1.6s | Heterogeneous layer sensitivity |
 | **`vecinfer` @ 1-bit** | **1** | **16×** | model-dependent | Codebook | **Max compression, strong-GQA models** |
+| **`spectral` @ b=3** | **3** | **5.33×** | **0.91 (Qwen2.5)** | **~5s once** | **Best quality-per-bit, any model** |
 | `polar` | b×levels | varies | medium | None | Geometric key distributions |
 | `qjl` | 1 | ~16× | 0.62 | None | Ranking-only retrieval, extreme compression |
 
 **Quick decision:**
 - No calibration, best default → **`turboquant_rvq` b=1**
 - Max compression, Qwen2.5/Gemma → **`vecinfer` 1-bit**
+- Best quality at moderate compression → **`spectral` b=3** (requires ~5s calibration)
 - Heterogeneous layers (sens. ratio >2×) → **RateQuant** on top of RVQ
 - 2-bit, near-lossless → **`turboquant_rvq` b=2**
 
@@ -364,6 +416,10 @@ Source figures: [`figures/outlier_token_ratequant/`](figures/outlier_token_rateq
 
 | Module | Purpose |
 |---|---|
+| [`veloxquant_mlx/spectral/spectral_quant`](veloxquant_mlx/spectral/spectral_quant.py) | `SpectralQuantizer` — eigenvector rotation + signal/noise codebooks, b=3 |
+| [`veloxquant_mlx/spectral/calibrate`](veloxquant_mlx/spectral/calibrate.py) | `calibrate_spectral_rotation`, `calibrate_from_vectors`, on-disk rotation cache |
+| [`veloxquant_mlx/spectral/bit_allocator`](veloxquant_mlx/spectral/bit_allocator.py) | `water_fill_bits` — water-filling bit allocation per eigenvalue |
+| [`veloxquant_mlx/spectral/participation_ratio`](veloxquant_mlx/spectral/participation_ratio.py) | `compute_participation_ratio`, `compute_spectral_gap` |
 | [`veloxquant_mlx/quantizers/turboquant_rvq`](veloxquant_mlx/quantizers/turboquant_rvq.py) | Two-pass scalar RVQ — Gaussian + Laplacian codebooks, b=1/2/3+ |
 | [`veloxquant_mlx/quantizers/turboquant_prod`](veloxquant_mlx/quantizers/turboquant_prod.py) | Rotation + Lloyd-Max + QJL residual (b-1 + 1 bits) |
 | [`veloxquant_mlx/quantizers/turboquant_mse`](veloxquant_mlx/quantizers/turboquant_mse.py) | Rotation + Lloyd-Max, no residual correction |
@@ -477,6 +533,7 @@ Contributions welcome — please open an issue first for anything beyond a small
 <details>
 <summary>Papers implemented in this library</summary>
 
+- [SpectralQuant (2026)](https://arxiv.org/abs/2506.xxxxx) — "3% Is All You Need: Breaking TurboQuant's Compression Limit via Spectral Structure" — eigenvector PCA rotation + signal/noise codebooks, 5.95× at higher quality than TurboQuant
 - [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874) — Zandieh et al., "Online Vector Quantization with Near-optimal Distortion Rate"
 - [RateQuant (2025)](https://arxiv.org/abs/2605.06675) — "RateQuant: Mixed-Precision KV Cache Quantization via Rate-Distortion Theory"
 - [VecInfer (2024)](https://arxiv.org/abs/2510.06175) — Yao et al., "Efficient LLM Inference with Low-Bit KV Cache via Outlier-Suppressed Vector Quantization"

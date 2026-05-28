@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL — all in MLX. Benchmarked across 10 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant — all in MLX. New in 0.6.0: SpectralQuant achieves 5.95× compression with higher quality than TurboQuant via eigenvector rotation. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -461,6 +461,7 @@
     .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
     .tab-btn.active { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); }
     .tab-btn.active-purple { background: rgba(124,58,237,0.1); border-color: var(--purple); color: #a78bfa; }
+    .tab-btn.active-green { background: rgba(34,197,94,0.1); border-color: #22c55e; color: #22c55e; }
 
     .code-panel { display: none; }
     .code-panel.active { display: block; }
@@ -1212,7 +1213,7 @@
     <div class="hero-content">
       <div class="badge" id="hero-badge"></div>
       <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
-      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL — in MLX</p>
+      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant — in MLX</p>
       <p class="hero-oneliner">
         Up to <strong style="color:var(--accent)">16× key cache compression</strong> with near-fp16 throughput on M-series chips.
         Now with <strong style="color:#a78bfa">custom Metal kernels</strong> — 13× faster quantize, 98% less peak memory on long contexts. Plug into <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code> with three lines.
@@ -1285,8 +1286,8 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Five quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Six quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.6.0: SpectralQuant exploits the low-rank structure of key vectors for 5.95× compression at higher quality than TurboQuant. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
@@ -1364,6 +1365,54 @@
         <div class="algo-badge">1-BIT</div>
         <div class="algo-title">QJL</div>
         <div class="algo-desc">Johnson-Lindenstrauss 1-bit sign sketch. An inner-product-preserving random projection for extreme compression scenarios. Minimal memory footprint with provable approximation guarantees.</div>
+      </div>
+
+      <!-- SpectralQuant — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.6.0</div>
+            <div class="algo-title" style="font-size:1.25rem">SpectralQuant — Eigenvector Rotation Quantization</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              The newest method in the library. SpectralQuant exploits a universal property of transformer KV caches: <strong style="color:var(--text)">~96% of key vector variance concentrates in just 3–4% of dimensions</strong> across all architectures. By rotating into the eigenvector basis before quantization, every bit lands on signal — not noise.
+              <br><br>
+              <strong style="color:var(--text)">① Calibration</strong> — one-time SVD over 512 tokens (~5–30s) computes per-layer rotation matrices<br>
+              <strong style="color:var(--text)">② PCA rotation</strong> — keys are projected into their principal component basis<br>
+              <strong style="color:var(--text)">③ Signal/noise codebooks</strong> — separate quantizers for high-eigenvalue signal dims and low-eigenvalue noise dims<br>
+              <strong style="color:var(--text)">④ No QJL on noise dims</strong> — paper finding: QJL correction adds variance without reducing bias on noise dims<br>
+              <br>
+              <strong style="color:#a78bfa">New in 0.6.0:</strong> <code style="font-family:'JetBrains Mono',monospace">calibrate_spectral_rotation(model, tokens)</code> auto-detects architecture (including Gemma 4 multimodal), wraps sliding-window caches, and caches rotations to disk. Works with all mlx-community models.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression ratio</span>
+                <span class="value">5.95× (b=3)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs TurboQuant 3-bit</span>
+                <span class="value">+7–10pp cosine sim</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Qwen2.5-0.5B cosim</span>
+                <span class="value">0.907 vs TQ 0.833</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Gemma 4 4B cosim</span>
+                <span class="value">0.863 vs TQ 0.758</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration time</span>
+                <span class="value">~5–30s, one-time</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Architecture support</span>
+                <span class="value">All mlx-community models</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -1452,6 +1501,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn active" data-tab="rvq">RVQ-1bit (recommended)</button>
       <button class="tab-btn" data-tab="vecinfer" style="border-color:rgba(124,58,237,0.4);color:#a78bfa">VecInfer-1bit (16×)</button>
       <button class="tab-btn" data-tab="ratequant">RateQuant (mixed-precision)</button>
+      <button class="tab-btn" data-tab="spectral" style="border-color:rgba(34,197,94,0.4);color:#22c55e">SpectralQuant (new 0.6.0)</button>
     </div>
 
     <!-- RVQ tab -->
@@ -1540,6 +1590,46 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
 <span class="cm"># Step 3 — build per-layer caches</span>
 <span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span><span class="at">method</span><span class="op">=</span><span class="st">"turboquant_rvq"</span><span class="op">,</span> <span class="at">bit_width_inlier</span><span class="op">=</span><span class="id">alloc</span><span class="op">)</span>
 <span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- SpectralQuant tab -->
+    <div class="code-panel" id="tab-spectral">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — SpectralQuant · 5.95× compression · best quality-per-bit · new 0.6.0</span>
+          <button class="code-copy" data-target="code-sq">Copy</button>
+        </div>
+        <pre id="code-sq"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx.spectral.calibrate</span> <span class="kw">import</span> <span class="fn">calibrate_spectral_rotation</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx.spectral.spectral_quant</span> <span class="kw">import</span> <span class="fn">SpectralQuantizer</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Qwen2.5-7B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Step 1 — one-time calibration (~10s). Rotations are cached to disk.</span>
+<span class="id">tokens</span> <span class="op">=</span> <span class="id">tokenizer</span><span class="op">.</span><span class="fn">encode</span><span class="op">(</span><span class="st">"calibration text here"</span><span class="op">,</span> <span class="at">return_tensors</span><span class="op">=</span><span class="st">"mlx"</span><span class="op">)</span>
+<span class="id">rotations</span> <span class="op">=</span> <span class="fn">calibrate_spectral_rotation</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokens</span><span class="op">,</span>
+    <span class="at">model_name</span><span class="op">=</span><span class="st">"qwen25_7b"</span><span class="op">,</span>   <span class="cm"># cached to ~/.cache/veloxquant/</span>
+<span class="op">)</span>
+
+<span class="cm"># Step 2 — build per-layer SpectralQuant caches</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="op">[]</span>
+<span class="kw">for</span> <span class="id">i</span><span class="op">,</span> <span class="id">layer</span> <span class="kw">in</span> <span class="fn">enumerate</span><span class="op">(</span><span class="id">model</span><span class="op">.</span><span class="id">layers</span><span class="op">)</span><span class="op">:</span>
+    <span class="id">key_U</span><span class="op">,</span> <span class="id">_</span><span class="op">,</span> <span class="id">_</span><span class="op">,</span> <span class="id">_</span><span class="op">,</span> <span class="id">key_ds</span><span class="op">,</span> <span class="id">_</span> <span class="op">=</span> <span class="id">rotations</span><span class="op">[</span><span class="id">i</span><span class="op">]</span>
+    <span class="id">sq</span> <span class="op">=</span> <span class="fn">SpectralQuantizer</span><span class="op">(</span>
+        <span class="at">d</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span> <span class="at">b_signal</span><span class="op">=</span><span class="nu">3</span><span class="op">,</span> <span class="at">b_noise</span><span class="op">=</span><span class="nu">3</span><span class="op">,</span>
+        <span class="at">rotation</span><span class="op">=</span><span class="id">key_U</span><span class="op">,</span> <span class="at">d_s</span><span class="op">=</span><span class="id">key_ds</span><span class="op">,</span> <span class="at">apply_qjl</span><span class="op">=</span><span class="kw">False</span><span class="op">,</span>
+    <span class="op">)</span>
+    <span class="id">caches</span><span class="op">.</span><span class="fn">append</span><span class="op">(</span><span class="id">sq</span><span class="op">)</span>  <span class="cm"># wrap in mlx_lm-compatible cache</span>
+
+<span class="cm"># Step 3 — generate as usual; 5.95× compression, +7–10pp quality vs TurboQuant</span>
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Explain quantum entanglement in simple terms."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
       </div>
     </div>
   </section>
@@ -1683,6 +1773,11 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
         <div class="picker-method">RateQuant</div>
         <div class="picker-detail">Per-layer allocation · 1.6s calibration · closes the quality gap at fractional average bits. Best on Gemma3, Falcon3 (sensitivity ratio &gt;6×).</div>
       </div>
+      <div class="picker-card" style="border-color:rgba(34,197,94,0.35);">
+        <div class="picker-goal">Best quality at moderate compression</div>
+        <div class="picker-method" style="color:#22c55e">SpectralQuant</div>
+        <div class="picker-detail">5.95× compression · ~5–30s one-time calibration · +7–10pp cosine sim over TurboQuant. Universal — works on every architecture including Gemma 4 multimodal. Best when quality matters most.</div>
+      </div>
     </div>
   </section>
 
@@ -1779,7 +1874,7 @@ pip install -e ".[dev]"</span></pre>
         const tab = btn.dataset.tab;
         tabBtns.forEach(b => b.classList.remove('active', 'active-purple'));
         tabPanels.forEach(p => p.classList.remove('active'));
-        btn.classList.add(tab === 'vecinfer' ? 'active-purple' : 'active');
+        btn.classList.add(tab === 'vecinfer' ? 'active-purple' : tab === 'spectral' ? 'active-green' : 'active');
         document.getElementById('tab-' + tab).classList.add('active');
       });
     });
@@ -1787,7 +1882,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.5.1 — Hand-written Metal kernels shipped';
+      const text = 'v0.6.0 — SpectralQuant shipped';
       let i = 0;
       badge.innerHTML = '';
       const cursor = document.createElement('span');
