@@ -51,14 +51,42 @@ def __getattr__(name: str):
     if name == "fused_sdpa_supports_shape":
         from .fused_sdpa import supports_shape as _fn
         return _fn
+    # TurboQuant kernels
+    _turboquant_names = {
+        "turboquant_bit_pack",
+        "turboquant_bit_unpack",
+        "turboquant_scalar_quantize",
+        "turboquant_scalar_dequantize",
+        "turboquant_hadamard_quantize",
+        "qjl_encode",
+        "qjl_inner_product",
+        "turboquant_fused_rvq_decode_attend",
+        "comm_vq_decode_metal",
+        "rabitq_hamming_score",
+    }
+    if name in _turboquant_names:
+        from . import kernels as _k
+        return getattr(_k, name)
     raise AttributeError(f"module 'veloxquant_mlx.metal' has no attribute {name!r}")
 
 
 __all__ = [
     "metal_available",
     "USE_METAL",
+    # VecInfer
     "vecinfer_dequant_metal",
     "vecinfer_quantize_metal",
     "metal_fused_sdpa",
     "fused_sdpa_supports_shape",
+    # TurboQuant
+    "turboquant_bit_pack",
+    "turboquant_bit_unpack",
+    "turboquant_scalar_quantize",
+    "turboquant_scalar_dequantize",
+    "turboquant_hadamard_quantize",
+    "qjl_encode",
+    "qjl_inner_product",
+    "turboquant_fused_rvq_decode_attend",
+    "comm_vq_decode_metal",
+    "rabitq_hamming_score",
 ]

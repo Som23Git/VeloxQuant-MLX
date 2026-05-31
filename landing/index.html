@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant — all in MLX. New in 0.6.0: SpectralQuant achieves 5.95× compression with higher quality than TurboQuant via eigenvector rotation. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ — all in MLX. New in 0.7.0: RaBitQ achieves 6× full KV compression on Falcon3-7B via 1-bit randomised Hadamard quantization. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1213,10 +1213,10 @@
     <div class="hero-content">
       <div class="badge" id="hero-badge"></div>
       <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
-      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant — in MLX</p>
+      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ — in MLX</p>
       <p class="hero-oneliner">
         Up to <strong style="color:var(--accent)">16× key cache compression</strong> with near-fp16 throughput on M-series chips.
-        Now with <strong style="color:#a78bfa">custom Metal kernels</strong> — 13× faster quantize, 98% less peak memory on long contexts. Plug into <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code> with three lines.
+        Now with <strong style="color:#a78bfa">custom Metal kernels</strong> — 13× faster quantize, 98% less peak memory, and <strong style="color:#22c55e">RaBitQ 1-bit quantization</strong> fitting 6× more context in the same RAM. Plug into <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code> with three lines.
       </p>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1275,8 +1275,16 @@
         <div class="stat-label">FP16 throughput retained<br>Qwen2.5-7B at 16× compression</div>
       </div>
       <div class="stat-card fade-in">
-        <div class="stat-number">10</div>
-        <div class="stat-label">Production models benchmarked<br>Llama, Mistral, Qwen, Phi, Gemma</div>
+        <div class="stat-number">6×</div>
+        <div class="stat-label">Full KV compression — RaBitQ<br>keys 1-bit + values MSE-b4 on Falcon3-7B</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-number">6×</div>
+        <div class="stat-label">More context, same RAM budget<br>RaBitQ fits 103k tokens where fp16 fits 17k @ 8 GB</div>
+      </div>
+      <div class="stat-card fade-in">
+        <div class="stat-number">12</div>
+        <div class="stat-label">Production models validated<br>Llama, Mistral, Qwen, Phi, Gemma, Falcon</div>
       </div>
     </div>
   </section>
@@ -1286,8 +1294,8 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Six quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.6.0: SpectralQuant exploits the low-rank structure of key vectors for 5.95× compression at higher quality than TurboQuant. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Eight quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.7.0: RaBitQ 1-bit keys + MSE-b4 values achieves 6× full KV compression on Falcon3-7B — fitting 6× more context in the same memory budget. CommVQ adds RoPE-commutative VQ for exact attention compatibility. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
@@ -1409,6 +1417,66 @@
               <div class="algo-stat-row">
                 <span class="label">Architecture support</span>
                 <span class="value">All mlx-community models</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CommVQ -->
+      <div class="algo-card fade-in">
+        <div class="algo-badge new-badge">ICML 2025</div>
+        <div class="algo-title">CommVQ — RoPE-Commutative VQ</div>
+        <div class="algo-desc">
+          Based on Apple ML Research (arXiv:2506.18879). Standard product VQ breaks with RoPE because <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">quantize(rotate(x)) ≠ rotate(quantize(x))</code>. CommVQ trains codebooks on pre-RoPE keys and projects each centroid onto the RoPE-commuting subspace (symmetrising paired dims), so RoPE can be applied exactly at decode time.
+          <br><br>
+          Result: <strong style="color:var(--text)">64× key compression</strong> (4 uint8 indices for D=128) with exact RoPE compatibility — no attention distortion from positional encoding mismatch.
+        </div>
+      </div>
+
+      <!-- RaBitQ — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.7.0 — FULL KV</div>
+            <div class="algo-title" style="font-size:1.25rem">RaBitQ — 1-bit Randomised Hadamard Quantization</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Based on RaBitQ (SIGMOD 2024) and Ascend-RaBitQ (arXiv:2605.16007). The first method in VeloxQuant-MLX to compress <strong style="color:var(--text)">both keys and values</strong>, achieving <strong style="color:#22c55e">6× total KV compression</strong> on Falcon3-7B.
+              <br><br>
+              <strong style="color:var(--text)">① IVF clustering</strong> — K-Means partitions the key space into nList clusters<br>
+              <strong style="color:var(--text)">② Randomised Hadamard rotation</strong> — reuses existing <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">mx.hadamard_transform</code>, O(D log D)<br>
+              <strong style="color:var(--text)">③ 1-bit sign quantization</strong> — sign(residual) packed into D/8 uint8 bytes per key<br>
+              <strong style="color:var(--text)">④ Metal Hamming kernel</strong> — XOR + popcount scoring via custom <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">rabitq_hamming_score</code><br>
+              <strong style="color:var(--text)">⑤ MSE-b4 value quantization</strong> — scalar TurboQuantMSE at 4 bits for values (4× compression)<br>
+              <br>
+              <strong style="color:#22c55e">Context capacity:</strong> at an 8 GB memory budget, fp16 fits ~17k tokens while RaBitQ+MSE fits <strong style="color:#22c55e">~103k tokens</strong> — 6× more context in the same RAM. Memory grows linearly with context length at a 6× lower slope.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Key compression (signs only)</span>
+                <span class="value">11.6× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression (MSE-b4)</span>
+                <span class="value">4× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Full KV compression</span>
+                <span class="value" style="color:#22c55e">6× on Falcon3-7B</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">KV memory @ 1024 tokens</span>
+                <span class="value">117 MB → 19.7 MB</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Context @ 8 GB budget</span>
+                <span class="value" style="color:#22c55e">17k → 103k tokens</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Metal kernel</span>
+                <span class="value">rabitq_hamming_score</span>
               </div>
             </div>
           </div>
@@ -1777,6 +1845,16 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
         <div class="picker-goal">Best quality at moderate compression</div>
         <div class="picker-method" style="color:#22c55e">SpectralQuant</div>
         <div class="picker-detail">5.95× compression · ~5–30s one-time calibration · +7–10pp cosine sim over TurboQuant. Universal — works on every architecture including Gemma 4 multimodal. Best when quality matters most.</div>
+      </div>
+      <div class="picker-card" style="border-color:rgba(34,197,94,0.35);">
+        <div class="picker-goal">Maximum context length in fixed RAM</div>
+        <div class="picker-method" style="color:#22c55e">RaBitQ + MSE-b4</div>
+        <div class="picker-detail">6× full KV compression · 1-bit keys + 4-bit values · fits 103k tokens in 8 GB vs 17k for fp16 · Metal Hamming kernel · best when context length is the bottleneck.</div>
+      </div>
+      <div class="picker-card" style="border-color:rgba(0,212,255,0.25);">
+        <div class="picker-goal">RoPE-compatible exact VQ</div>
+        <div class="picker-method">CommVQ</div>
+        <div class="picker-detail">64× key compression · RoPE-commutative codebook (ICML 2025) · exact positional encoding at decode time · no attention score distortion from RoPE mismatch.</div>
       </div>
     </div>
   </section>

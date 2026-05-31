@@ -7,11 +7,11 @@
 
 <p>
   <strong>Fast KV Cache Quantization for Apple Silicon</strong><br/>
-  TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant — in MLX
+  TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ — in MLX
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.6.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.7.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
@@ -21,14 +21,15 @@
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.5.1-64748b?style=flat-square" alt="Changelog"/></a>
-  <a href="MEDIUM_BLOG_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels-f97316?style=flat-square" alt="Blog"/></a>
+  <a href="MEDIUM_BLOG_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
+  <a href="MEDIUM_BLOG_TURBOQUANT_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
 
 </div>
 
 ---
 
-A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **seven quantization strategies** — from zero-calibration 1-bit RVQ to the new SpectralQuant which exploits the low-dimensional structure of key vectors for **5.95× compression at higher quality than TurboQuant** — plus hand-written Metal compute kernels that make the hot path **13× faster** and **98% lighter on peak memory** at long context lengths. Plug it in with three lines; `mlx_lm.generate` runs unchanged.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **nine quantization strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B — plus hand-written Metal compute kernels that make the hot path **13× faster** and **98% lighter on peak memory** at long context lengths. Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
@@ -43,7 +44,10 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 | FP16 throughput retained | **100%** | Qwen2.5-7B at 16× compression |
 | SpectralQuant compression | **5.95×** | vs TurboQuant 5.02× — same bit-width |
 | SpectralQuant cosine sim | **+3pp** | over TurboQuant on Qwen2.5-0.5B |
-| Production models validated | **12** | Llama, Mistral, Qwen, Phi, Gemma 3/4 |
+| **RaBitQ full KV compression** | **6×** | 1-bit keys + MSE-b4 values, Falcon3-7B |
+| **RaBitQ context at 8 GB** | **103k tokens** | vs 17k for fp16 — 6× more context |
+| **CommVQ key compression** | **64×** | RoPE-commutative VQ, D=128, n_cb=4 |
+| Production models validated | **12** | Llama, Mistral, Qwen, Phi, Gemma 3/4, Falcon |
 
 ---
 
@@ -51,17 +55,19 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 
 1. [Installation](#installation)
 2. [Quickstart](#quickstart)
-3. [SpectralQuant — new in 0.6.0](#spectralquant--new-in-060)
-4. [RateQuant — per-layer mixed precision](#ratequant--per-layer-mixed-precision)
-5. [VecInfer — 16× product VQ](#vecinfer--16-product-vq)
-6. [Metal kernels](#metal-kernels--new-in-051)
-7. [Benchmark results](#benchmark-results)
-8. [Algorithm guide](#algorithm-guide)
-9. [What's inside](#whats-inside)
-10. [Architecture](#architecture)
-11. [CLI](#cli)
-12. [Development](#development)
-13. [References](#references)
+3. [RaBitQ — new in 0.7.0](#rabitq--new-in-070)
+4. [CommVQ — RoPE-commutative VQ](#commvq--rope-commutative-vq)
+5. [SpectralQuant — new in 0.6.0](#spectralquant--new-in-060)
+6. [RateQuant — per-layer mixed precision](#ratequant--per-layer-mixed-precision)
+7. [VecInfer — 16× product VQ](#vecinfer--16-product-vq)
+8. [Metal kernels](#metal-kernels--new-in-051)
+9. [Benchmark results](#benchmark-results)
+10. [Algorithm guide](#algorithm-guide)
+11. [What's inside](#whats-inside)
+12. [Architecture](#architecture)
+13. [CLI](#cli)
+14. [Development](#development)
+15. [References](#references)
 
 ---
 
@@ -157,6 +163,84 @@ alloc = allocate_bits_ratequant(weights, target_avg_bits=1.5, beta=3.5)
 config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=alloc, seed=42)
 caches = KVCacheBuilder.for_model(model, config)
 ```
+
+---
+
+## RaBitQ — new in 0.7.0
+
+RaBitQ ([SIGMOD 2024](https://arxiv.org/abs/2402.02855), adapted from [Ascend-RaBitQ arXiv:2605.16007](https://arxiv.org/abs/2605.16007)) is the first method in VeloxQuant-MLX to compress **both keys and values**, achieving **6× full KV compression** on Falcon3-7B-Instruct-4bit.
+
+**How it works:**
+1. **IVF clustering** — K-Means partitions keys into `nlist` clusters; only `nprobe` are searched per query
+2. **Randomised Hadamard rotation** — reuses `mx.hadamard_transform` + `make_hadamard_diagonal`, O(D log D)
+3. **1-bit sign quantization** — `sign(rotated_residual)` packed into `D/8` uint8 bytes per key (11.6× key compression at D=256)
+4. **Metal Hamming kernel** — `rabitq_hamming_score` computes XOR + popcount distance for all candidates in one GPU dispatch
+5. **TurboQuantMSE b=4 values** — scalar MSE-optimal codebook on values adds 4× value compression
+
+**Results on Falcon3-7B-Instruct-4bit** (28 layers, 4 KV heads, D=256):
+
+| Method | KV Memory @ 1024 tok | Compression | Context @ 8 GB |
+|---|---|---|---|
+| fp16 baseline | 117.4 MB | 1× | ~17k tokens |
+| RaBitQ keys + fp16 values | 63.8 MB | 1.8× | ~31k tokens |
+| **RaBitQ keys + MSE-b4 values** | **19.7 MB** | **6×** | **~103k tokens** |
+
+```python
+from veloxquant_mlx.quantizers.rabitq import RaBitQQuantizer
+from veloxquant_mlx.quantizers.turboquant_mse import TurboQuantMSE
+import mlx.core as mx, numpy as np
+
+# Keys: RaBitQ 1-bit  (11.6× compression on key tensors)
+q_key = RaBitQQuantizer(d=256, nlist=64, nprobe=8, rerank=32, seed=42)
+q_key.fit(mx.array(calibration_keys))
+
+# Values: MSE-b4 scalar quantization (4× compression)
+q_val = TurboQuantMSE(d=256, b=4, use_hadamard=True)
+
+# Encode KV at each decode step
+ev_k = q_key.encode(keys)   # [N, D//8] uint8 sign bits + IVF meta
+ev_v = q_val.encode(values)  # [N, D//4] uint8 scalar indices
+
+# Decode for attention
+k_hat = q_key.decode(ev_k)  # [N, D] fp16 — approx reconstructed keys
+v_hat = q_val.decode(ev_v)  # [N, D] fp16 — approx reconstructed values
+```
+
+> **What grows with context:** both memory and decode latency scale linearly with T. The 6× compression slope means you can sustain 6× longer contexts before hitting any RAM limit. At 32k tokens fp16 needs 3.76 GB; RaBitQ+MSE4v needs only 631 MB.
+
+Benchmark figures: [`figures/RaBitQ/falcon/`](figures/RaBitQ/falcon/) · Metal kernel figures: [`figures/RaBitQ/kernel/`](figures/RaBitQ/kernel/)
+
+---
+
+## CommVQ — RoPE-commutative VQ
+
+CommVQ ([arXiv:2506.18879](https://arxiv.org/abs/2506.18879), Apple ML Research, ICML 2025) solves the fundamental incompatibility between vector quantization and RoPE positional encodings:
+
+**The problem:** Standard VQ applied after RoPE fails because `quantize(rotate(x)) ≠ rotate(quantize(x))`. The positional encoding rotates the keys differently for each position, so a codebook trained at position 0 gives wrong reconstructions at position T.
+
+**The fix:** Train codebooks on pre-RoPE keys (at position 0). After each K-Means M-step, project every centroid onto the RoPE-commuting subspace — each pair of dimensions `(2i, 2i+1)` is symmetrised to `mean_val = (a+b)/2` for same-sign pairs. RoPE is then applied exactly at decode time using stored positions.
+
+```python
+from veloxquant_mlx.quantizers.comm_vq import CommVQQuantizer
+import mlx.core as mx, numpy as np
+
+q = CommVQQuantizer(d=128, b=8, n_codebooks=4, seed=42)
+q.fit(mx.array(pre_rope_keys))          # train on pre-RoPE keys
+
+# Encode: stores residual VQ indices + positions
+ev = q.encode(keys_pre_rope, positions=position_ids)
+
+# Decode: gathers centroids, applies RoPE in one step
+k_hat = q.decode(ev)                    # [N, D] fp16, post-RoPE
+
+# Approximate inner product (for attention scoring)
+scores = q.estimate_inner_product(query, ev)  # [N]
+```
+
+| Config | Compression | RoPE compatible |
+|---|---|---|
+| D=128, n_cb=4, b=8 | **64×** vs fp16 | ✓ exact |
+| D=128, n_cb=4, b=4 | **64×** vs fp16 | ✓ exact |
 
 ---
 
@@ -400,6 +484,8 @@ Source figures: [`figures/outlier_token_ratequant/`](figures/outlier_token_rateq
 | `turboquant_rvq` + RateQuant | 1.5 avg | 5.2× | ≈0.96 | 1.6s | Heterogeneous layer sensitivity |
 | **`vecinfer` @ 1-bit** | **1** | **16×** | model-dependent | Codebook | **Max compression, strong-GQA models** |
 | **`spectral` @ b=3** | **3** | **5.33×** | **0.91 (Qwen2.5)** | **~5s once** | **Best quality-per-bit, any model** |
+| **`comm_vq`** | **1 (uint8 idx)** | **64× keys** | RoPE-exact | EM training | **RoPE-compatible VQ, ICML 2025** |
+| **`rabitq` keys + MSE-b4 vals** | **1 + 4** | **6× full KV** | approx | IVF fit | **Max context length, same RAM** |
 | `polar` | b×levels | varies | medium | None | Geometric key distributions |
 | `qjl` | 1 | ~16× | 0.62 | None | Ranking-only retrieval, extreme compression |
 
@@ -409,6 +495,8 @@ Source figures: [`figures/outlier_token_ratequant/`](figures/outlier_token_rateq
 - Best quality at moderate compression → **`spectral` b=3** (requires ~5s calibration)
 - Heterogeneous layers (sens. ratio >2×) → **RateQuant** on top of RVQ
 - 2-bit, near-lossless → **`turboquant_rvq` b=2**
+- **Max context length, fixed RAM** → **`rabitq` keys + MSE-b4 values** (6× full KV)
+- **RoPE-compatible exact VQ** → **`comm_vq`** (ICML 2025, 64× key compression)
 
 ---
 
@@ -420,6 +508,10 @@ Source figures: [`figures/outlier_token_ratequant/`](figures/outlier_token_rateq
 | [`veloxquant_mlx/spectral/calibrate`](veloxquant_mlx/spectral/calibrate.py) | `calibrate_spectral_rotation`, `calibrate_from_vectors`, on-disk rotation cache |
 | [`veloxquant_mlx/spectral/bit_allocator`](veloxquant_mlx/spectral/bit_allocator.py) | `water_fill_bits` — water-filling bit allocation per eigenvalue |
 | [`veloxquant_mlx/spectral/participation_ratio`](veloxquant_mlx/spectral/participation_ratio.py) | `compute_participation_ratio`, `compute_spectral_gap` |
+| [`veloxquant_mlx/quantizers/rabitq`](veloxquant_mlx/quantizers/rabitq.py) | `RaBitQQuantizer` — IVF + randomised Hadamard + 1-bit sign packing + Metal Hamming search |
+| [`veloxquant_mlx/quantizers/comm_vq`](veloxquant_mlx/quantizers/comm_vq.py) | `CommVQQuantizer` — RoPE-commutative residual VQ, commutativity projection in EM M-step |
+| [`veloxquant_mlx/metal/_rabitq`](veloxquant_mlx/metal/_rabitq.py) | `rabitq_hamming_score` — Metal XOR+popcount Hamming distance kernel |
+| [`veloxquant_mlx/metal/_comm_vq`](veloxquant_mlx/metal/_comm_vq.py) | `comm_vq_decode_metal` — fused centroid gather + RoPE Metal kernel |
 | [`veloxquant_mlx/quantizers/turboquant_rvq`](veloxquant_mlx/quantizers/turboquant_rvq.py) | Two-pass scalar RVQ — Gaussian + Laplacian codebooks, b=1/2/3+ |
 | [`veloxquant_mlx/quantizers/turboquant_prod`](veloxquant_mlx/quantizers/turboquant_prod.py) | Rotation + Lloyd-Max + QJL residual (b-1 + 1 bits) |
 | [`veloxquant_mlx/quantizers/turboquant_mse`](veloxquant_mlx/quantizers/turboquant_mse.py) | Rotation + Lloyd-Max, no residual correction |
@@ -533,6 +625,9 @@ Contributions welcome — please open an issue first for anything beyond a small
 <details>
 <summary>Papers implemented in this library</summary>
 
+- [RaBitQ (SIGMOD 2024)](https://arxiv.org/abs/2402.02855) — Gao et al., "RaBitQ: Quantizing High-Dimensional Vectors with a Theoretical Error Bound for Approximate Nearest Neighbor Search" — 1-bit randomised Hadamard quantization with formal error guarantees
+- [Ascend-RaBitQ (2026)](https://arxiv.org/abs/2605.16007) — He et al., "Ascend-RaBitQ: Heterogeneous NPU-CPU Acceleration of Billion-Scale Similarity Search with 1-bit Quantization" — heterogeneous pipeline inspiration for key+value joint compression
+- [CommVQ (ICML 2025)](https://arxiv.org/abs/2506.18879) — Apple ML Research, "CommVQ: Commutative Vector Quantization for KV Cache Compression" — RoPE-commutative additive codebook VQ
 - [SpectralQuant (2026)](https://arxiv.org/abs/2506.xxxxx) — "3% Is All You Need: Breaking TurboQuant's Compression Limit via Spectral Structure" — eigenvector PCA rotation + signal/noise codebooks, 5.95× at higher quality than TurboQuant
 - [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874) — Zandieh et al., "Online Vector Quantization with Near-optimal Distortion Rate"
 - [RateQuant (2025)](https://arxiv.org/abs/2605.06675) — "RateQuant: Mixed-Precision KV Cache Quantization via Rate-Distortion Theory"
@@ -585,6 +680,7 @@ MIT — see [LICENSE](LICENSE).
     <a href="https://veloxquant-mlx.netlify.app/">Landing page</a> ·
     <a href="https://github.com/rajveer43/VeloxQuant-MLX/issues">Issues</a> ·
     <a href="MEDIUM_BLOG.md">Blog: 10-model study</a> ·
-    <a href="MEDIUM_BLOG_METAL_KERNELS.md">Blog: Metal kernels</a>
+    <a href="MEDIUM_BLOG_METAL_KERNELS.md">Blog: Metal kernels v1</a> ·
+    <a href="MEDIUM_BLOG_TURBOQUANT_METAL_KERNELS.md">Blog: TurboQuant Metal kernels</a>
   </sub>
 </div>

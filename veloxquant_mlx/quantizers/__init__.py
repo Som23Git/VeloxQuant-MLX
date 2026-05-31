@@ -7,6 +7,8 @@ from veloxquant_mlx.quantizers.qjl import QJLQuantizer
 from veloxquant_mlx.quantizers.turboquant_mse import TurboQuantMSE
 from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd
 from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
+from veloxquant_mlx.quantizers.comm_vq import CommVQQuantizer
+from veloxquant_mlx.quantizers.rabitq import RaBitQQuantizer
 
 __all__ = [
     "QuantizerFactory",
@@ -16,4 +18,6 @@ __all__ = [
     "TurboQuantMSE",
     "TurboQuantProd",
     "TurboQuantRVQ",
+    "CommVQQuantizer",
+    "RaBitQQuantizer",
 ]
