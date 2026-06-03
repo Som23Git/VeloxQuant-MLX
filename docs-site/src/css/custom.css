@@ -1,0 +1,267 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --ifm-color-primary: #00d4ff;
+  --ifm-color-primary-dark: #00bfe6;
+  --ifm-color-primary-darker: #00b3d9;
+  --ifm-color-primary-darkest: #0094b3;
+  --ifm-color-primary-light: #1adaff;
+  --ifm-color-primary-lighter: #26dcff;
+  --ifm-color-primary-lightest: #4de3ff;
+  --ifm-background-color: #0a0a0f;
+  --ifm-background-surface-color: #0f0f1a;
+  --ifm-font-family-base: 'Inter', system-ui, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Courier New', monospace;
+  --ifm-code-font-size: 90%;
+  --ifm-navbar-background-color: rgba(10, 10, 15, 0.95);
+  --ifm-footer-background-color: #07070d;
+  --ifm-heading-color: #ffffff;
+  --ifm-font-color-base: #c8d0e0;
+  --ifm-link-color: #00d4ff;
+  --ifm-link-hover-color: #4de3ff;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 212, 255, 0.08);
+  --ifm-sidebar-background: #0c0c17;
+  --ifm-toc-border-color: rgba(0, 212, 255, 0.2);
+  --velox-grid-color: rgba(0, 212, 255, 0.04);
+  --velox-glow: 0 0 20px rgba(0, 212, 255, 0.15);
+  --velox-border: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #00d4ff;
+  --ifm-color-primary-dark: #00bfe6;
+  --ifm-color-primary-darker: #00b3d9;
+  --ifm-color-primary-darkest: #0094b3;
+  --ifm-color-primary-light: #1adaff;
+  --ifm-color-primary-lighter: #26dcff;
+  --ifm-color-primary-lightest: #4de3ff;
+  --ifm-background-color: #0a0a0f;
+  --ifm-background-surface-color: #0f0f1a;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 212, 255, 0.08);
+}
+
+/* ─── Global ──────────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+}
+
+/* Subtle grid background on doc pages */
+.main-wrapper {
+  background-image:
+    linear-gradient(var(--velox-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--velox-grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ─── Navbar ───────────────────────────────────────────── */
+
+.navbar {
+  backdrop-filter: blur(12px);
+  border-bottom: var(--velox-border);
+  box-shadow: 0 1px 30px rgba(0, 0, 0, 0.5);
+}
+
+.navbar__title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #00d4ff, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.navbar__link {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.navbar__link:hover,
+.navbar__link--active {
+  color: var(--ifm-color-primary);
+}
+
+/* ─── Sidebar ──────────────────────────────────────────── */
+
+.theme-doc-sidebar-container {
+  background-color: var(--ifm-sidebar-background);
+  border-right: var(--velox-border);
+}
+
+.menu__link {
+  font-size: 0.875rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.menu__link:hover {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--ifm-color-primary);
+}
+
+.menu__link--active {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+/* ─── Content ──────────────────────────────────────────── */
+
+article h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  border-bottom: var(--velox-border);
+  padding-bottom: 0.5rem;
+}
+
+article h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #e2e8f0;
+}
+
+article h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+}
+
+/* ─── Code blocks ──────────────────────────────────────── */
+
+.prism-code {
+  border: var(--velox-border);
+  border-radius: 8px;
+  background: #0d1117 !important;
+}
+
+code {
+  font-family: var(--ifm-font-family-monospace);
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  color: #a5f3fc;
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.875em;
+}
+
+pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* ─── Tables ───────────────────────────────────────────── */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+table th {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+  border: var(--velox-border);
+  padding: 0.65rem 1rem;
+  text-align: left;
+}
+
+table td {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.6rem 1rem;
+  color: var(--ifm-font-color-base);
+}
+
+table tr:hover td {
+  background: rgba(0, 212, 255, 0.03);
+}
+
+/* ─── Admonitions ──────────────────────────────────────── */
+
+.alert {
+  border-radius: 8px;
+  border-left-width: 3px;
+}
+
+.alert--info,
+.alert--note {
+  border-left-color: var(--ifm-color-primary);
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.alert--tip,
+.alert--success {
+  border-left-color: #22d3a0;
+  background: rgba(34, 211, 160, 0.06);
+}
+
+.alert--warning,
+.alert--caution {
+  border-left-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.06);
+}
+
+.alert--danger {
+  border-left-color: #f87171;
+  background: rgba(248, 113, 113, 0.06);
+}
+
+/* ─── TOC (right sidebar) ──────────────────────────────── */
+
+.table-of-contents__link {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.table-of-contents__link:hover,
+.table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+}
+
+/* ─── Footer ───────────────────────────────────────────── */
+
+.footer {
+  border-top: var(--velox-border);
+  background-color: var(--ifm-footer-background-color);
+}
+
+.footer__title {
+  color: var(--ifm-color-primary);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── Pagination ───────────────────────────────────────── */
+
+.pagination-nav__link {
+  border: var(--velox-border);
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+  transition: all 0.15s ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: var(--velox-glow);
+}
+
+/* ─── Breadcrumbs ──────────────────────────────────────── */
+
+.breadcrumbs__link {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  color: var(--ifm-color-primary);
+}

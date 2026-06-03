@@ -1,0 +1,73 @@
+import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
+
+const sidebars: SidebarsConfig = {
+  gettingStartedSidebar: [
+    {
+      type: 'category',
+      label: 'Getting Started',
+      collapsed: false,
+      items: [
+        'getting-started/intro',
+        'getting-started/installation',
+        'getting-started/quickstart',
+        'getting-started/concepts',
+      ],
+    },
+  ],
+
+  algorithmsSidebar: [
+    {
+      type: 'category',
+      label: 'Algorithms',
+      collapsed: false,
+      items: [
+        'algorithms/overview',
+        'algorithms/rvq',
+        'algorithms/vecinfer',
+        'algorithms/ratequant',
+        'algorithms/spectral',
+        'algorithms/rabitq',
+        'algorithms/qjl',
+        'algorithms/polarquant',
+        'algorithms/commvq',
+      ],
+    },
+  ],
+
+  guidesSidebar: [
+    {
+      type: 'category',
+      label: 'Guides',
+      collapsed: false,
+      items: [
+        'guides/mlx-lm-integration',
+        'guides/metal-kernels',
+        'guides/calibration',
+        'guides/mixed-precision',
+        'guides/sliding-window',
+        'guides/observers',
+        'guides/benchmarking',
+      ],
+    },
+  ],
+
+  apiSidebar: [
+    {
+      type: 'category',
+      label: 'API Reference',
+      collapsed: false,
+      items: [
+        'api/cache',
+        'api/quantizers',
+        'api/allocators',
+        'api/spectral-api',
+        'api/metal-api',
+        'api/observers-api',
+        'api/core-api',
+        'api/exceptions-api',
+      ],
+    },
+  ],
+};
+
+export default sidebars;
