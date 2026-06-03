@@ -12,7 +12,7 @@ const config: Config = {
   },
 
   url: 'https://veloxquant-mlx.netlify.app',
-  baseUrl: '/',
+  baseUrl: '/docs/',
 
   onBrokenLinks: 'warn',
   markdown: {

@@ -1,7 +1,12 @@
 [build]
   base    = "/"
-  command = "cd docs-site && npm install && npm run build"
-  publish = "docs-site/build"
+  command = """
+    mkdir -p dist/docs &&
+    cp -r landing/* dist/ &&
+    cd docs-site && npm install && npm run build && cd .. &&
+    cp -r docs-site/build/* dist/docs/
+  """
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
