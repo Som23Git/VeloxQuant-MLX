@@ -1,27 +1,28 @@
 [build]
-  command = "cd docs-site && npm run build"
+  base    = "/"
+  command = "cd docs-site && npm install && npm run build"
   publish = "docs-site/build"
 
 # Serve the landing page at the root
 [[redirects]]
-  from = "/"
-  to = "/landing/index.html"
+  from   = "/"
+  to     = "/landing/index.html"
   status = 200
 
 # Serve all landing page assets
 [[redirects]]
-  from = "/landing/*"
-  to = "/landing/:splat"
+  from   = "/landing/*"
+  to     = "/landing/:splat"
   status = 200
 
 # Docs site lives at /docs/
 [[redirects]]
-  from = "/docs/*"
-  to = "/docs/:splat"
+  from   = "/docs/*"
+  to     = "/docs/:splat"
   status = 200
 
 # Catch-all: unknown paths fall back to landing page
 [[redirects]]
-  from = "/*"
-  to = "/landing/index.html"
+  from   = "/*"
+  to     = "/landing/index.html"
   status = 200
