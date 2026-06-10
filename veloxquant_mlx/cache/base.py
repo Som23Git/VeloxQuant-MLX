@@ -33,7 +33,7 @@ class KVCacheConfig:
 
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
-        "polar", "qjl", "vecinfer", "spectral",
+        "polar", "qjl", "vecinfer", "spectral", "kivi",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -56,6 +56,8 @@ class KVCacheConfig:
     key_codebook_bits: int = 12
     value_codebook_bits: int = 8
     residual_length: int = 128
+    # --- KIVI configuration (asymmetric group quantization) ------------
+    kivi_group_size: int = 32          # min/max group size (KIVI default 32)
     smooth_factors: Any = None         # mx.array | np.ndarray | None
     key_codebook: Any = None           # mx.array | np.ndarray | None
     value_codebook: Any = None         # mx.array | np.ndarray | None
@@ -109,6 +111,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
         from veloxquant_mlx.cache.sliding_window_cache import SlidingWindowKVCache
+        from veloxquant_mlx.cache.kivi_cache import KIVIKVCache
         from veloxquant_mlx.cache.spectral_cache import SpectralQuantKVCache
         from veloxquant_mlx.cache.turboquant_cache import TurboQuantKVCache
         from veloxquant_mlx.cache.turboquant_rvq_cache import TurboQuantRVQKVCache
@@ -138,11 +141,13 @@ class KVCacheFactory:
             cache = VecInferKVCache(config)
         elif config.method == "spectral":
             cache = SpectralQuantKVCache(config)
+        elif config.method == "kivi":
+            cache = KIVIKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
-                f"polar, qjl, vecinfer, spectral."
+                f"polar, qjl, vecinfer, spectral, kivi."
             )
 
         if config.sliding_window is not None:

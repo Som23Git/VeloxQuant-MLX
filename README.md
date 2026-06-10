@@ -11,11 +11,11 @@
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.7.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.8.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
-  <img src="https://img.shields.io/badge/tests-243%20passing-22c55e?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/tests-309%2F314%20passing-22c55e?style=flat-square" alt="Tests"/>
 </p>
 
 <p>
@@ -29,7 +29,7 @@
 
 ---
 
-A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **nine quantization strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B — plus hand-written Metal compute kernels that make the hot path **13× faster** and **98% lighter on peak memory** at long context lengths. Plug it in with three lines; `mlx_lm.generate` runs unchanged.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **nine quantization strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
@@ -38,15 +38,17 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 | Metric | Value | Notes |
 |---|---|---|
 | Max key cache compression | **16×** | VecInfer-1bit, head_dim=128 |
-| Metal kernel speedup | **13×** | `quantize_vq` at S=2048+ |
+| Metal kernel speedup | **13×** | `quantize_vq` at S=2048 (range 6.9–14.7× over S=128–8192) |
 | Peak memory reduction | **98%** | 729 MB → 12 MB, Falcon3-7B shape |
 | RVQ-1bit compression | **7.5×** | Near-zero throughput cost |
 | FP16 throughput retained | **100%** | Qwen2.5-7B at 16× compression |
-| SpectralQuant compression | **5.95×** | vs TurboQuant 5.02× — same bit-width |
+| SpectralQuant compression | **5.33×** | per-model measured (Qwen2.5-0.5B / Gemma-4-4B), same bit-width |
 | SpectralQuant cosine sim | **+3pp** | over TurboQuant on Qwen2.5-0.5B |
 | **RaBitQ full KV compression** | **6×** | 1-bit keys + MSE-b4 values, Falcon3-7B |
-| **RaBitQ context at 8 GB** | **103k tokens** | vs 17k for fp16 — 6× more context |
+| **RaBitQ context at 8 GB** | **~103k tokens** (est.) | KV-only linear extrapolation from measured memory rows; vs ~17k fp16 — 6× more context |
 | **CommVQ key compression** | **64×** | RoPE-commutative VQ, D=128, n_cb=4 |
+| **KIVI-2bit key compression** | **5.8×** | per-channel keys / per-token values; measured on Llama-3.2-3B, Qwen2.5-7B, Mistral-7B |
+| **KIVI-2bit full-KV compression** | **~4×** | incl. fp16 residual window (32 tokens); 100–106% of fp16 throughput |
 | Production models validated | **12** | Llama, Mistral, Qwen, Phi, Gemma 3/4, Falcon |
 
 ---
@@ -243,6 +245,46 @@ scores = q.estimate_inner_product(query, ev)  # [N]
 | D=128, n_cb=4, b=4 | **64×** vs fp16 | ✓ exact |
 
 ---
+
+## KIVI — tuning-free asymmetric 2-bit baseline
+
+KIVI is a re-implementation of ["KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache"](https://arxiv.org/abs/2402.02750) (Liu, Yuan et al., **ICML 2024**) — the most widely-cited KV-cache quantization baseline. It is included so every other method in this library can be measured against the field's reference point.
+
+**The asymmetry (KIVI's core idea):**
+1. **Keys are quantized per channel** (group-wise min/max along the token axis) — key distributions have a few high-variance channels, so per-channel scales keep them accurate.
+2. **Values are quantized per token** (group-wise along the channel axis).
+3. **The most recent `residual_length` tokens are kept in fp16** — newly generated tokens dominate attention and are cheap to keep exact; they are quantized only once they age out of the residual window.
+
+KIVI is **fully deterministic** (min/max group quantization, no codebook training, no RNG), so it adds no run-to-run variance.
+
+```python
+import mlx_lm
+from veloxquant_mlx import KVCacheConfig, KVCacheBuilder
+
+model, tokenizer = mlx_lm.load("mlx-community/Llama-3.2-3B-Instruct-4bit")
+
+config = KVCacheConfig(method="kivi", bit_width_inlier=2,
+                       kivi_group_size=32, residual_length=32)
+caches = KVCacheBuilder.for_model(model, config)
+model.make_cache = lambda *_a, **_k: caches
+
+response = mlx_lm.generate(model, tokenizer,
+    prompt="...", max_tokens=120)
+```
+
+**Measured results** (Apple M4, max_tokens≈120, residual_length=32; source: `figures/kivi/<model>/results.json`):
+
+| Model | KIVI-2bit key comp. | full-KV comp. (incl. fp16 residual) | throughput vs fp16 |
+|---|---|---|---|
+| Llama-3.2-3B-4bit | 5.79× | 3.98× | 16.3 vs 16.0 tok/s (102%) |
+| Qwen2.5-7B-4bit | 5.78× | 3.98× | 7.6 vs 7.6 tok/s (100%) |
+| Mistral-7B-4bit | 5.76× | 4.03× | 6.8 vs 6.4 tok/s (106%) |
+
+**Honest scope:**
+- KIVI's published *speedup* comes from a CUDA kernel that does not port to Metal. On Apple Silicon the win is **memory**; throughput here is at-or-near fp16 because the per-channel/per-token min/max arithmetic is cheap on a memory-bound decode path.
+- Compression only manifests **once context exceeds the residual window** — at short prompts the entire prefill stays fp16 and the realized ratio is 1.0× (this is correct behavior, not a bug). The numbers above use a long-context prompt.
+- **Peak runtime memory is not reduced** (often marginally higher): like every method here, keys are dequantized to fp16 before SDPA, so the compression is in *cache-storage accounting*, not the peak fp16 working set.
+- At 2 bits, raw-key reconstruction cosine on synthetic unit-norm Gaussian keys is ~0.93 — KIVI 2-bit is genuinely lossy, which is exactly why the fp16 residual window exists. VecInfer-2bit compresses harder (8× vs 5.8× keys); KIVI's value is being the recognized, calibration-free baseline. See `figures/kivi/fig4_vs_existing.png`.
 
 ## SpectralQuant — new in 0.6.0
 

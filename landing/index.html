@@ -1190,7 +1190,7 @@
       <li><a href="#quickstart">Quickstart</a></li>
       <li><a href="#benchmarks">Benchmarks</a></li>
       <li><a href="#install">Install</a></li>
-      <li><a href="/docs/" rel="noopener">Docs</a></li>
+      <li><a href="/" rel="noopener">Docs</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
     </ul>
@@ -1228,7 +1228,7 @@
         <a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener" class="btn btn-outline">
           &#9679; View on GitHub
         </a>
-        <a href="/docs/" class="btn btn-outline">
+        <a href="/" class="btn btn-outline">
           Read the Docs <span data-icon>→</span>
         </a>
         <a href="#benchmarks" class="btn btn-purple">
@@ -1377,6 +1377,13 @@
         <div class="algo-badge">1-BIT</div>
         <div class="algo-title">QJL</div>
         <div class="algo-desc">Johnson-Lindenstrauss 1-bit sign sketch. An inner-product-preserving random projection for extreme compression scenarios. Minimal memory footprint with provable approximation guarantees.</div>
+      </div>
+
+      <!-- KIVI -->
+      <div class="algo-card fade-in">
+        <div class="algo-badge">KIVI</div>
+        <div class="algo-title">KIVI — asymmetric baseline</div>
+        <div class="algo-desc">Re-implementation of KIVI (Liu, Yuan et al., ICML 2024, <a href="https://arxiv.org/abs/2402.02750" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2402.02750</a>) — the field's most-cited KV-cache baseline. <strong style="color:var(--text)">Per-channel keys, per-token values</strong>, fp16 residual window, fully deterministic (no calibration). Measured <strong style="color:var(--text)">5.8× key / ~4× full-KV at 100–106% of fp16 throughput</strong> on Llama-3.2-3B, Qwen2.5-7B, Mistral-7B (M4). Included so every other method has a recognized comparison point.</div>
       </div>
 
       <!-- SpectralQuant — full-width featured card -->

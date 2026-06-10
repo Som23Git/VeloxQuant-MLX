@@ -1,0 +1,131 @@
+{
+  "source": "figures/kivi/*/results.json",
+  "models": {
+    "Llama-3.2-3B-Instruct-4bit": {
+      "hardware": {
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "machine": "arm64",
+        "chip": "Apple M4",
+        "ram_gb": 24.0
+      },
+      "head_dim": 128,
+      "n_kv_heads": 8,
+      "n_layers": 28,
+      "prompt_tokens": 2239,
+      "configs": {
+        "fp16-baseline": {
+          "throughput_tok_s": 16.03,
+          "key_compression": 1.0,
+          "full_kv_compression": 1.0,
+          "peak_mb": 2483.7,
+          "tokens_generated": 121
+        },
+        "KIVI-2bit": {
+          "throughput_tok_s": 16.31,
+          "key_compression": 5.79,
+          "full_kv_compression": 3.98,
+          "peak_mb": 2600.1,
+          "tokens_generated": 121
+        },
+        "KIVI-3bit": {
+          "throughput_tok_s": 15.93,
+          "key_compression": 4.34,
+          "full_kv_compression": 3.24,
+          "peak_mb": 2600.1,
+          "tokens_generated": 121
+        },
+        "KIVI-4bit": {
+          "throughput_tok_s": 16.03,
+          "key_compression": 3.47,
+          "full_kv_compression": 2.73,
+          "peak_mb": 2600.1,
+          "tokens_generated": 121
+        }
+      }
+    },
+    "Mistral-7B-Instruct-v0.3-4bit": {
+      "hardware": {
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "machine": "arm64",
+        "chip": "Apple M4",
+        "ram_gb": 24.0
+      },
+      "head_dim": 128,
+      "n_kv_heads": 8,
+      "n_layers": 32,
+      "prompt_tokens": 2369,
+      "configs": {
+        "fp16-baseline": {
+          "throughput_tok_s": 6.45,
+          "key_compression": 1.0,
+          "full_kv_compression": 1.0,
+          "peak_mb": 4664.5,
+          "tokens_generated": 122
+        },
+        "KIVI-2bit": {
+          "throughput_tok_s": 6.75,
+          "key_compression": 5.76,
+          "full_kv_compression": 4.03,
+          "peak_mb": 4693.1,
+          "tokens_generated": 122
+        },
+        "KIVI-3bit": {
+          "throughput_tok_s": 6.68,
+          "key_compression": 4.32,
+          "full_kv_compression": 3.27,
+          "peak_mb": 4693.1,
+          "tokens_generated": 122
+        },
+        "KIVI-4bit": {
+          "throughput_tok_s": 6.71,
+          "key_compression": 3.46,
+          "full_kv_compression": 2.75,
+          "peak_mb": 4693.1,
+          "tokens_generated": 122
+        }
+      }
+    },
+    "Qwen2.5-7B-Instruct-4bit": {
+      "hardware": {
+        "platform": "macOS-26.5-arm64-arm-64bit",
+        "machine": "arm64",
+        "chip": "Apple M4",
+        "ram_gb": 24.0
+      },
+      "head_dim": 128,
+      "n_kv_heads": 4,
+      "n_layers": 28,
+      "prompt_tokens": 2238,
+      "configs": {
+        "fp16-baseline": {
+          "throughput_tok_s": 7.59,
+          "key_compression": 1.0,
+          "full_kv_compression": 1.0,
+          "peak_mb": 4868.9,
+          "tokens_generated": 120
+        },
+        "KIVI-2bit": {
+          "throughput_tok_s": 7.6,
+          "key_compression": 5.78,
+          "full_kv_compression": 3.98,
+          "peak_mb": 4845.0,
+          "tokens_generated": 120
+        },
+        "KIVI-3bit": {
+          "throughput_tok_s": 7.27,
+          "key_compression": 4.34,
+          "full_kv_compression": 3.24,
+          "peak_mb": 4845.0,
+          "tokens_generated": 120
+        },
+        "KIVI-4bit": {
+          "throughput_tok_s": 7.34,
+          "key_compression": 3.47,
+          "full_kv_compression": 2.73,
+          "peak_mb": 4845.0,
+          "tokens_generated": 120
+        }
+      }
+    }
+  }
+}

@@ -2,6 +2,50 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.8.0] — 2026-06-10
+
+### Added — KIVI: tuning-free asymmetric group quantization (baseline)
+
+- **`veloxquant_mlx.quantizers.kivi.KIVIQuantizer`** — re-implementation of
+  "KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache" (Liu, Yuan
+  et al., **ICML 2024**, arXiv:2402.02750). Deterministic asymmetric min/max
+  group quantization: **per-channel keys** (group along the token axis) and
+  **per-token values** (group along the channel axis). No codebook training,
+  no rotation, no RNG. Registered as `"kivi"` in `QuantizerRegistry`.
+- **`veloxquant_mlx.cache.kivi_cache.KIVIKVCache`** — mlx_lm
+  `update_and_fetch` wrapper. Keeps the most-recent `residual_length` tokens
+  in fp16 (KIVI's residual window) and quantizes only tokens that age out.
+  Full byte-accounting (`compressed_key_bytes`, `fp16_key_bytes`,
+  `residual_fp16_bytes`); never exposes `.bits`. Selectable via
+  `KVCacheConfig(method="kivi", bit_width_inlier=2, kivi_group_size=32,
+  residual_length=32)`.
+- **`KVCacheConfig.kivi_group_size`** — new field (default 32).
+- **Benchmarks** — `benchmark_scripts/benchmark_kivi.py` records throughput,
+  peak memory, and realized key / full-KV compression with a **real fp16
+  baseline timing** and a `hardware` block, under
+  `figures/kivi/<model>/results.json`. Measured on Llama-3.2-3B, Qwen2.5-7B,
+  Mistral-7B (Apple M4): **KIVI-2bit ≈ 5.8× key / ≈ 4× full-KV at 100–106%
+  of fp16 throughput**.
+- **Figures** — `scripts/plot_kivi.py` emits four figures (compression vs
+  quality, throughput, analytic memory-at-scale, KIVI-vs-VecInfer) +
+  `figures/kivi/results_summary.json`, all read from committed JSONs.
+- **Tests** — `tests/quantizers/test_kivi.py` and
+  `tests/cache/test_kivi_cache.py`: shape/dtype, deterministic seeded
+  reconstruction cosine/SNR per bit-width, monotone-quality-in-bits,
+  residual-window correctness, byte-accounting, no-`.bits`-leak. **+25 tests
+  (334/339 pass; the 5 failures are the pre-existing flaky VecInfer parity
+  tests documented in `paper/EVIDENCE_TABLE.md`, unrelated to KIVI).**
+
+### Honest scope
+
+- KIVI's published *speedup* is a CUDA kernel that does not port to Metal; on
+  Apple Silicon the win is **memory**, not raw speed.
+- Compression only manifests once context exceeds the residual window; at
+  short prompts the whole prefill stays fp16 (realized ratio 1.0×).
+- Peak runtime memory is **not** reduced (keys dequantize to fp16 before SDPA).
+- KIVI-2bit is genuinely lossy on raw keys (synthetic cosine ~0.93); VecInfer
+  compresses harder. KIVI's role is the recognized, calibration-free baseline.
+
 ## [0.5.1] — 2026-05-25
 
 ### Added — Metal compute kernels for VecInfer (Phase 1)

@@ -1,0 +1,59 @@
+{
+  "model": "mlx-community/Qwen2.5-7B-Instruct-4bit",
+  "head_dim": 128,
+  "n_kv_heads": 4,
+  "n_layers": 28,
+  "max_tokens": 120,
+  "prompt_tokens": 2238,
+  "group_size": 32,
+  "residual_length": 32,
+  "prompt": "The key-value cache stores the attention keys and values of every past token so the model need not recompute them. Its size grows linearly with context length and, on Apple Silicon unified memory, it ...",
+  "hardware": {
+    "platform": "macOS-26.5-arm64-arm-64bit",
+    "machine": "arm64",
+    "chip": "Apple M4",
+    "ram_gb": 24.0
+  },
+  "results": [
+    {
+      "name": "fp16-baseline",
+      "throughput_tok_s": 7.585199245567901,
+      "peak_mb": 4868.894306182861,
+      "key_compression": 1.0,
+      "full_kv_compression": 1.0,
+      "avg_bits": 16.0,
+      "tokens_generated": 120,
+      "elapsed_s": 15.82028317451477
+    },
+    {
+      "name": "KIVI-2bit",
+      "throughput_tok_s": 7.596718011332791,
+      "peak_mb": 4845.019397735596,
+      "key_compression": 5.784728610855566,
+      "full_kv_compression": 3.979536944253995,
+      "avg_bits": 2.0,
+      "tokens_generated": 120,
+      "elapsed_s": 15.796295166015625
+    },
+    {
+      "name": "KIVI-3bit",
+      "throughput_tok_s": 7.268421422474621,
+      "peak_mb": 4845.019397735596,
+      "key_compression": 4.339045428407131,
+      "full_kv_compression": 3.2374823014544987,
+      "avg_bits": 3.0,
+      "tokens_generated": 120,
+      "elapsed_s": 16.509774684906006
+    },
+    {
+      "name": "KIVI-4bit",
+      "throughput_tok_s": 7.344052302531605,
+      "peak_mb": 4845.019397735596,
+      "key_compression": 3.4714758925285243,
+      "full_kv_compression": 2.728673200014465,
+      "avg_bits": 4.0,
+      "tokens_generated": 120,
+      "elapsed_s": 16.339752912521362
+    }
+  ]
+}

@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/qjl',
         'algorithms/polarquant',
         'algorithms/commvq',
+        'algorithms/kivi',
       ],
     },
   ],

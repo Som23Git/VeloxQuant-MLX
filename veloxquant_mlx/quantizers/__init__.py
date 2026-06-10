@@ -9,6 +9,7 @@ from veloxquant_mlx.quantizers.turboquant_prod import TurboQuantProd
 from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
 from veloxquant_mlx.quantizers.comm_vq import CommVQQuantizer
 from veloxquant_mlx.quantizers.rabitq import RaBitQQuantizer
+from veloxquant_mlx.quantizers.kivi import KIVIQuantizer
 
 __all__ = [
     "QuantizerFactory",
@@ -20,4 +21,5 @@ __all__ = [
     "TurboQuantRVQ",
     "CommVQQuantizer",
     "RaBitQQuantizer",
+    "KIVIQuantizer",
 ]
