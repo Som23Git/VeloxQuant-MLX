@@ -21,65 +21,134 @@ bibliography: paper.bib
 
 # Summary
 
-Large language models (LLMs) cache the per-token *key* and *value* projections
-of every previous token so that self-attention need not recompute them. This
-key–value (KV) cache grows linearly with context length and, on Apple Silicon,
-competes with the model weights and the operating system for a single pool of
-*unified memory* shared by the CPU, GPU, and Neural Engine. As a result the KV
-cache, rather than the model weights, frequently becomes the binding memory
-constraint for long-context inference on a Mac. Weight quantization (e.g. GPTQ
-[@frantar2022gptq], AWQ [@lin2023awq]) is an offline, one-time operation and
-does not bound cache growth, which happens online and changes every generation.
+When a large language model (LLM) generates text, it stores, for every word it
+has already processed, two internal vectors — a *key* and a *value* — so that it
+does not have to recompute them for each new word. This store is called the
+key–value (KV) cache, and it grows steadily as the conversation or document gets
+longer. On Apple Silicon Macs, the processor, graphics unit, and neural engine
+all share a single pool of memory, so this ever-growing cache competes directly
+with the model itself and with everything else running on the machine. In
+practice, it is often the KV cache — not the size of the model — that decides how
+long a document a Mac can handle before it runs out of memory.
 
-`VeloxQuant-MLX` is an open-source Python library that compresses the KV cache
-for `mlx_lm` models on Apple Silicon. It provides a unified interface to a suite
-of KV-cache quantization strategies — including re-implementations of published
-methods (TurboQuant [@zandieh2026turboquant], QJL [@zandieh2024qjl], VecInfer
-[@yao2025vecinfer], RaBitQ [@gao2024rabitq], CommVQ [@commvq2025], KIVI
-[@liu2024kivi], RateQuant [@ratequant2026], PolarQuant [@polarquant2026]) and a
-spectral-rotation variant (SpectralQuant). Each strategy is exposed behind one
-`mlx_lm`-compatible cache interface, selectable by a configuration string and
-enabled in three lines without modifying `mlx_lm.generate`. Performance-critical
-product-vector-quantization code paths are implemented as hand-written Metal
-compute shaders compiled at runtime via `mx.fast.metal_kernel`, with a pure-MLX
-fallback for portability and parity testing.
+`VeloxQuant-MLX` is an open-source Python library that shrinks this KV cache so
+that the same Mac can handle longer inputs. It works with models loaded through
+`mlx_lm`, Apple's library for running LLMs on its own hardware, and it can be
+switched on by changing three lines of code; the normal text-generation call is
+left untouched. The library offers several interchangeable compression
+strategies, so a user can trade a little accuracy for a lot of memory savings, or
+the reverse, by selecting a different option. Some of the heavy numerical work is
+implemented as small programs ("kernels") written for Apple's Metal graphics
+interface and compiled on the fly, with a slower but portable pure-Python path
+available as a fallback.
 
 # Statement of need
 
-The local-inference ecosystem on Apple Silicon (`llama.cpp`, Ollama, LM Studio,
-and Apple's own `mlx_lm` [@mlx2023]) has optimized weight quantization and
-attention kernels but stores the KV cache at full `float16` by default, leaving
-context length capped by unified-memory pressure. KV-cache quantization is an
-active research area, but published methods ship as research code targeting CUDA
-and are not directly usable on Apple's MLX backend, where the kernel fusions
-those methods rely on for speed do not port. There is, to our knowledge, no
-unified, installable library that brings these methods to MLX with a common API
-and Metal-accelerated hot paths.
+The tooling people use to run LLMs locally on Macs — `llama.cpp`, Ollama, LM
+Studio, and Apple's own `mlx_lm` [@mlx2023] — has heavily optimized the
+compression of model *weights* and the speed of attention, but stores the KV
+cache at full 16-bit precision by default. Because weight compression is an
+offline, one-time operation, it does nothing to bound the cache, which is built
+up token by token at run time and changes with every generation. As inputs grow,
+unified memory becomes the limiting resource.
 
-`VeloxQuant-MLX` fills that gap. It is aimed at ML engineers and researchers who
-run LLMs locally on Macs and at researchers who need a reproducible, common
-framework in which KV-cache compression methods can be compared on the same
-Apple-Silicon hardware. Adding the widely cited KIVI baseline [@liu2024kivi] in
-particular lets the other methods in the suite be measured against the field's
-reference point. The library ships with a test suite, per-model benchmark
-scripts that emit machine-readable result files, and documentation; it is
-designed so that compression can be enabled on an existing `mlx_lm` pipeline
-with a three-line change.
+KV-cache quantization is an active research area, but the published methods are
+typically released as standalone research code written for NVIDIA CUDA hardware.
+They are not directly usable on Apple's MLX backend, and the custom CUDA kernels
+they rely on for their reported speedups do not transfer to Apple's Metal
+backend. As a result, Mac users and researchers working in the MLX ecosystem
+have no straightforward, installable way to apply or compare these methods.
 
-On Apple Silicon the primary, measured benefit is **memory**: several methods
-reduce KV-cache footprint substantially at roughly `float16` generation
-throughput, but do not reproduce the raw speedups reported for the original
-CUDA implementations. The library reports throughput as measured rather than as
-hoped, and includes disclosed negative results (for example, the
-approximate-nearest-neighbor search path of the RaBitQ implementation is not
-usable for retrieval). Benchmark numbers in the documentation trace to committed
-result files produced by the included scripts.
+`VeloxQuant-MLX` addresses this need. Its audience is twofold: engineers who run
+LLMs on Macs and want to fit longer contexts into limited memory, and researchers
+who need a single reproducible framework in which KV-cache compression methods
+can be evaluated on the same Apple-Silicon hardware. The library is installable
+from PyPI, integrates with an existing `mlx_lm` pipeline in three lines, and ships
+with tests, documentation, and benchmark scripts that emit machine-readable
+result files so that every reported number is reproducible.
+
+# State of the field
+
+Several KV-cache compression methods have been published, each targeting a
+different point on the compression–quality–speed trade-off: KIVI's tuning-free
+asymmetric 2-bit quantization [@liu2024kivi]; KVQuant's non-uniform, outlier-aware
+quantization [@hooper2024kvquant]; GEAR's quantization-plus-low-rank-residual
+recipe [@kang2024gear]; the rotation-and-sketch approaches of TurboQuant
+[@zandieh2026turboquant] and QJL [@zandieh2024qjl]; vector-quantization methods
+such as VecInfer [@yao2025vecinfer], CommVQ [@commvq2025], and the
+nearest-neighbor code RaBitQ [@gao2024rabitq]; and per-layer mixed-precision
+allocation as in RateQuant [@ratequant2026]. These are almost all distributed as
+separate research repositories, each with its own interface and assumptions, and
+each targeting CUDA.
+
+The build-versus-contribute justification for `VeloxQuant-MLX` is that no existing
+package brings these methods to Apple's MLX backend under a common interface, and
+none could simply be extended to do so: their performance-critical paths assume
+CUDA kernels, and their APIs are not interoperable. Rather than fork one method,
+`VeloxQuant-MLX` re-implements a representative set of them against MLX with a
+shared cache abstraction, so that they become directly comparable on the same
+hardware. Including the widely cited KIVI baseline [@liu2024kivi] is central to
+this contribution: it is the reference point most KV-cache papers measure
+against, and its presence lets every other method in the suite be assessed
+relative to it.
+
+# Software design
+
+The library is organized around a small number of abstractions so that adding or
+swapping a method does not disturb the integration layer. A quantizer registry
+maps a method name to a `Quantizer` implementation; a cache factory maps a
+configuration object to an `mlx_lm`-compatible cache wrapper; and a builder
+constructs one cache per model layer, which also enables per-layer mixed-precision
+allocation. Each cache wrapper compresses keys and values inside the standard
+`update_and_fetch` call and immediately reconstructs them, so that the downstream
+attention computation always sees ordinary 16-bit tensors and no changes to the
+model or to `mlx_lm.generate` are required.
+
+A deliberate design trade-off concerns where compression pays off. Because MLX
+does not expose a sub-byte data type and the published CUDA kernel fusions do not
+port to Metal, on Apple Silicon the realized benefit of these methods is reduced
+*memory footprint* rather than increased *throughput*. The library is explicit
+about this: it reports measured throughput alongside compression so users can see
+the actual cost, and it provides a pure-MLX reference path for every accelerated
+kernel so that the fast and slow paths can be checked against each other. The
+newest addition, a re-implementation of KIVI, was chosen specifically because it
+is deterministic (plain minimum/maximum group quantization with no learned
+codebook and no randomness), which keeps its behavior reproducible run to run.
+
+# Research impact statement
+
+`VeloxQuant-MLX` is released on PyPI and is accompanied by a documentation site,
+per-method benchmark scripts, and committed result files for each benchmarked
+model, so that its claims are reproducible rather than aspirational. Benchmarks
+are recorded for a range of production 4-bit models (including Llama, Qwen,
+Mistral, Phi, Gemma, and Falcon families) on Apple M-series hardware, with each
+run writing a machine-readable results file that records the hardware, the
+sequence lengths, and the realized compression and throughput. The repository
+also documents negative results explicitly — for example, that the
+approximate-nearest-neighbor search path of the RaBitQ implementation does not
+achieve usable retrieval recall — so that users are not misled about scope. By
+providing a common, reproducible framework on Apple Silicon, the library is
+intended to lower the barrier to applying and fairly comparing KV-cache
+compression methods in the growing MLX ecosystem.
+
+# AI usage disclosure
+
+Generative AI tools (Anthropic's Claude) were used during the development of this
+software, its documentation, and this paper: to help draft and refactor code, to
+help write documentation and prose, and to help structure benchmarks. All
+AI-assisted output was reviewed by the author. Correctness was verified through
+the repository's automated test suite and through benchmark scripts whose
+numerical results are committed to the repository; the project follows a rule
+that no performance or compression figure is reported unless it traces to a
+committed result file produced by a script in the repository, and an internal
+audit was carried out to remove claims that could not be substantiated from
+measured data.
 
 # Acknowledgements
 
 `VeloxQuant-MLX` builds on Apple's MLX framework [@mlx2023] and re-implements
 algorithms introduced by the authors of the works cited above; we gratefully
-acknowledge that prior research, which this library ports to Apple Silicon
-rather than supersedes.
+acknowledge that prior research, which this library ports to Apple Silicon rather
+than supersedes. The author received no financial support for this work.
 
 # References
