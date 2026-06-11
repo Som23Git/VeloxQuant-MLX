@@ -195,12 +195,12 @@ python -m veloxquant_mlx benchmark \
     [--output JSON_PATH]
 ```
 
-Benchmarks a configuration and prints/saves metrics. See [Benchmarking guide](/guides/benchmarking).
+Benchmarks a configuration and prints/saves metrics. See [Benchmarking guide](../guides/benchmarking).
 
 ---
 
 ## See also
 
-- [API — Quantizers](/api/quantizers)
-- [API — Cache](/api/cache)
-- [API — Exceptions](/api/exceptions-api)
+- [API — Quantizers](../api/quantizers)
+- [API — Cache](../api/cache)
+- [API — Exceptions](../api/exceptions-api)

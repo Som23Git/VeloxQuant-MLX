@@ -126,7 +126,7 @@ for turn in turns:
 ```
 
 :::warning
-Cache capacity is bounded by `max_seq_len`. If the conversation exceeds this, use [SlidingWindowKVCache](/guides/sliding-window) to evict old tokens.
+Cache capacity is bounded by `max_seq_len`. If the conversation exceeds this, use [SlidingWindowKVCache](../guides/sliding-window) to evict old tokens.
 :::
 
 ## Supported models
@@ -144,6 +144,6 @@ All mlx_lm model families have been validated:
 
 ## See also
 
-- [5-minute quickstart](/getting-started/quickstart)
-- [Metal kernels guide](/guides/metal-kernels)
-- [API — KVCacheBuilder](/api/cache)
+- [5-minute quickstart](../getting-started/quickstart)
+- [Metal kernels guide](../guides/metal-kernels)
+- [API — KVCacheBuilder](../api/cache)

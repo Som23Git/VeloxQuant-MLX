@@ -123,7 +123,7 @@ config = KVCacheConfig(
 )
 ```
 
-See the [Mixed-precision guide](/guides/mixed-precision) for a detailed walkthrough.
+See the [Mixed-precision guide](../guides/mixed-precision) for a detailed walkthrough.
 
 ## When to use RateQuant
 
@@ -134,8 +134,8 @@ See the [Mixed-precision guide](/guides/mixed-precision) for a detailed walkthro
 - You are dealing with models that have heterogeneous layer sensitivities
 
 **Consider alternatives when:**
-- Zero calibration required → [TurboQuant RVQ](/algorithms/rvq)
-- Maximum compression → [VecInfer](/algorithms/vecinfer)
+- Zero calibration required → [TurboQuant RVQ](../algorithms/rvq)
+- Maximum compression → [VecInfer](../algorithms/vecinfer)
 
 ## Benchmark results
 
@@ -152,7 +152,7 @@ RateQuant at 2.0 average bits achieves **2.7× lower perplexity degradation** th
 
 ## See also
 
-- [Mixed-precision guide](/guides/mixed-precision)
-- [Calibration guide](/guides/calibration)
-- [API — RateQuant allocators](/api/allocators)
-- [Observers guide](/guides/observers)
+- [Mixed-precision guide](../guides/mixed-precision)
+- [Calibration guide](../guides/calibration)
+- [API — RateQuant allocators](../api/allocators)
+- [Observers guide](../guides/observers)

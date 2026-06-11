@@ -137,6 +137,6 @@ Common issues:
 
 ## See also
 
-- [mlx_lm integration](/guides/mlx-lm-integration)
-- [API — Metal functions](/api/metal-api)
-- [Installation troubleshooting](/getting-started/installation)
+- [mlx_lm integration](../guides/mlx-lm-integration)
+- [API — Metal functions](../api/metal-api)
+- [Installation troubleshooting](../getting-started/installation)

@@ -7,7 +7,7 @@ slug: /getting-started/concepts
 
 # Core Concepts
 
-This page explains the fundamental ideas behind VeloxQuant-MLX without assuming prior knowledge of quantization theory. If you are already familiar with KV caches and vector quantization, skip to [Algorithm Overview](/algorithms/overview).
+This page explains the fundamental ideas behind VeloxQuant-MLX without assuming prior knowledge of quantization theory. If you are already familiar with KV caches and vector quantization, skip to [Algorithm Overview](../algorithms/overview).
 
 ## What is a KV cache?
 
@@ -88,10 +88,10 @@ Metal kernels are loaded lazily — the first call to an algorithm triggers JIT 
 | Codebook | `veloxquant_mlx.core.abstractions.Codebook` | Mapping from vectors to indices |
 | Artifact Store | `veloxquant_mlx.artifacts.base.ArtifactStore` | Load/save calibration artifacts |
 
-See [API Reference — Core](/api/core-api) for the full interface documentation.
+See [API Reference — Core](../api/core-api) for the full interface documentation.
 
 ## Next steps
 
-- [Choose an algorithm](/algorithms/overview)
-- [mlx_lm integration guide](/guides/mlx-lm-integration)
-- [Calibration guide](/guides/calibration)
+- [Choose an algorithm](../algorithms/overview)
+- [mlx_lm integration guide](../guides/mlx-lm-integration)
+- [Calibration guide](../guides/calibration)

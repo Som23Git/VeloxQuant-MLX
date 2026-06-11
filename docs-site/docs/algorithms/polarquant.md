@@ -75,7 +75,7 @@ print(f"Cosine sim: {cosine_similarity(keys, decoded):.4f}")
 - The model uses normalised attention (Phi-3, Gemma-2 style)
 - You want 1-bit keys without calibration and without the JL approximation
 
-**Consider [TurboQuant RVQ](/algorithms/rvq) instead when:**
+**Consider [TurboQuant RVQ](../algorithms/rvq) instead when:**
 - Keys are not spherically distributed (most Llama/Mistral variants)
 - You need both key and value compression at high quality
 
@@ -88,6 +88,6 @@ print(f"Cosine sim: {cosine_similarity(keys, decoded):.4f}")
 
 ## See also
 
-- [CommVQ — polar + RoPE compatibility](/algorithms/commvq)
-- [TurboQuant RVQ — better quality for non-spherical keys](/algorithms/rvq)
-- [API — PolarQuantizer](/api/quantizers)
+- [CommVQ — polar + RoPE compatibility](../algorithms/commvq)
+- [TurboQuant RVQ — better quality for non-spherical keys](../algorithms/rvq)
+- [API — PolarQuantizer](../api/quantizers)

@@ -139,9 +139,9 @@ KVCacheConfig(
 - You want the highest compression ratio
 
 **Consider alternatives when:**
-- Zero calibration is required → [TurboQuant RVQ](/algorithms/rvq)
-- Context exceeds 8k → [SpectralQuant](/algorithms/spectral)
-- Per-layer quality targeting is needed → [RateQuant](/algorithms/ratequant)
+- Zero calibration is required → [TurboQuant RVQ](../algorithms/rvq)
+- Context exceeds 8k → [SpectralQuant](../algorithms/spectral)
+- Per-layer quality targeting is needed → [RateQuant](../algorithms/ratequant)
 
 ## Benchmark results
 
@@ -155,7 +155,7 @@ On Llama-3.1-8B at 4096 context, M3 Pro (source: BENCHMARK_RESULTS.md):
 
 ## See also
 
-- [Calibration guide](/guides/calibration)
-- [Metal kernels guide](/guides/metal-kernels)
-- [API — VecInfer allocators](/api/allocators)
-- [API — Metal VecInfer](/api/metal-api)
+- [Calibration guide](../guides/calibration)
+- [Metal kernels guide](../guides/metal-kernels)
+- [API — VecInfer allocators](../api/allocators)
+- [API — Metal VecInfer](../api/metal-api)

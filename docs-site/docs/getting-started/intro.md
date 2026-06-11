@@ -46,10 +46,10 @@ VeloxQuant-MLX provides nine algorithms ranging from zero-calibration 1-bit meth
 | **PolarQuant** | 1–2 | None | Geometric key distributions |
 | **CommVQ** | 2–4 | None | RoPE-compatible residual VQ |
 
-See [Algorithm Overview](/algorithms/overview) for a full comparison.
+See [Algorithm Overview](../algorithms/overview) for a full comparison.
 
 ## Next steps
 
-- [Install VeloxQuant-MLX](/getting-started/installation)
-- [5-minute quickstart](/getting-started/quickstart)
-- [Core concepts — KV cache, quantization](/getting-started/concepts)
+- [Install VeloxQuant-MLX](../getting-started/installation)
+- [5-minute quickstart](../getting-started/quickstart)
+- [Core concepts — KV cache, quantization](../getting-started/concepts)

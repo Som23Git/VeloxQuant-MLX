@@ -89,7 +89,7 @@ RaBitQ stores values at full fp16 precision by default. This means:
 - **Total compression ≈ 6×** (keys save 16×, values unchanged)
 - For maximum total compression: pair with `value_bits=2` (trades some value quality)
 
-Compare with [TurboQuant RVQ](/algorithms/rvq) which compresses both keys and values and typically achieves better quality at equal total compression ratio.
+Compare with [TurboQuant RVQ](../algorithms/rvq) which compresses both keys and values and typically achieves better quality at equal total compression ratio.
 
 ## When to use RaBitQ
 
@@ -104,7 +104,7 @@ Compare with [TurboQuant RVQ](/algorithms/rvq) which compresses both keys and va
 
 ## See also
 
-- [QJL — simpler 1-bit method](/algorithms/qjl)
-- [TurboQuant RVQ — better quality at same bits](/algorithms/rvq)
-- [API — RaBitQQuantizer](/api/quantizers)
-- [Metal API — rabitq_hamming_score](/api/metal-api)
+- [QJL — simpler 1-bit method](../algorithms/qjl)
+- [TurboQuant RVQ — better quality at same bits](../algorithms/rvq)
+- [API — RaBitQQuantizer](../api/quantizers)
+- [Metal API — rabitq_hamming_score](../api/metal-api)

@@ -184,8 +184,8 @@ Create one `./artifacts/<model-name>/` directory per model and point `NpyArtifac
 
 ## See also
 
-- [VecInfer algorithm](/algorithms/vecinfer)
-- [RateQuant algorithm](/algorithms/ratequant)
-- [SpectralQuant algorithm](/algorithms/spectral)
-- [API — Allocators](/api/allocators)
-- [API — SpectralQuant](/api/spectral-api)
+- [VecInfer algorithm](../algorithms/vecinfer)
+- [RateQuant algorithm](../algorithms/ratequant)
+- [SpectralQuant algorithm](../algorithms/spectral)
+- [API — Allocators](../api/allocators)
+- [API — SpectralQuant](../api/spectral-api)

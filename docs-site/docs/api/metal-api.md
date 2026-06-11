@@ -276,6 +276,6 @@ Approximates `⟨q, k⟩` via bit string inner product.
 
 ## See also
 
-- [Metal kernels guide](/guides/metal-kernels)
-- [VecInfer algorithm](/algorithms/vecinfer)
-- [TurboQuant RVQ algorithm](/algorithms/rvq)
+- [Metal kernels guide](../guides/metal-kernels)
+- [VecInfer algorithm](../algorithms/vecinfer)
+- [TurboQuant RVQ algorithm](../algorithms/rvq)

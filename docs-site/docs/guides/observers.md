@@ -161,6 +161,6 @@ print(f"Latency:    {lat_obs.report().mean_encode_ms:.2f} ms/encode")
 
 ## See also
 
-- [Mixed-precision guide — outlier detection](/guides/mixed-precision)
-- [Benchmarking guide](/guides/benchmarking)
-- [API — Observers](/api/observers-api)
+- [Mixed-precision guide — outlier detection](../guides/mixed-precision)
+- [Benchmarking guide](../guides/benchmarking)
+- [API — Observers](../api/observers-api)

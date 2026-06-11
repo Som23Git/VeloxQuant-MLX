@@ -45,7 +45,7 @@ config = KVCacheConfig(method="ratequant", bit_allocation=bit_allocation)
 cache = KVCacheBuilder.build(model, config)
 ```
 
-See the [RateQuant algorithm page](/algorithms/ratequant) for the full reference.
+See the [RateQuant algorithm page](../algorithms/ratequant) for the full reference.
 
 ## Method 2 — Manual allocation
 
@@ -130,7 +130,7 @@ These are approximate; actual numbers depend on model architecture and calibrati
 
 ## See also
 
-- [RateQuant algorithm](/algorithms/ratequant)
-- [Observers guide](/guides/observers)
-- [API — RateQuant allocators](/api/allocators)
-- [API — KeyNormObserver](/api/observers-api)
+- [RateQuant algorithm](../algorithms/ratequant)
+- [Observers guide](../guides/observers)
+- [API — RateQuant allocators](../api/allocators)
+- [API — KeyNormObserver](../api/observers-api)

@@ -14,7 +14,7 @@ const config: Config = {
   url: 'https://veloxquant-mlx.netlify.app',
   baseUrl: '/docs/',
 
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
   markdown: {
     hooks: {
       onBrokenMarkdownLinks: 'warn',

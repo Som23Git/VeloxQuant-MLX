@@ -110,9 +110,9 @@ Some algorithms (VecInfer, SpectralQuant) require precomputed calibration artifa
 python -m veloxquant_mlx precompute --method vecinfer --model <path-to-model>
 ```
 
-See the [Calibration Guide](/guides/calibration) for details.
+See the [Calibration Guide](../guides/calibration) for details.
 
 ## Next steps
 
-- [5-minute quickstart](/getting-started/quickstart)
-- [Core concepts](/getting-started/concepts)
+- [5-minute quickstart](../getting-started/quickstart)
+- [Core concepts](../getting-started/concepts)

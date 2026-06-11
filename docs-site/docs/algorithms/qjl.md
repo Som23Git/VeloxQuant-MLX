@@ -105,7 +105,7 @@ quantizer = CompositeQuantizer([
 ])
 ```
 
-This is similar to how `TurboQuantProd` works internally — see [API docs](/api/quantizers).
+This is similar to how `TurboQuantProd` works internally — see [API docs](../api/quantizers).
 
 ## When to use QJL
 
@@ -114,13 +114,13 @@ This is similar to how `TurboQuantProd` works internally — see [API docs](/api
 - Prototyping a new integration
 - You want a theoretical guarantee on inner product approximation error
 
-**Consider [TurboQuant RVQ](/algorithms/rvq) instead when:**
+**Consider [TurboQuant RVQ](../algorithms/rvq) instead when:**
 - Quality matters — RVQ consistently outperforms QJL at equal bits
 - You are moving to production
 
 ## See also
 
-- [RaBitQ — better 1-bit method with IVF](/algorithms/rabitq)
-- [TurboQuant RVQ — best zero-calibration quality](/algorithms/rvq)
-- [API — QJLQuantizer](/api/quantizers)
-- [Metal API — qjl_encode, qjl_inner_product](/api/metal-api)
+- [RaBitQ — better 1-bit method with IVF](../algorithms/rabitq)
+- [TurboQuant RVQ — best zero-calibration quality](../algorithms/rvq)
+- [API — QJLQuantizer](../api/quantizers)
+- [Metal API — qjl_encode, qjl_inner_product](../api/metal-api)

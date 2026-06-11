@@ -181,7 +181,7 @@ from veloxquant_mlx.allocators.vecinfer import (
 
 ## See also
 
-- [RateQuant algorithm](/algorithms/ratequant)
-- [VecInfer algorithm](/algorithms/vecinfer)
-- [Calibration guide](/guides/calibration)
-- [Mixed-precision guide](/guides/mixed-precision)
+- [RateQuant algorithm](../algorithms/ratequant)
+- [VecInfer algorithm](../algorithms/vecinfer)
+- [Calibration guide](../guides/calibration)
+- [Mixed-precision guide](../guides/mixed-precision)

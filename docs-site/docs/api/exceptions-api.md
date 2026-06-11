@@ -142,12 +142,12 @@ Raised when a Metal kernel is called on a device where Metal is not available.
 - Calling `vecinfer_quantize_metal()` on an Intel Mac or in a VM
 - `patch_mlx_lm_for_fused_sdpa()` on an unsupported device
 
-**Fix:** Run on macOS with an Apple M-series chip. See [Installation troubleshooting](/getting-started/installation).
+**Fix:** Run on macOS with an Apple M-series chip. See [Installation troubleshooting](../getting-started/installation).
 
 ---
 
 ## See also
 
-- [Installation — troubleshooting](/getting-started/installation)
-- [Calibration guide](/guides/calibration)
-- [Core API](/api/core-api)
+- [Installation — troubleshooting](../getting-started/installation)
+- [Calibration guide](../guides/calibration)
+- [Core API](../api/core-api)

@@ -9,7 +9,7 @@ slug: /api/quantizers
 
 `veloxquant_mlx.quantizers`
 
-All quantizers implement the `Quantizer` abstract base class. See [Core API](/api/core-api) for the interface definition.
+All quantizers implement the `Quantizer` abstract base class. See [Core API](../api/core-api) for the interface definition.
 
 ---
 
@@ -245,6 +245,6 @@ decoded = q.decode(encoded)
 
 ## See also
 
-- [Algorithm pages](/algorithms/overview)
-- [API — Cache](/api/cache)
-- [API — Core abstractions](/api/core-api)
+- [Algorithm pages](../algorithms/overview)
+- [API — Cache](../api/cache)
+- [API — Core abstractions](../api/core-api)

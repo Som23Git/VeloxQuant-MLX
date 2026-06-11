@@ -5,5 +5,6 @@ slug: /
 ---
 
 import {Redirect} from '@docusaurus/router';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
-<Redirect to="/getting-started/intro" />
+<Redirect to={useBaseUrl('/getting-started/intro')} />

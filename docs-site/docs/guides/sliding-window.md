@@ -120,6 +120,6 @@ print(f"Tokens evicted: {stats.tokens_evicted}")
 
 ## See also
 
-- [mlx_lm integration](/guides/mlx-lm-integration)
-- [Observers — memory tracking](/guides/observers)
-- [API — Cache classes](/api/cache)
+- [mlx_lm integration](../guides/mlx-lm-integration)
+- [Observers — memory tracking](../guides/observers)
+- [API — Cache classes](../api/cache)

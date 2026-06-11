@@ -108,9 +108,9 @@ print(f"Cosine similarity: {cos_sim:.4f}")  # typically 0.97-0.99
 - Quality is important — RVQ consistently outperforms QJL and RaBitQ at the same bit rate
 
 **Consider alternatives when:**
-- Maximum throughput matters more than setup time → [VecInfer](/algorithms/vecinfer)
-- You have 1–3 minutes for calibration and want the absolute best accuracy → [RateQuant](/algorithms/ratequant)
-- Context length exceeds 8k → [SpectralQuant](/algorithms/spectral)
+- Maximum throughput matters more than setup time → [VecInfer](../algorithms/vecinfer)
+- You have 1–3 minutes for calibration and want the absolute best accuracy → [RateQuant](../algorithms/ratequant)
+- Context length exceeds 8k → [SpectralQuant](../algorithms/spectral)
 
 ## Benchmark results
 
@@ -124,7 +124,7 @@ On Llama-3.1-8B at 4096 context, measured on M3 Pro (source: BENCHMARK_RESULTS.m
 
 ## See also
 
-- [Core concepts — RVQ explained](/getting-started/concepts)
-- [mlx_lm integration](/guides/mlx-lm-integration)
-- [API — TurboQuantRVQ](/api/quantizers)
-- [Metal kernel — `turboquant_hadamard_quantize`](/api/metal-api)
+- [Core concepts — RVQ explained](../getting-started/concepts)
+- [mlx_lm integration](../guides/mlx-lm-integration)
+- [API — TurboQuantRVQ](../api/quantizers)
+- [Metal kernel — `turboquant_hadamard_quantize`](../api/metal-api)

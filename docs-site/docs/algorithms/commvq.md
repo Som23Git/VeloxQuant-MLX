@@ -98,13 +98,13 @@ This is particularly valuable for:
 - You want to avoid per-token position metadata in the cache
 - 2–4 bit key compression is sufficient
 
-**Consider [TurboQuant RVQ](/algorithms/rvq) instead when:**
+**Consider [TurboQuant RVQ](../algorithms/rvq) instead when:**
 - Position metadata overhead is acceptable
 - You need both key and value compression
 - You want higher quality at equal bits
 
 ## See also
 
-- [PolarQuant — geometric decomposition](/algorithms/polarquant)
-- [Metal API — `comm_vq_decode_metal`](/api/metal-api)
-- [API — CommVQQuantizer](/api/quantizers)
+- [PolarQuant — geometric decomposition](../algorithms/polarquant)
+- [Metal API — `comm_vq_decode_metal`](../api/metal-api)
+- [API — CommVQQuantizer](../api/quantizers)

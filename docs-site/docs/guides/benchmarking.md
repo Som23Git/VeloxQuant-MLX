@@ -147,6 +147,6 @@ Benchmark scripts assume calibration artifacts are already generated in `./artif
 
 ## See also
 
-- [Observers guide](/guides/observers)
-- [Mixed-precision guide](/guides/mixed-precision)
-- [CLI reference — benchmark command](/api/core-api)
+- [Observers guide](../guides/observers)
+- [Mixed-precision guide](../guides/mixed-precision)
+- [CLI reference — benchmark command](../api/core-api)

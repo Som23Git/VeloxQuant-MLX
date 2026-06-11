@@ -187,6 +187,6 @@ print(bits_per_dim[:8])  # e.g. [8, 8, 6, 4, 2, 1, 1, 1]
 
 ## See also
 
-- [SpectralQuant algorithm](/algorithms/spectral)
-- [Calibration guide](/guides/calibration)
-- [API — Cache](/api/cache)
+- [SpectralQuant algorithm](../algorithms/spectral)
+- [Calibration guide](../guides/calibration)
+- [API — Cache](../api/cache)

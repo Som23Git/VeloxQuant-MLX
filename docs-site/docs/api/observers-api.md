@@ -212,6 +212,6 @@ print(f"Outliers   : {norm.outlier_fraction:.1%}")
 
 ## See also
 
-- [Observers guide](/guides/observers)
-- [Mixed-precision — outlier handling](/guides/mixed-precision)
-- [Benchmarking guide](/guides/benchmarking)
+- [Observers guide](../guides/observers)
+- [Mixed-precision — outlier handling](../guides/mixed-precision)
+- [Benchmarking guide](../guides/benchmarking)

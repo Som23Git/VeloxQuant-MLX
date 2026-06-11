@@ -135,9 +135,9 @@ print(per_dim_bits)  # e.g. [8, 8, 6, 4, 2, 1, 1, ...]
 - You can spend 3 minutes calibrating
 
 **Consider alternatives when:**
-- Zero calibration required → [TurboQuant RVQ](/algorithms/rvq)
-- Maximum compression is the goal → [VecInfer](/algorithms/vecinfer)
-- Best quality per bit across all lengths → [RateQuant](/algorithms/ratequant)
+- Zero calibration required → [TurboQuant RVQ](../algorithms/rvq)
+- Maximum compression is the goal → [VecInfer](../algorithms/vecinfer)
+- Best quality per bit across all lengths → [RateQuant](../algorithms/ratequant)
 
 ## Benchmark results
 
@@ -153,6 +153,6 @@ SpectralQuant achieves **3.75× lower perplexity degradation** at the same memor
 
 ## See also
 
-- [Calibration guide](/guides/calibration)
-- [API — SpectralQuant](/api/spectral-api)
-- [Core concepts — KV cache](/getting-started/concepts)
+- [Calibration guide](../guides/calibration)
+- [API — SpectralQuant](../api/spectral-api)
+- [Core concepts — KV cache](../getting-started/concepts)

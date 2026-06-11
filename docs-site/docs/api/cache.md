@@ -152,7 +152,7 @@ cache = KVCacheBuilder.build(model, config)
 from veloxquant_mlx.cache.turboquant_rvq_cache import TurboQuantRVQKVCache
 ```
 
-KV cache backed by [TurboQuant RVQ](/algorithms/rvq). Writes compressed keys/values on each attention step and provides dequantized tensors for attention computation.
+KV cache backed by [TurboQuant RVQ](../algorithms/rvq). Writes compressed keys/values on each attention step and provides dequantized tensors for attention computation.
 
 ### VecInferKVCache
 
@@ -160,7 +160,7 @@ KV cache backed by [TurboQuant RVQ](/algorithms/rvq). Writes compressed keys/val
 from veloxquant_mlx.cache.vecinfer_cache import VecInferKVCache
 ```
 
-[VecInfer](/algorithms/vecinfer) cache with smooth scaling + product VQ. Requires pre-trained codebook and smooth factors.
+[VecInfer](../algorithms/vecinfer) cache with smooth scaling + product VQ. Requires pre-trained codebook and smooth factors.
 
 ### SpectralQuantKVCache
 
@@ -168,7 +168,7 @@ from veloxquant_mlx.cache.vecinfer_cache import VecInferKVCache
 from veloxquant_mlx.cache.spectral_cache import SpectralQuantKVCache
 ```
 
-[SpectralQuant](/algorithms/spectral) cache. Requires per-layer rotation matrices from `calibrate_spectral_rotation()`.
+[SpectralQuant](../algorithms/spectral) cache. Requires per-layer rotation matrices from `calibrate_spectral_rotation()`.
 
 ### PolarQuantKVCache
 
@@ -176,7 +176,7 @@ from veloxquant_mlx.cache.spectral_cache import SpectralQuantKVCache
 from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
 ```
 
-[PolarQuant](/algorithms/polarquant) cache. Zero calibration; encodes keys as polar angles.
+[PolarQuant](../algorithms/polarquant) cache. Zero calibration; encodes keys as polar angles.
 
 ### QJLKVCache
 
@@ -184,7 +184,7 @@ from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
 from veloxquant_mlx.cache.qjl_cache import QJLKVCache
 ```
 
-[QJL](/algorithms/qjl) 1-bit sign sketch cache.
+[QJL](../algorithms/qjl) 1-bit sign sketch cache.
 
 ### SlidingWindowKVCache
 
@@ -192,12 +192,12 @@ from veloxquant_mlx.cache.qjl_cache import QJLKVCache
 from veloxquant_mlx.cache.sliding_window_cache import SlidingWindowKVCache
 ```
 
-Token eviction wrapper for any KVCache. See [Sliding Window guide](/guides/sliding-window).
+Token eviction wrapper for any KVCache. See [Sliding Window guide](../guides/sliding-window).
 
 ---
 
 ## See also
 
-- [mlx_lm integration guide](/guides/mlx-lm-integration)
-- [API — Quantizers](/api/quantizers)
-- [API — Core abstractions](/api/core-api)
+- [mlx_lm integration guide](../guides/mlx-lm-integration)
+- [API — Quantizers](../api/quantizers)
+- [API — Core abstractions](../api/core-api)
