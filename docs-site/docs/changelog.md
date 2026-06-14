@@ -140,4 +140,4 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-*Full commit-level history: [GitHub Commits](https://github.com/rajveer43/turboquant_mac_implementation/commits/master)*
+*Full commit-level history: [GitHub Commits](https://github.com/rajveer43/veloxquant-mlx/commits/master)*

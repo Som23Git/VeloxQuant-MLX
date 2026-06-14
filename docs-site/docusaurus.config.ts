@@ -34,7 +34,7 @@ const config: Config = {
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/rajveer43/turboquant_mac_implementation/edit/master/docs-site/',
+            'https://github.com/rajveer43/veloxquant-mlx/edit/master/docs-site/',
         },
         blog: false,
         theme: {
@@ -88,7 +88,7 @@ const config: Config = {
           position: 'left',
         },
         {
-          href: 'https://github.com/rajveer43/turboquant_mac_implementation',
+          href: 'https://github.com/rajveer43/veloxquant-mlx',
           label: 'GitHub',
           position: 'right',
         },
@@ -111,11 +111,11 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/rajveer43/turboquant_mac_implementation',
+              href: 'https://github.com/rajveer43/veloxquant-mlx',
             },
             {
               label: 'Issues',
-              href: 'https://github.com/rajveer43/turboquant_mac_implementation/issues',
+              href: 'https://github.com/rajveer43/veloxquant-mlx/issues',
             },
           ],
         },
