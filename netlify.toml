@@ -10,3 +10,4 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  SECRETS_SCAN_OMIT_KEYS = "YOUR_APP_ID,YOUR_SEARCH_API_KEY"
