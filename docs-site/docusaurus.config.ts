@@ -135,9 +135,8 @@ const config: Config = {
       additionalLanguages: ['python', 'bash', 'toml'],
     },
     algolia: {
-      // Get free DocSearch credentials at https://docsearch.algolia.com/
-      appId: 'YOUR_APP_ID',
-      apiKey: 'YOUR_SEARCH_API_KEY',
+      appId: process.env.YOUR_APP_ID!,
+      apiKey: process.env.YOUR_SEARCH_API_KEY!,
       indexName: 'veloxquant-mlx',
       contextualSearch: true,
     },
