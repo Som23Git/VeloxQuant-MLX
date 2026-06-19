@@ -8,7 +8,7 @@ additional models, documentation, and performance work.
 ## Reporting bugs and requesting features
 
 Please open an issue at
-<https://github.com/rajveer43/VeloxQuant-MLX/issues>. For bugs, include:
+<https://github.com/rajveer43/veloxquant-mlx/issues>. For bugs, include:
 
 - your hardware (chip + RAM) and macOS version,
 - `python`, `mlx`, and `mlx_lm` versions,
@@ -21,7 +21,7 @@ Please open an issue at
 Requires Apple Silicon (M1 or later), Python ≥ 3.11, and MLX ≥ 0.18.
 
 ```bash
-git clone https://github.com/rajveer43/VeloxQuant-MLX
+git clone https://github.com/rajveer43/veloxquant-mlx
 cd VeloxQuant-MLX
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
@@ -63,7 +63,13 @@ A new method typically consists of:
 See `paper/NEW_METHOD_SURVEY.md` for an example of how a method is scoped and
 chosen before implementation.
 
+## Commit conventions
+
+Use short imperative subject lines (`Add sink cache`, `Fix dtype mismatch in
+KIVI path`). Reference the relevant issue number when one exists (`Closes #12`).
+Avoid commits that mix unrelated changes.
+
 ## Code of conduct
 
-Please be respectful and constructive. We follow the spirit of the
-[Contributor Covenant](https://www.contributor-covenant.org/).
+Please be respectful and constructive. We follow the
+[Contributor Covenant v2.1](CODE_OF_CONDUCT.md).
