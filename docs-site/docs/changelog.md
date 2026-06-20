@@ -11,7 +11,29 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.7.0 — Latest
+## v0.9.0 — Latest
+
+### New
+- **KIVI-Sink** (`method="kivi_sink"`) — attention sink protection layered on KIVI group quantization. Tokens with anomalously high key L2-norm are kept in fp16 and excluded from quantization-parameter calibration, preventing sink outliers from inflating group scale and degrading neighboring tokens. Inspired by KVSink (Su & Yuan, COLM 2025).
+- `SinkProtectedKVCache` — new cache wrapper in `veloxquant_mlx.cache.sink_cache`
+- `KVCacheConfig.n_sink_tokens` — new field (default 5). Composes with KIVI's `residual_length`; byte accounting tracks `sink_fp16_bytes` separately with no double-counting. `n_sink_tokens=0` reproduces plain KIVI bit-for-bit.
+- 9 new tests in `tests/cache/test_sink_cache.py`: sink detection, fp16 preservation, MSE improvement over plain KIVI, accounting partition, determinism. Full suite: 344/348 passing.
+
+---
+
+## v0.8.0
+
+### New
+- **KIVI** (`method="kivi"`) — tuning-free asymmetric 2-bit group quantization (Liu, Yuan et al., ICML 2024). Per-channel keys, per-token values; no codebook training, no rotation.
+- `KIVIQuantizer` — registered as `"kivi"` in `QuantizerRegistry`
+- `KIVIKVCache` — mlx_lm `update_and_fetch` wrapper with fp16 residual window (`residual_length`) and full byte-accounting
+- `KVCacheConfig.kivi_group_size` — new field (default 32)
+- Benchmark results on Llama-3.2-3B, Qwen2.5-7B, Mistral-7B (Apple M4): **KIVI-2bit ≈ 5.8× key / ≈ 4× full-KV at 100–106% of fp16 throughput**
+- 25 new tests; 334/339 passing
+
+---
+
+## v0.7.0
 
 ### New
 - **RaBitQ** — randomised Hadamard + 1-bit sign packing with IVF clustering for extreme key compression

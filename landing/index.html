@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ — all in MLX. New in 0.7.0: RaBitQ achieves 6× full KV compression on Falcon3-7B via 1-bit randomised Hadamard quantization. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink — all in MLX. New in 0.9.0: KIVI-Sink cache with attention sink token protection keeps anomalously high-norm keys in fp16, reducing quantization error on long-context inference. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1299,7 +1299,7 @@
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
     <h2 class="section-title">Eight quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.7.0: RaBitQ 1-bit keys + MSE-b4 values achieves 6× full KV compression on Falcon3-7B — fitting 6× more context in the same memory budget. CommVQ adds RoPE-commutative VQ for exact attention compatibility. Mix and match per layer with RateQuant.</p>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.9.0: KIVI-Sink layers attention sink protection on top of KIVI group quantization — anomalously high-norm key tokens are kept in fp16 and excluded from quantization-parameter calibration, preventing sink outliers from inflating group scale and degrading neighbors. New in 0.7.0: RaBitQ 1-bit keys + MSE-b4 values achieves 6× full KV compression on Falcon3-7B. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
@@ -1450,6 +1450,7 @@
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.7.0 — FULL KV</div>
+            <div class="algo-badge new-badge" style="margin-top:0.4rem">KIVI-SINK NEW IN 0.9.0</div>
             <div class="algo-title" style="font-size:1.25rem">RaBitQ — 1-bit Randomised Hadamard Quantization</div>
             <div class="algo-desc" style="margin-top:0.6rem">
               Based on RaBitQ (SIGMOD 2024) and Ascend-RaBitQ (arXiv:2605.16007). The first method in VeloxQuant-MLX to compress <strong style="color:var(--text)">both keys and values</strong>, achieving <strong style="color:#22c55e">6× total KV compression</strong> on Falcon3-7B.
@@ -1971,7 +1972,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.6.0 — SpectralQuant shipped';
+      const text = 'v0.9.0 — KIVI-Sink shipped';
       let i = 0;
       badge.innerHTML = '';
       const cursor = document.createElement('span');

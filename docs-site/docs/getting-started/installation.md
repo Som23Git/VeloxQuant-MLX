@@ -45,7 +45,7 @@ The `[dev]` extra installs SciPy (for codebook training) and the full test suite
 
 ```python
 import veloxquant_mlx
-print(veloxquant_mlx.__version__)   # e.g. 0.7.0
+print(veloxquant_mlx.__version__)   # e.g. 0.9.0
 
 import mlx.core as mx
 print(mx.default_device())           # Device(gpu, 0)
