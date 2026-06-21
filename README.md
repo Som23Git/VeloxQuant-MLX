@@ -15,7 +15,7 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
-  <img src="https://img.shields.io/badge/tests-309%2F314%20passing-22c55e?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/tests-344%2F348%20passing-22c55e?style=flat-square" alt="Tests"/>
   <a href="https://doi.org/10.5281/zenodo.20647305"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20647305-1f6feb?style=flat-square" alt="DOI"/></a>
 </p>
 
@@ -286,6 +286,20 @@ response = mlx_lm.generate(model, tokenizer,
 - Compression only manifests **once context exceeds the residual window** — at short prompts the entire prefill stays fp16 and the realized ratio is 1.0× (this is correct behavior, not a bug). The numbers above use a long-context prompt.
 - **Peak runtime memory is not reduced** (often marginally higher): like every method here, keys are dequantized to fp16 before SDPA, so the compression is in *cache-storage accounting*, not the peak fp16 working set.
 - At 2 bits, raw-key reconstruction cosine on synthetic unit-norm Gaussian keys is ~0.93 — KIVI 2-bit is genuinely lossy, which is exactly why the fp16 residual window exists. VecInfer-2bit compresses harder (8× vs 5.8× keys); KIVI's value is being the recognized, calibration-free baseline. See `figures/kivi/fig4_vs_existing.png`.
+
+## KVSink-adapted sink protection — new in 0.9.0
+
+`method="kivi_sink"` layers dynamic **attention-sink protection** on top of KIVI. *Inspired by, **not a faithful port of***, [KVSink (Su & Yuan, COLM 2025)](https://arxiv.org/abs/2508.04257): the paper detects sinks via hidden-state outlier channels at a model-specific emergence layer, which cache wrappers cannot see — this implementation uses the cache-observable proxy of **anomalously high key L2-norm** (running top-k of token positions, mean over KV heads). Selected tokens are kept fp16 and **excluded from quantization-parameter calibration** — the detail the paper insists on: without it, a high-magnitude sink inflates its group's min/max scale and ruins every neighbor even though the sink itself is restored (our tests reproduce that failure mode).
+
+```python
+config = KVCacheConfig(method="kivi_sink", bit_width_inlier=2,
+                       kivi_group_size=32, residual_length=32,
+                       n_sink_tokens=5)   # top-k high-key-norm tokens kept fp16
+```
+
+**Evidence (unit tests on synthetic planted-sink data — `tests/cache/test_sink_cache.py`, 9 passing):** planted sinks preserved bit-exact while neighbors quantize; sink-protected MSE **< plain KIVI** at equal bit-width; dynamic selection MSE **< Preserve-First-N at equal fp16 budget** when sinks are not all at the front (the paper's central claim, reproduced at cache level); `n_sink_tokens=0` reproduces plain KIVI bit-for-bit.
+
+**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_sink.py` is ready but has not been run — no throughput or compression figures are claimed for this method until its `results.json` is committed. Known v1 limitation: sink selection is prefill-dominant (tokens already quantized are not retroactively restored).
 
 ## SpectralQuant — new in 0.6.0
 

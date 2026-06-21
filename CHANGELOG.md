@@ -2,6 +2,50 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+## [0.9.0] — 2026-06-12
+
+### Added — KVSink-adapted sink protection (`method="kivi_sink"`)
+
+- **`veloxquant_mlx.cache.sink_cache.SinkProtectedKVCache`** — dynamic
+  attention-sink protection layered on KIVI group quantization. *Inspired
+  by, not a faithful port of,* "KVSink: Understanding and Enhancing the
+  Preservation of Attention Sinks in KV Cache Quantization for LLMs"
+  (Su & Yuan, **COLM 2025**, arXiv:2508.04257): the paper detects sinks via
+  hidden-state outlier channels at a model-specific emergence layer, which
+  cache wrappers cannot see; this implementation uses the cache-observable
+  proxy of **anomalously high key L2-norm** (mean over KV heads, running
+  top-k of absolute positions). Selected tokens are kept fp16 and —
+  critically, per the paper — **excluded from quantization-parameter
+  calibration** (sink rows are replaced by the nearest non-sink row before
+  group min/max is computed; without this, a large-magnitude sink inflates
+  its group's scale and ruins every neighbor even though the sink itself is
+  restored — our tests reproduce that failure when calibration exclusion is
+  omitted).
+- **`KVCacheConfig.n_sink_tokens`** — new field (default 5, the paper's k).
+  Composes with KIVI's `residual_length` window; byte accounting tracks
+  `sink_fp16_bytes` separately from `residual_fp16_bytes` with no double
+  counting. `n_sink_tokens=0` reproduces plain KIVI bit-for-bit (tested).
+- **Tests** — `tests/cache/test_sink_cache.py` (9 tests): planted-sink
+  detection + bit-exact fp16 preservation; sink-protected MSE < plain KIVI
+  at equal bit-width; **dynamic selection MSE < Preserve-First-N at equal
+  fp16 budget** (the KVSink paper's central claim, reproduced at cache
+  level on synthetic planted-sink data); accounting partition; determinism.
+  Full suite: **344 passed / 348 collected** (4 pre-existing flaky VecInfer
+  parity tests, unrelated).
+- **Benchmark script** — `benchmark_scripts/benchmark_sink.py` (fp16 /
+  KIVI-2bit / +sink k=5 / +sink k=20, long-prompt protocol). **Not yet
+  run** — no throughput or compression figures are claimed for this method
+  until its `results.json` is committed.
+
+### Honest scope
+
+- Known v1 limitation: sink selection is **prefill-dominant** — tokens
+  quantized in earlier calls are not retroactively restored if they later
+  qualify as sinks. Sinks emerge among early tokens in practice, which
+  arrive in the prefill block where protection is fully effective.
+- Quality evidence is unit-test level (synthetic planted sinks); no
+  model-level benchmark or downstream-task evaluation has been run.
+
 ## [0.8.0] — 2026-06-10
 
 ### Added — KIVI: tuning-free asymmetric group quantization (baseline)

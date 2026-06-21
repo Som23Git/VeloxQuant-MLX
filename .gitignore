@@ -29,3 +29,4 @@ artifacts/
 turboquant-mlx/
 
 .bench_tmp/.claude/
+.env

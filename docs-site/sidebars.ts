@@ -31,6 +31,8 @@ const sidebars: SidebarsConfig = {
         'algorithms/polarquant',
         'algorithms/commvq',
         'algorithms/kivi',
+        'algorithms/kivi-sink',
+        'algorithms/svdq',
       ],
     },
   ],

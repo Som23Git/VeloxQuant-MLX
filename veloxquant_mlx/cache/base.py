@@ -33,7 +33,7 @@ class KVCacheConfig:
 
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
-        "polar", "qjl", "vecinfer", "spectral", "kivi",
+        "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -58,6 +58,15 @@ class KVCacheConfig:
     residual_length: int = 128
     # --- KIVI configuration (asymmetric group quantization) ------------
     kivi_group_size: int = 32          # min/max group size (KIVI default 32)
+    # --- SVDq configuration (sub-2-bit key compression via offline SVD) --
+    svdq_rank: Optional[int] = None        # explicit rank; None → energy threshold
+    svdq_energy_threshold: float = 0.95   # fraction of singular value energy to retain
+    svdq_hi_bit: int = 4                  # bits for top-importance latent channels
+    svdq_lo_bit: int = 2                  # bits for remaining latent channels
+    svdq_hi_fraction: float = 0.25        # fraction of channels routed to hi_bit
+    svdq_group_size: int = 32             # group size for latent quantization
+    # --- KVSink-adapted sink protection (method="kivi_sink") -----------
+    n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
     key_codebook: Any = None           # mx.array | np.ndarray | None
     value_codebook: Any = None         # mx.array | np.ndarray | None
@@ -112,7 +121,9 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
         from veloxquant_mlx.cache.sliding_window_cache import SlidingWindowKVCache
         from veloxquant_mlx.cache.kivi_cache import KIVIKVCache
+        from veloxquant_mlx.cache.sink_cache import SinkProtectedKVCache
         from veloxquant_mlx.cache.spectral_cache import SpectralQuantKVCache
+        from veloxquant_mlx.cache.svdq_cache import SVDqKVCache
         from veloxquant_mlx.cache.turboquant_cache import TurboQuantKVCache
         from veloxquant_mlx.cache.turboquant_rvq_cache import TurboQuantRVQKVCache
         from veloxquant_mlx.cache.vecinfer_cache import VecInferKVCache
@@ -143,11 +154,15 @@ class KVCacheFactory:
             cache = SpectralQuantKVCache(config)
         elif config.method == "kivi":
             cache = KIVIKVCache(config)
+        elif config.method == "kivi_sink":
+            cache = SinkProtectedKVCache(config)
+        elif config.method == "svdq":
+            cache = SVDqKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
-                f"polar, qjl, vecinfer, spectral, kivi."
+                f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq."
             )
 
         if config.sliding_window is not None:

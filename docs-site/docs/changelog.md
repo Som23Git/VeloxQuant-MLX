@@ -11,7 +11,18 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.9.0 — Latest
+## v0.10.0 — Latest
+
+### New
+- **SVDq** (`method="svdq"`) — sub-2-bit key compression via offline SVD + mixed-precision latent coding. Computes a truncated SVD of the prefill key matrix once, projects all keys into the low-rank latent space, and applies 4-bit / 2-bit mixed quantization ordered by singular value magnitude. Achieves ~1.25-bit effective key precision (12.8× bandwidth reduction vs fp16). Values left at fp16. Inspired by SVDq (arXiv:2502.15304).
+- `SVDqKVCache` — new cache wrapper in `veloxquant_mlx/cache/svdq_cache.py`
+- SVD utilities in `veloxquant_mlx/quantizers/svdq.py`: `svd_compress_keys()`, `quantize_latents_mixed()`, `reconstruct_keys()`
+- New `KVCacheConfig` fields: `svdq_rank`, `svdq_energy_threshold`, `svdq_hi_bit`, `svdq_lo_bit`, `svdq_hi_fraction`, `svdq_group_size`
+- 12 new tests in `tests/cache/test_svdq_cache.py`: SVD projection correctness, shape preservation, MSE vs naive 2-bit on low-rank data, decode accumulation, byte accounting, sub-2-bit effective bit-width, energy threshold rank selection, determinism
+
+---
+
+## v0.9.0
 
 ### New
 - **KIVI-Sink** (`method="kivi_sink"`) — attention sink protection layered on KIVI group quantization. Tokens with anomalously high key L2-norm are kept in fp16 and excluded from quantization-parameter calibration, preventing sink outliers from inflating group scale and degrading neighboring tokens. Inspired by KVSink (Su & Yuan, COLM 2025).
