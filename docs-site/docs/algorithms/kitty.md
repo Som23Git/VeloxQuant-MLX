@@ -57,7 +57,7 @@ When the first batch of keys arrives (shape `[B, H, S, D]`):
 
 1. **Rank channels by variance.** For each attention head `h`, compute per-channel variance across the sequence axis:
 
-   $$\sigma^2_j = \mathrm{Var}(K_{h}[:, j]) \quad j \in [0, D)$$
+   `σ²_j = Var(K_h[:, j])  for j in [0, D)`
 
 2. **Split into hi/lo channel sets.** Top `hi_fraction × D` channels (by σ²) → 4-bit. Remaining → 2-bit.
 
@@ -74,18 +74,18 @@ For each new single-token key (`S=1`):
 1. **Update running accumulators** with the incoming key.
 2. **Re-derive channel ranking** from updated running variance:
 
-   $$\sigma^2_j \approx \frac{\sum k_j^2}{n} - \left(\frac{\sum k_j}{n}\right)^2$$
+   `σ²_j ≈ (Σ k_j²) / n − ((Σ k_j) / n)²`
 
 3. **Quantize** the new key at the updated mixed-precision assignment.
 4. **Reconstruct fp16** and pass to the underlying cache.
 
 ### Effective bit-width
 
-$$\text{avg\_bits} = f_{\text{hi}} \times b_{\text{hi}} + (1 - f_{\text{hi}}) \times b_{\text{lo}}$$
+`avg_bits = hi_fraction × hi_bit + (1 − hi_fraction) × lo_bit`
 
 At defaults (`hi_fraction=0.25, hi_bit=4, lo_bit=2`):
 
-$$\text{avg\_bits} = 0.25 \times 4 + 0.75 \times 2 = 2.5 \text{ bits/element}$$
+`avg_bits = 0.25 × 4 + 0.75 × 2 = 2.5 bits/element`
 
 Key bandwidth reduction vs fp16: `16 / 2.5 = 6.4×`
 

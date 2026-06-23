@@ -51,7 +51,7 @@ config = KVCacheConfig(
 2. Run truncated SVD: K − K̄ ≈ U · Σ_r · V^H, retaining rank r determined
    by either an explicit value or an energy threshold (≥95% of singular value
    energy by default).
-3. Store V ∈ R^{D×r} (the right singular vectors) and K̄ as layer state.
+3. Store V ∈ R^(D×r) (the right singular vectors) and K̄ as layer state.
    These are O(D²) and negligible in memory relative to long sequences.
 4. Project keys into the latent space: L = (K − K̄) @ V → shape [S, r].
 5. Apply **mixed-precision group quantization** to L:
