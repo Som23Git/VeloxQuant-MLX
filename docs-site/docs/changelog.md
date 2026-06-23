@@ -11,7 +11,20 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.10.0 — Latest
+## v0.11.0 — Latest
+
+### New
+- **Kitty** (`method="kitty"`) — dynamic channel-wise mixed-precision key quantization. Ranks key channels by online per-channel variance at every step; top-25% channels get 4-bit, remaining 75% get 2-bit asymmetric group quantization. Achieves ~2.5-bit effective key precision (6.4× bandwidth reduction vs fp16). Zero calibration — no SVD, no codebook training, works on any model immediately. Values left at fp16. Inspired by Kitty (arXiv:2511.18643).
+- `KittyKVCache` — new cache wrapper in `veloxquant_mlx/cache/kitty_cache.py`
+- Kitty utilities in `veloxquant_mlx/quantizers/kitty.py`: `rank_channels_by_sensitivity()`, `quantize_mixed_channels()`, `compute_running_variance()`
+- `veloxquant_mlx/quantizers/_quant_utils.py` — shared `_group_quant_dequant` helper extracted from `svdq.py` (no behavior change; both quantizers import from here)
+- New `KVCacheConfig` fields: `kitty_hi_fraction`, `kitty_hi_bit`, `kitty_lo_bit`, `kitty_group_size`
+- 14 new tests in `tests/cache/test_kitty_cache.py`: factory dispatch, shape preservation (prefill + decode), values unchanged, channel ranking correctness, hi-channel lower error than lo-channel, MSE vs uniform 2-bit on high-variance data, running variance accumulator, decode accumulation, byte accounting, avg_bits range, hi_fraction boundary cases, determinism
+- `benchmark_scripts/benchmark_kitty.py` — throughput + memory sweep vs KIVI-2bit, SVDq-1.25bit, fp16
+
+---
+
+## v0.10.0
 
 ### New
 - **SVDq** (`method="svdq"`) — sub-2-bit key compression via offline SVD + mixed-precision latent coding. Computes a truncated SVD of the prefill key matrix once, projects all keys into the low-rank latent space, and applies 4-bit / 2-bit mixed quantization ordered by singular value magnitude. Achieves ~1.25-bit effective key precision (12.8× bandwidth reduction vs fp16). Values left at fp16. Inspired by SVDq (arXiv:2502.15304).

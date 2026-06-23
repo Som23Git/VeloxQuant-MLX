@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/kivi',
         'algorithms/kivi-sink',
         'algorithms/svdq',
+        'algorithms/kitty',
       ],
     },
   ],

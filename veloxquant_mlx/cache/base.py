@@ -33,7 +33,7 @@ class KVCacheConfig:
 
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
-        "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq",
+        "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -65,6 +65,11 @@ class KVCacheConfig:
     svdq_lo_bit: int = 2                  # bits for remaining latent channels
     svdq_hi_fraction: float = 0.25        # fraction of channels routed to hi_bit
     svdq_group_size: int = 32             # group size for latent quantization
+    # --- Kitty configuration (dynamic channel-wise mixed-precision) ------
+    kitty_hi_fraction: float = 0.25       # fraction of channels routed to hi_bit
+    kitty_hi_bit: int = 4                 # bits for high-variance channels
+    kitty_lo_bit: int = 2                 # bits for low-variance channels
+    kitty_group_size: int = 32            # group size for channel quantization
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -117,6 +122,7 @@ class KVCacheFactory:
         Returns:
             Configured KVCache.
         """
+        from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
         from veloxquant_mlx.cache.sliding_window_cache import SlidingWindowKVCache
@@ -158,11 +164,13 @@ class KVCacheFactory:
             cache = SinkProtectedKVCache(config)
         elif config.method == "svdq":
             cache = SVDqKVCache(config)
+        elif config.method == "kitty":
+            cache = KittyKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
-                f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq."
+                f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty."
             )
 
         if config.sliding_window is not None:

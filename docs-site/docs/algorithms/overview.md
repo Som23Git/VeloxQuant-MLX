@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements ten KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements eleven KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -26,6 +26,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [PolarQuant](../algorithms/polarquant) | 1–2 | 2 | None | 8× | ★★★ | Geometric key distributions |
 | [CommVQ](../algorithms/commvq) | 2–4 | fp16 | None | 4–8× | ★★★★ | RoPE-compatible models |
 | [SVDq](../algorithms/svdq) | ~1.25 | fp16 | SVD at prefill | 12.8× key | ★★★ | Sub-2-bit keys, long context |
+| [Kitty](../algorithms/kitty) | ~2.5 | fp16 | None | 6.4× key | ★★★★ | Adaptive channel precision, zero calibration |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -44,6 +45,9 @@ Is RoPE positional encoding compatibility critical?
 
 Do you have geometric/non-Gaussian key distributions?
 └── Yes → PolarQuant
+
+Do key channels have highly non-uniform variance?
+└── Yes, want adaptive mixed-precision without calibration → Kitty
 ```
 
 ## Method families
@@ -57,6 +61,7 @@ These work immediately on any model with no setup beyond installation.
 - **[RaBitQ](../algorithms/rabitq)** — Randomised Hadamard transform + 1-bit sign packing with IVF clustering. Better than QJL for key-only compression.
 - **[PolarQuant](../algorithms/polarquant)** — Recursive polar decomposition for models where keys form geometric clusters.
 - **[CommVQ](../algorithms/commvq)** — RoPE-commutative residual VQ: quantization that commutes with rotary position embeddings, preserving exact positional information.
+- **[Kitty](../algorithms/kitty)** — Dynamic channel-wise mixed-precision: ranks key channels by online variance and allocates 4-bit to high-variance channels, 2-bit to the rest. Zero calibration, 2.5-bit effective key precision.
 
 ### Calibration-required methods
 

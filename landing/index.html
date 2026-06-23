@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq — all in MLX. New in 0.10.0: SVDq achieves ~1.25-bit effective key precision via offline SVD + mixed-precision latent coding — a 12.8× memory bandwidth reduction vs fp16. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty — all in MLX. New in 0.11.0: Kitty achieves ~2.5-bit adaptive mixed-precision keys via online channel variance ranking — 6.4× bandwidth reduction, zero calibration. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1298,8 +1298,8 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Eight quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.10.0: SVDq achieves ~1.25-bit effective key precision via offline SVD — a 12.8× memory bandwidth reduction, the lowest key footprint in the library. New in 0.9.0: KIVI-Sink layers attention sink protection on KIVI group quantization. New in 0.7.0: RaBitQ 1-bit keys + MSE-b4 values achieves 6× full KV compression on Falcon3-7B. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Eleven quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.11.0: Kitty achieves ~2.5-bit adaptive mixed-precision keys via online channel variance ranking — 6.4× bandwidth reduction, zero calibration. New in 0.10.0: SVDq achieves ~1.25-bit effective key precision via offline SVD — 12.8× bandwidth reduction. New in 0.9.0: KIVI-Sink layers attention sink protection on KIVI group quantization. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
@@ -1489,6 +1489,50 @@
               <div class="algo-stat-row">
                 <span class="label">Metal kernel</span>
                 <span class="value">rabitq_hamming_score</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kitty — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.11.0 — ADAPTIVE MIXED-PRECISION</div>
+            <div class="algo-title" style="font-size:1.25rem">Kitty — Dynamic Channel-wise Mixed-Precision Keys</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Inspired by Kitty (arXiv:2511.18643). Compresses keys to <strong style="color:#22c55e">~2.5 bits/element</strong> — a 6.4× memory bandwidth reduction vs fp16 — by ranking key channels online via per-channel variance and assigning 4-bit to high-variance channels, 2-bit to the rest. Zero calibration — no SVD, no codebook training. Values left at fp16.
+              <br><br>
+              <strong style="color:var(--text)">① Online channel ranking</strong> — per-channel variance computed from the incoming key batch (prefill) or running accumulator (decode)<br>
+              <strong style="color:var(--text)">② Split into hi/lo sets</strong> — top hi_fraction channels (default 25%) routed to 4-bit; remaining 75% to 2-bit<br>
+              <strong style="color:var(--text)">③ Asymmetric group quantization</strong> — independent min/max per group along the sequence axis for each channel set<br>
+              <strong style="color:var(--text)">④ Running accumulator update</strong> — decode steps update key_sum and key_sq_sum in O(D) to re-rank channels<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Key channel variance is non-uniform — some channels encode far more discriminative attention patterns than others. Kitty exploits this online with no offline setup, outperforming uniform 2-bit on models with high inter-channel variance spread.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Effective key bit-width</span>
+                <span class="value" style="color:#22c55e">~2.5 bits/element</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Key bandwidth reduction</span>
+                <span class="value" style="color:#22c55e">6.4× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression</span>
+                <span class="value">fp16 (no change)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — zero-shot</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Decode overhead</span>
+                <span class="value">O(D) accumulator update per token</span>
               </div>
             </div>
           </div>
@@ -2016,7 +2060,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.10.0 — SVDq shipped';
+      const text = 'v0.11.0 — Kitty shipped';
       let i = 0;
       badge.innerHTML = '';
       const cursor = document.createElement('span');
