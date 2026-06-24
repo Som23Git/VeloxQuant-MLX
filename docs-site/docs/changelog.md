@@ -11,7 +11,19 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.11.0 — Latest
+## v0.12.0 — Latest
+
+### New
+- **AdaKV-proxy** (`method="adakv"`) — per-head adaptive bit allocation layered on KIVI-style group quantization. Ranks attention heads by online inter-token key-norm variance (an attention-free proxy for head importance), then solves a per-head bit budget so the average bits/element matches a configured target — high-importance heads get more bits, low-importance heads fewer. Zero calibration; values left at fp16. A *proxy* adaptation of Ada-KV (arXiv:2407.11550): true Ada-KV adapts the per-head *eviction* budget from softmax attention weights, which live outside the cache contract; we adapt the per-head *bit* budget instead.
+- `AdaKVCache` — new cache wrapper in `veloxquant_mlx/cache/adakv_cache.py`
+- AdaKV utilities in `veloxquant_mlx/quantizers/adakv.py`: `compute_head_norm_variance()`, `allocate_head_bits()` (budget allocator with greedy round-trip correction), `quantize_head()`
+- New `KVCacheConfig` fields: `adakv_target_avg_bits`, `adakv_lo_bit`, `adakv_mid_bit`, `adakv_hi_bit`, `adakv_group_size`, `adakv_update_interval`
+- 14 new tests in `tests/cache/test_adakv_cache.py`: factory dispatch, shape preservation (prefill + decode), values unchanged, high-importance heads get more bits, average bits matches target, equal-importance uniform degradation, lower MSE than lo_bit on the high-importance head, running norm-accumulator correctness, decode accumulation, byte accounting, avg_bits range, single-head trivial allocation, determinism
+- `benchmark_scripts/benchmark_adakv.py` — throughput + memory sweep over `target_avg_bits ∈ {2.0, 2.5, 3.0}` vs KIVI-2bit, Kitty-2.5bit, fp16
+
+---
+
+## v0.11.0
 
 ### New
 - **Kitty** (`method="kitty"`) — dynamic channel-wise mixed-precision key quantization. Ranks key channels by online per-channel variance at every step; top-25% channels get 4-bit, remaining 75% get 2-bit asymmetric group quantization. Achieves ~2.5-bit effective key precision (6.4× bandwidth reduction vs fp16). Zero calibration — no SVD, no codebook training, works on any model immediately. Values left at fp16. Inspired by Kitty (arXiv:2511.18643).

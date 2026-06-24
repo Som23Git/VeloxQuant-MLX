@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty — all in MLX. New in 0.11.0: Kitty achieves ~2.5-bit adaptive mixed-precision keys via online channel variance ranking — 6.4× bandwidth reduction, zero calibration. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy — all in MLX. New in 0.12.0: AdaKV-proxy allocates KV-cache bits per attention head from online key-norm variance, hitting a configured average-bit target with zero calibration. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1298,8 +1298,8 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Eleven quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.11.0: Kitty achieves ~2.5-bit adaptive mixed-precision keys via online channel variance ranking — 6.4× bandwidth reduction, zero calibration. New in 0.10.0: SVDq achieves ~1.25-bit effective key precision via offline SVD — 12.8× bandwidth reduction. New in 0.9.0: KIVI-Sink layers attention sink protection on KIVI group quantization. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Twelve quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.12.0: AdaKV-proxy allocates bits per attention head from online inter-token key-norm variance, hitting a configured average-bit target — zero calibration, complements Kitty's per-channel axis. New in 0.11.0: Kitty achieves ~2.5-bit adaptive mixed-precision keys via online channel variance ranking — 6.4× bandwidth reduction. New in 0.10.0: SVDq achieves ~1.25-bit effective key precision via offline SVD — 12.8× bandwidth reduction. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
@@ -1495,11 +1495,55 @@
         </div>
       </div>
 
+      <!-- AdaKV-proxy — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.12.0 — PER-HEAD ADAPTIVE BITS</div>
+            <div class="algo-title" style="font-size:1.25rem">AdaKV-proxy — Per-Head Adaptive Bit Allocation</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              A proxy adaptation of Ada-KV (arXiv:2407.11550), layered on KIVI-style group quantization. Allocates KV-cache bits <strong style="color:#22c55e">per attention head</strong> so the average bits/element hits a configured target — high-importance heads get more bits, low-importance heads fewer. Zero calibration. Values left at fp16.
+              <br><br>
+              <strong style="color:var(--text)">① Per-head importance</strong> — inter-token key-norm variance Var(‖k_t‖₂), an attention-free proxy for head importance, accumulated online<br>
+              <strong style="color:var(--text)">② Budget allocation</strong> — importances normalised and scaled to n_heads × target_avg_bits, then snapped to the allowed set {2, 3, 4}<br>
+              <strong style="color:var(--text)">③ Greedy round-trip correction</strong> — heads nearest a rounding boundary nudged up/down until the integer total matches the budget<br>
+              <strong style="color:var(--text)">④ Per-head group quantization</strong> — each head's keys quantized at its assigned bit-width, reconstructed to fp16<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Attention heads differ widely in quant sensitivity. Spending the same average budget as uniform KIVI but concentrating bits on the heads whose key magnitudes spread most across tokens recovers quality where it matters — complementary to Kitty's per-channel axis.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Effective key bit-width</span>
+                <span class="value" style="color:#22c55e">target (2.0–3.0), adaptive</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Key bandwidth reduction</span>
+                <span class="value" style="color:#22c55e">5.3×–8× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression</span>
+                <span class="value">fp16 (no change)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — zero-shot</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Decode overhead</span>
+                <span class="value">O(H) accumulator + allocation per token</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Kitty — full-width featured card -->
       <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
         <div class="vecinfer-inner">
           <div>
-            <div class="algo-badge new-badge">NEW IN 0.11.0 — ADAPTIVE MIXED-PRECISION</div>
+            <div class="algo-badge">ADAPTIVE MIXED-PRECISION</div>
             <div class="algo-title" style="font-size:1.25rem">Kitty — Dynamic Channel-wise Mixed-Precision Keys</div>
             <div class="algo-desc" style="margin-top:0.6rem">
               Inspired by Kitty (arXiv:2511.18643). Compresses keys to <strong style="color:#22c55e">~2.5 bits/element</strong> — a 6.4× memory bandwidth reduction vs fp16 — by ranking key channels online via per-channel variance and assigning 4-bit to high-variance channels, 2-bit to the rest. Zero calibration — no SVD, no codebook training. Values left at fp16.
@@ -2060,7 +2104,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.11.0 — Kitty shipped';
+      const text = 'v0.12.0 — AdaKV-proxy shipped';
       let i = 0;
       badge.innerHTML = '';
       const cursor = document.createElement('span');

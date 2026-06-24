@@ -34,6 +34,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
+        "adakv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -70,6 +71,13 @@ class KVCacheConfig:
     kitty_hi_bit: int = 4                 # bits for high-variance channels
     kitty_lo_bit: int = 2                 # bits for low-variance channels
     kitty_group_size: int = 32            # group size for channel quantization
+    # --- AdaKV-proxy configuration (per-head adaptive bit allocation) ----
+    adakv_target_avg_bits: float = 2.0    # global average bits/element target
+    adakv_lo_bit: int = 2                 # minimum bits any head can get
+    adakv_mid_bit: int = 3                # middle tier (set == hi for a 2-tier set)
+    adakv_hi_bit: int = 4                 # maximum bits any head can get
+    adakv_group_size: int = 32            # group size for per-head quantization
+    adakv_update_interval: int = 1        # recompute allocation every N tokens (1 = every step)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -122,6 +130,7 @@ class KVCacheFactory:
         Returns:
             Configured KVCache.
         """
+        from veloxquant_mlx.cache.adakv_cache import AdaKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -166,11 +175,13 @@ class KVCacheFactory:
             cache = SVDqKVCache(config)
         elif config.method == "kitty":
             cache = KittyKVCache(config)
+        elif config.method == "adakv":
+            cache = AdaKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
-                f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty."
+                f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, adakv."
             )
 
         if config.sliding_window is not None:

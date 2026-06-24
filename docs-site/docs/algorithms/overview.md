@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements eleven KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements twelve KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -27,6 +27,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [CommVQ](../algorithms/commvq) | 2–4 | fp16 | None | 4–8× | ★★★★ | RoPE-compatible models |
 | [SVDq](../algorithms/svdq) | ~1.25 | fp16 | SVD at prefill | 12.8× key | ★★★ | Sub-2-bit keys, long context |
 | [Kitty](../algorithms/kitty) | ~2.5 | fp16 | None | 6.4× key | ★★★★ | Adaptive channel precision, zero calibration |
+| [AdaKV-proxy](../algorithms/adakv) | adaptive (2–4) | fp16 | None | adaptive | ★★★★ | Per-head adaptive bits, layers on KIVI |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -48,6 +49,9 @@ Do you have geometric/non-Gaussian key distributions?
 
 Do key channels have highly non-uniform variance?
 └── Yes, want adaptive mixed-precision without calibration → Kitty
+
+Are some attention heads far more quant-sensitive than others?
+└── Yes, want a fixed average-bit target with per-head allocation → AdaKV-proxy
 ```
 
 ## Method families
@@ -62,6 +66,7 @@ These work immediately on any model with no setup beyond installation.
 - **[PolarQuant](../algorithms/polarquant)** — Recursive polar decomposition for models where keys form geometric clusters.
 - **[CommVQ](../algorithms/commvq)** — RoPE-commutative residual VQ: quantization that commutes with rotary position embeddings, preserving exact positional information.
 - **[Kitty](../algorithms/kitty)** — Dynamic channel-wise mixed-precision: ranks key channels by online variance and allocates 4-bit to high-variance channels, 2-bit to the rest. Zero calibration, 2.5-bit effective key precision.
+- **[AdaKV-proxy](../algorithms/adakv)** — Per-head adaptive bit allocation layered on KIVI: ranks heads by online inter-token key-norm variance and solves a per-head bit budget so the average bits/element hits a configured target. Zero calibration; complements Kitty's per-channel axis.
 
 ### Calibration-required methods
 
