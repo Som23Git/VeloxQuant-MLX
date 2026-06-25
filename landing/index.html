@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy — all in MLX. New in 0.12.0: AdaKV-proxy allocates KV-cache bits per attention head from online key-norm variance, hitting a configured average-bit target with zero calibration. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant — all in MLX. New in 0.13.0: XQuant reuses quantized KV codes across adjacent layers, driving effective key precision below 1.4 bits with zero calibration. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1298,8 +1298,8 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Twelve quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.12.0: AdaKV-proxy allocates bits per attention head from online inter-token key-norm variance, hitting a configured average-bit target — zero calibration, complements Kitty's per-channel axis. New in 0.11.0: Kitty achieves ~2.5-bit adaptive mixed-precision keys via online channel variance ranking — 6.4× bandwidth reduction. New in 0.10.0: SVDq achieves ~1.25-bit effective key precision via offline SVD — 12.8× bandwidth reduction. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Thirteen quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.13.0: XQuant reuses quantized KV codes across adjacent layers — the first cross-layer method, driving effective key precision below 1.4 bits on correlated models with zero calibration. New in 0.12.0: AdaKV-proxy allocates bits per attention head from online inter-token key-norm variance. New in 0.11.0: Kitty achieves ~2.5-bit adaptive mixed-precision keys via online channel variance ranking. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
@@ -1495,11 +1495,55 @@
         </div>
       </div>
 
+      <!-- XQuant — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.13.0 — CROSS-LAYER REUSE</div>
+            <div class="algo-title" style="font-size:1.25rem">XQuant — Cross-Layer KV Cache Reuse</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from XQuant (arXiv:2510.11236, EMNLP 2025). The first method to exploit <strong style="color:#22c55e">inter-layer redundancy</strong> — adjacent layers are paired, the anchor publishes its quantized codes, and reuse layers store only their own scale/zero. Drives effective key precision <strong style="color:#22c55e">below 1.4 bits/element</strong> on correlated models. Both keys and values compressed. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Anchor/reuse pairing</strong> — attention layers chunked into groups; first layer anchors, the rest reuse (group_size=2 → pairs, =3 → 1 anchor feeds 2)<br>
+              <strong style="color:var(--text)">② Shared coordinator</strong> — anchors publish integer codes through one cross-layer object injected at build time; mlx_lm.generate stays untouched<br>
+              <strong style="color:var(--text)">③ Per-layer params</strong> — reuse layers fit their own scale/zero to the shared codes, correcting cross-layer drift, storing no code tensor<br>
+              <strong style="color:var(--text)">④ Optional residual</strong> — a low-bit correction recovers quality when layers are less correlated<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Adjacent transformer layers produce highly similar K/V — their representations evolve gradually with depth. XQuant reuses the anchor's code assignment and pays only a fresh scale/zero per reuse layer, an axis orthogonal to every per-layer quantizer in the suite.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Effective key bit-width</span>
+                <span class="value" style="color:#22c55e">~1.0–1.4 bits/element (group)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Key bandwidth reduction</span>
+                <span class="value" style="color:#22c55e">11×–16× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression</span>
+                <span class="value">Yes (cross-layer)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — zero-shot</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Decode overhead</span>
+                <span class="value">O(1) coordinator fetch + param fit per token</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- AdaKV-proxy — full-width featured card -->
       <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
         <div class="vecinfer-inner">
           <div>
-            <div class="algo-badge new-badge">NEW IN 0.12.0 — PER-HEAD ADAPTIVE BITS</div>
+            <div class="algo-badge">PER-HEAD ADAPTIVE BITS</div>
             <div class="algo-title" style="font-size:1.25rem">AdaKV-proxy — Per-Head Adaptive Bit Allocation</div>
             <div class="algo-desc" style="margin-top:0.6rem">
               A proxy adaptation of Ada-KV (arXiv:2407.11550), layered on KIVI-style group quantization. Allocates KV-cache bits <strong style="color:#22c55e">per attention head</strong> so the average bits/element hits a configured target — high-importance heads get more bits, low-importance heads fewer. Zero calibration. Values left at fp16.
@@ -2104,7 +2148,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.12.0 — AdaKV-proxy shipped';
+      const text = 'v0.13.0 — XQuant shipped';
       let i = 0;
       badge.innerHTML = '';
       const cursor = document.createElement('span');

@@ -34,7 +34,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
-        "adakv",
+        "adakv", "xquant",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -78,6 +78,12 @@ class KVCacheConfig:
     adakv_hi_bit: int = 4                 # maximum bits any head can get
     adakv_group_size: int = 32            # group size for per-head quantization
     adakv_update_interval: int = 1        # recompute allocation every N tokens (1 = every step)
+    # --- XQuant configuration (cross-layer KV cache reuse) ---------------
+    xquant_group_size: int = 2            # layers per anchor/reuse group (2 = pairs)
+    xquant_base_bits: int = 2             # anchor quantizer bit-width
+    xquant_residual_bits: int = 0         # reuse-layer correction residual (0 = pure reuse)
+    xquant_group_quant_size: int = 32     # token group size for quantization
+    xquant_max_ctx: int = 8192            # coordinator per-group token budget
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -131,6 +137,7 @@ class KVCacheFactory:
             Configured KVCache.
         """
         from veloxquant_mlx.cache.adakv_cache import AdaKVCache
+        from veloxquant_mlx.cache.xquant_cache import XQuantKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -177,11 +184,17 @@ class KVCacheFactory:
             cache = KittyKVCache(config)
         elif config.method == "adakv":
             cache = AdaKVCache(config)
+        elif config.method == "xquant":
+            # Single-cache construction yields a degenerate (coordinator-less)
+            # anchor. Cross-layer reuse requires KVCacheBuilder.for_model(), which
+            # builds the shared XQuantCoordinator and assigns anchor/reuse roles.
+            cache = XQuantKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
-                f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, adakv."
+                f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
+                f"adakv, xquant."
             )
 
         if config.sliding_window is not None:
@@ -431,6 +444,10 @@ class KVCacheBuilder:
                     f"layers. The list must have one entry per attention layer."
                 )
 
+        # --- XQuant: cross-layer reuse needs a shared coordinator + roles ----
+        if config.method == "xquant":
+            return KVCacheBuilder._build_xquant(layers, args, config, _FallbackCache)
+
         caches = []
         attn_idx = 0  # index into b_spec, advances only for attention layers
         for i, layer in enumerate(layers):
@@ -456,6 +473,58 @@ class KVCacheBuilder:
             )
             caches.append(KVCacheFactory.create(layer_cfg))
             attn_idx += 1
+        return caches
+
+    @staticmethod
+    def _build_xquant(layers, args, config: "KVCacheConfig", fallback_cls) -> list:
+        """Build one shared XQuantCoordinator and role-assigned caches per layer.
+
+        Anchor/reuse roles are assigned over *attention-bearing* layers only, so
+        non-attention layers (MoE gates, etc.) get a plain fallback cache and do
+        not consume a group slot.
+        """
+        from veloxquant_mlx.cache.xquant_cache import XQuantKVCache
+        from veloxquant_mlx.cache.xquant_coordinator import XQuantCoordinator
+        from veloxquant_mlx.quantizers.xquant import pair_layers
+
+        def _head_dim(layer):
+            attn = getattr(layer, "self_attn", None) or getattr(layer, "attn", None)
+            if attn is None:
+                return None
+            hd = getattr(attn, "head_dim", None)
+            if hd is None and args is not None:
+                hd = getattr(args, "head_dim", None) or (
+                    args.hidden_size // args.num_attention_heads
+                )
+            return hd
+
+        attn_layer_idx = [i for i, L in enumerate(layers) if _head_dim(L) is not None]
+        roles = pair_layers(len(attn_layer_idx), config.xquant_group_size)
+        coordinator = XQuantCoordinator(max_ctx=config.xquant_max_ctx)
+
+        role_by_layer: dict[int, tuple[str, int]] = {
+            attn_layer_idx[k]: roles[k] for k in range(len(attn_layer_idx))
+        }
+
+        caches = []
+        for i, layer in enumerate(layers):
+            hd = _head_dim(layer)
+            if hd is None:
+                caches.append(fallback_cls())
+                continue
+            role, group_id = role_by_layer[i]
+            layer_cfg = KVCacheConfig(
+                method="xquant",
+                head_dim=hd,
+                seed=config.seed + i,
+                xquant_group_size=config.xquant_group_size,
+                xquant_base_bits=config.xquant_base_bits,
+                xquant_residual_bits=config.xquant_residual_bits,
+                xquant_group_quant_size=config.xquant_group_quant_size,
+                xquant_max_ctx=config.xquant_max_ctx,
+            )
+            caches.append(XQuantKVCache(layer_cfg, role=role, group_id=group_id,
+                                        coordinator=coordinator))
         return caches
 
     def __repr__(self) -> str:

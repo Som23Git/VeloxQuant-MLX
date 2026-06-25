@@ -11,7 +11,21 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.12.0 — Latest
+## v0.13.0 — Latest
+
+### New
+- **XQuant** (`method="xquant"`) — cross-layer KV cache reuse, the repo's first method to exploit *inter-layer* redundancy. Adjacent attention layers are grouped into anchor/reuse pairs: the anchor quantizes K/V with KIVI-style group quantization and publishes its integer codes through a shared coordinator; reuse layers borrow those codes and store only their own per-group scale/zero (+ optional low-bit residual), correcting the small cross-layer drift. Drives effective per-element key bits below 1.4 on correlated models (11–16× key bandwidth reduction across a group). Both keys and values compressed; zero calibration. A faithful adaptation of XQuant (arXiv:2510.11236, EMNLP 2025): the paper couples layers in a modified attention forward pass; we coordinate through a shared object so `mlx_lm.generate` stays untouched.
+- `XQuantKVCache` — new cache wrapper in `veloxquant_mlx/cache/xquant_cache.py` with anchor/reuse role dispatch
+- `XQuantCoordinator` — shared cross-layer code store in `veloxquant_mlx/cache/xquant_coordinator.py`, injected by `KVCacheBuilder.for_model()`
+- XQuant utilities in `veloxquant_mlx/quantizers/xquant.py`: `pair_layers()`, `quantize_codes()`, `compute_reuse_params()`, `dequant_with_params()`, `quantize_residual()`, `cross_layer_similarity()`
+- New `KVCacheConfig` fields: `xquant_group_size`, `xquant_base_bits`, `xquant_residual_bits`, `xquant_group_quant_size`, `xquant_max_ctx`
+- `KVCacheBuilder.for_model()` now builds one shared coordinator and assigns anchor/reuse roles for `method="xquant"` (other methods unchanged)
+- 16 new tests in `tests/cache/test_xquant_cache.py`: factory dispatch, `for_model` pairing, coordinator round-trip, anchor/reuse shape (prefill + decode), value reconstruction, residual-0 tolerance, residual lowers MSE, correlated near-self-quant, uncorrelated residual recovery (negative control), byte accounting, effective-bits, decode synchronization, token-budget guard, `group_size=3`, determinism
+- `benchmark_scripts/benchmark_xquant.py` — throughput + memory sweep over `group_size ∈ {2,3}`, `residual_bits ∈ {0,1}` vs KIVI-2bit, SVDq-1.25bit, fp16, plus measured cross-layer key similarity
+
+---
+
+## v0.12.0
 
 ### New
 - **AdaKV-proxy** (`method="adakv"`) — per-head adaptive bit allocation layered on KIVI-style group quantization. Ranks attention heads by online inter-token key-norm variance (an attention-free proxy for head importance), then solves a per-head bit budget so the average bits/element matches a configured target — high-importance heads get more bits, low-importance heads fewer. Zero calibration; values left at fp16. A *proxy* adaptation of Ada-KV (arXiv:2407.11550): true Ada-KV adapts the per-head *eviction* budget from softmax attention weights, which live outside the cache contract; we adapt the per-head *bit* budget instead.
