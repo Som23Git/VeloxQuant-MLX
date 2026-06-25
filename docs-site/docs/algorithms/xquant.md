@@ -168,8 +168,8 @@ XQuant's reference implementation couples layers inside a modified attention for
 | Residual lowers MSE on correlated layers | `test_residual_lowers_mse_correlated` | ✅ Verified |
 | Correlated reuse ≈ self-quant (near-free) | `test_correlated_reuse_near_self_quant` | ✅ Verified |
 | Residual recovers quality on uncorrelated pairs (negative control) | `test_uncorrelated_residual_recovers` | ✅ Verified |
-| Reuse bytes << anchor bytes | `test_byte_accounting_reuse_less_than_anchor` | ✅ Verified |
-| `effective_pair_bits` < base bits (reuse) | `test_effective_pair_bits_below_base` | ✅ Verified |
+| Reuse bytes far below anchor bytes | `test_byte_accounting_reuse_less_than_anchor` | ✅ Verified |
+| `effective_pair_bits` below base bits (reuse) | `test_effective_pair_bits_below_base` | ✅ Verified |
 | Anchor/reuser stay synchronized over decode steps | `test_decode_synchronization` | ✅ Verified |
 | Coordinator token budget enforced | `test_coordinator_budget_raises` | ✅ Verified |
 | `group_size=3` (1→2) pairing + reconstruction | `test_group_size_three` | ✅ Verified |
