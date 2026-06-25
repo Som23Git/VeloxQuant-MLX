@@ -11,7 +11,19 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.13.0 — Latest
+## v0.14.0 — Latest
+
+### New
+- **KVQuant-NUQ** (`method="kvquant"`) — non-uniform quantization datatype plus dense/sparse outlier isolation, the repo's first method that places quantization levels by the data distribution rather than uniformly. For each group it fits `2^bits` signpost levels via online 1-D Lloyd-Max (k-means), and carves the top-magnitude `outlier_fraction` of elements out to an fp16 sparse side-channel so a handful of outliers cannot stretch the level range. Keys are quantized per-channel (levels frozen after prefill), values per-token. At equal bit-width this strictly reduces reconstruction error on non-uniform K/V — measured ~73% lower MSE than uniform at 3-bit on Laplacian data. Zero calibration. A faithful adaptation of KVQuant (arXiv:2401.18079, NeurIPS 2024): we implement the two cache-observable pillars (NUQ + dense/sparse) and document the third (pre-RoPE key quantization, which needs a model-forward hook) as out of scope.
+- `KVQuantKVCache` — new cache wrapper in `veloxquant_mlx/cache/kvquant_cache.py`
+- NUQ utilities in `veloxquant_mlx/quantizers/kvquant.py`: `fit_nuq_levels()` (Lloyd-Max), `quantize_nuq()`, `dequant_nuq()`, `split_dense_sparse()` (outlier isolation), `nuq_quant_dequant()` (drop-in for `_group_quant_dequant`), `nuq_distortion()`
+- New `KVCacheConfig` fields: `kvquant_bits`, `kvquant_outlier_fraction`, `kvquant_group_size`, `kvquant_lloyd_iters`, `kvquant_refit_interval`
+- 15 new tests in `tests/cache/test_kvquant_cache.py`: factory dispatch, shape (prefill + decode), value reconstruction, NUQ-beats-uniform on non-uniform data, NUQ-not-worse on uniform data, Lloyd-Max monotone convergence, top-k outlier selection, outlier isolation lowers MSE, `outlier_fraction=0` pure-NUQ, level-table determinism, frozen-key-levels decode, byte accounting, effective-bits range, per-channel/per-token axis correctness, determinism
+- `benchmark_scripts/benchmark_kvquant.py` — throughput + memory sweep over `bits ∈ {2,3}` and an outlier ablation vs KIVI (uniform), SVDq, fp16, plus offline NUQ-vs-uniform reconstruction MSE
+
+---
+
+## v0.13.0
 
 ### New
 - **XQuant** (`method="xquant"`) — cross-layer KV cache reuse, the repo's first method to exploit *inter-layer* redundancy. Adjacent attention layers are grouped into anchor/reuse pairs: the anchor quantizes K/V with KIVI-style group quantization and publishes its integer codes through a shared coordinator; reuse layers borrow those codes and store only their own per-group scale/zero (+ optional low-bit residual), correcting the small cross-layer drift. Drives effective per-element key bits below 1.4 on correlated models (11–16× key bandwidth reduction across a group). Both keys and values compressed; zero calibration. A faithful adaptation of XQuant (arXiv:2510.11236, EMNLP 2025): the paper couples layers in a modified attention forward pass; we coordinate through a shared object so `mlx_lm.generate` stays untouched.

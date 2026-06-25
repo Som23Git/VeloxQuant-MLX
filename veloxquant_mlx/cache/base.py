@@ -34,7 +34,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
-        "adakv", "xquant",
+        "adakv", "xquant", "kvquant",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -84,6 +84,12 @@ class KVCacheConfig:
     xquant_residual_bits: int = 0         # reuse-layer correction residual (0 = pure reuse)
     xquant_group_quant_size: int = 32     # token group size for quantization
     xquant_max_ctx: int = 8192            # coordinator per-group token budget
+    # --- KVQuant-NUQ configuration (non-uniform datatype + outlier isolation) -
+    kvquant_bits: int = 3                 # base NUQ bit-width
+    kvquant_outlier_fraction: float = 0.01  # top-magnitude fraction kept fp16 (0 = pure NUQ)
+    kvquant_group_size: int = 32          # group size for per-channel/per-token fitting
+    kvquant_lloyd_iters: int = 8          # Lloyd-Max iterations for level fitting
+    kvquant_refit_interval: int = 0       # refit levels every N decode steps (0 = freeze prefill)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -138,6 +144,7 @@ class KVCacheFactory:
         """
         from veloxquant_mlx.cache.adakv_cache import AdaKVCache
         from veloxquant_mlx.cache.xquant_cache import XQuantKVCache
+        from veloxquant_mlx.cache.kvquant_cache import KVQuantKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -189,12 +196,14 @@ class KVCacheFactory:
             # anchor. Cross-layer reuse requires KVCacheBuilder.for_model(), which
             # builds the shared XQuantCoordinator and assigns anchor/reuse roles.
             cache = XQuantKVCache(config)
+        elif config.method == "kvquant":
+            cache = KVQuantKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
-                f"adakv, xquant."
+                f"adakv, xquant, kvquant."
             )
 
         if config.sliding_window is not None:

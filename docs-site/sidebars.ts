@@ -36,6 +36,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/kitty',
         'algorithms/adakv',
         'algorithms/xquant',
+        'algorithms/kvquant',
       ],
     },
   ],

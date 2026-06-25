@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements thirteen KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements fourteen KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -29,6 +29,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [Kitty](../algorithms/kitty) | ~2.5 | fp16 | None | 6.4× key | ★★★★ | Adaptive channel precision, zero calibration |
 | [AdaKV-proxy](../algorithms/adakv) | adaptive (2–4) | fp16 | None | adaptive | ★★★★ | Per-head adaptive bits, layers on KIVI |
 | [XQuant](../algorithms/xquant) | ~1.0–1.4 | yes | None | 11–16× | ★★★★ | First cross-layer reuse — adjacent layers share codes |
+| [KVQuant-NUQ](../algorithms/kvquant) | 2–4 (non-uniform) | 2–4 | None | 5–8× | ★★★★★ | Non-uniform datatype + outlier isolation |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -56,6 +57,9 @@ Are some attention heads far more quant-sensitive than others?
 
 Are adjacent layers in your model highly correlated?
 └── Yes, want the lowest effective bits by reusing codes across layers → XQuant
+
+Are your K/V distributions heavy-tailed / non-uniform?
+└── Yes, want best quality per bit without calibration → KVQuant-NUQ
 ```
 
 ## Method families
@@ -72,6 +76,7 @@ These work immediately on any model with no setup beyond installation.
 - **[Kitty](../algorithms/kitty)** — Dynamic channel-wise mixed-precision: ranks key channels by online variance and allocates 4-bit to high-variance channels, 2-bit to the rest. Zero calibration, 2.5-bit effective key precision.
 - **[AdaKV-proxy](../algorithms/adakv)** — Per-head adaptive bit allocation layered on KIVI: ranks heads by online inter-token key-norm variance and solves a per-head bit budget so the average bits/element hits a configured target. Zero calibration; complements Kitty's per-channel axis.
 - **[XQuant](../algorithms/xquant)** — Cross-layer reuse: adjacent layers are paired (anchor/reuse), the anchor publishes its quantized codes through a shared coordinator, and reuse layers store only their own scale/zero (+ optional residual). The first method to exploit *inter-layer* redundancy — sub-1.4-bit effective keys on correlated models, zero calibration.
+- **[KVQuant-NUQ](../algorithms/kvquant)** — Non-uniform quantization datatype: places `2^bits` signpost levels where the data actually is via online Lloyd-Max fitting, plus dense/sparse outlier isolation that carves the top few extreme elements out to fp16. The first non-uniform-datatype method — strictly lower reconstruction error than uniform at the same bit-width, zero calibration.
 
 ### Calibration-required methods
 
