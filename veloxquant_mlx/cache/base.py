@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from dataclasses import replace as dataclasses_replace
 from typing import Any, Literal, Optional, Union
 
 from veloxquant_mlx.core.abstractions import ArtifactStore, KVCache, QuantizationObserver
@@ -34,7 +35,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
-        "adakv", "xquant", "kvquant",
+        "adakv", "xquant", "kvquant", "palu",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -90,6 +91,15 @@ class KVCacheConfig:
     kvquant_group_size: int = 32          # group size for per-channel/per-token fitting
     kvquant_lloyd_iters: int = 8          # Lloyd-Max iterations for level fitting
     kvquant_refit_interval: int = 0       # refit levels every N decode steps (0 = freeze prefill)
+    # --- PALU configuration (true-latent low-rank K *and* V) -------------
+    palu_rank: Optional[int] = None        # explicit latent rank; None → energy threshold
+    palu_energy_threshold: float = 0.90    # singular-value energy to retain
+    palu_n_head_groups: int = 4            # group-head low-rank: heads share a projection
+    palu_hi_bit: int = 4                   # mixed-bit: top latent channels
+    palu_lo_bit: int = 2                   # mixed-bit: remaining latent channels
+    palu_hi_fraction: float = 0.25         # fraction of latent channels at hi_bit
+    palu_group_size: int = 32              # token group size for latent quantization
+    palu_quantize_values: bool = True      # low-rank + mixed-bit values too (False = LR-only)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -145,6 +155,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.adakv_cache import AdaKVCache
         from veloxquant_mlx.cache.xquant_cache import XQuantKVCache
         from veloxquant_mlx.cache.kvquant_cache import KVQuantKVCache
+        from veloxquant_mlx.cache.palu_cache import PALUKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -198,12 +209,14 @@ class KVCacheFactory:
             cache = XQuantKVCache(config)
         elif config.method == "kvquant":
             cache = KVQuantKVCache(config)
+        elif config.method == "palu":
+            cache = PALUKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
-                f"adakv, xquant, kvquant."
+                f"adakv, xquant, kvquant, palu."
             )
 
         if config.sliding_window is not None:
@@ -474,11 +487,16 @@ class KVCacheBuilder:
                 caches.append(_FallbackCache())
                 continue
             layer_b = b_spec[attn_idx] if is_per_layer else b_spec
-            layer_cfg = KVCacheConfig(
-                method=config.method,
+            # Preserve every method-specific field (svdq_*, kitty_*, kvquant_*,
+            # palu_*, …) from the user's config and override only the per-layer
+            # head_dim / bit-width / seed.  Reconstructing the dataclass field by
+            # field (as the old code did) silently dropped method hyperparameters.
+            layer_cfg = dataclasses_replace(
+                config,
                 head_dim=hd,
                 bit_width_inlier=layer_b,
                 seed=config.seed + i,
+                store=config.store,
             )
             caches.append(KVCacheFactory.create(layer_cfg))
             attn_idx += 1

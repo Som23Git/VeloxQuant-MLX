@@ -2,6 +2,66 @@
 
 All notable changes to **VeloxQuant-MLX** are documented here.
 
+> Detailed release notes for 0.10.0–0.14.0 (SVDq, Kitty, AdaKV-proxy, XQuant,
+> KVQuant-NUQ) live in the docs-site changelog
+> (`docs-site/docs/changelog.md`). The entries below cover the latest release
+> and the original 0.9.0 baseline.
+
+## [0.15.0] — 2026-06-26
+
+### Added — PALU: true low-rank latent storage for keys *and* values (`method="palu"`)
+
+- **`veloxquant_mlx.cache.palu_cache.PALUKVCache`** — the first method in the
+  suite where the KV cache *itself* stays low-rank. *Inspired by, not a faithful
+  port of,* "PALU: Compressing KV-Cache with Low-Rank Projection" (Chang et al.,
+  **ICLR 2025**, arXiv:2407.21118). At prefill it partitions the attention heads
+  into `palu_n_head_groups` contiguous groups and fits one shared projection per
+  group via group-head SVD (PALU's G-LRD), then stores the projected codes
+  `[S, r]` **directly** — full fp16 keys/values are reconstructed only at attend
+  time. The latents are mixed-bit quantized (top-25% of channels by singular
+  value at 4-bit, the rest at 2-bit, reusing the SVDq latent coder) for a
+  full-KV effective rate below 1 bit/element on low-rank data. Unlike SVDq
+  (keys-only, reconstructs full fp16 and so wins on byte-accounting/bandwidth),
+  PALU bypasses the parent `mlx_lm` fp16 ring buffer entirely and tracks its own
+  offset — the stored-cache win is real.
+- **`veloxquant_mlx.quantizers.palu`** — pure primitives `head_group_bounds`,
+  `group_head_svd`, `project_to_latent`, `reconstruct_from_latent`,
+  `quantize_latent`.
+- **`KVCacheConfig`** — new fields `palu_rank`, `palu_energy_threshold`
+  (default 0.90), `palu_n_head_groups` (default 4), `palu_hi_bit`, `palu_lo_bit`,
+  `palu_hi_fraction`, `palu_group_size`, `palu_quantize_values` (default True;
+  `False` → low-rank-only with fp16 latents).
+- **Tests** — `tests/cache/test_palu_cache.py` (13) + `tests/quantizers/test_palu.py`
+  (9): factory dispatch, no-`.bits`-leak, group projections stored,
+  prefill/decode shape, the **latent-storage assertion** (buffers hold `[S, r]`,
+  parent `keys is None`), PALU-beats-naive-2bit on **both** K and V, decode
+  accumulation + offset growth, both-tensors-compressed accounting,
+  low-rank-only values, sub-2-bit effective rate, energy-threshold rank,
+  head-grouping, group-SVD subspace recovery, determinism.
+- **Benchmark** — `benchmark_scripts/benchmark_palu.py` (fp16 / KIVI-2bit /
+  SVDq / PALU-LR-only / PALU-LR+mixed / PALU-aggressive) plus an offline
+  full-KV reconstruction-MSE harness. **Not yet run** — no throughput or
+  compression figures are claimed for this method until its `results.json` is
+  committed.
+
+### Fixed
+
+- `KVCacheBuilder.for_model()` now propagates **all** method-specific config
+  fields (`svdq_*`, `kitty_*`, `kvquant_*`, `palu_*`, …) to each per-layer cache
+  via `dataclasses.replace`. Previously it rebuilt the per-layer config field by
+  field and silently dropped method hyperparameters, so any method built through
+  `for_model` ran with default hyperparameters regardless of the user's config.
+
+### Honest scope
+
+- PALU's fused low-rank-reconstruction attention kernel is **not** ported — we
+  reconstruct fp16 then call MLX SDPA. The storage is low-rank, but the working
+  set during attention is briefly the reconstructed fp16 K/V, so peak memory at
+  attend time is not reduced — only the stored cache size. Documented as a known
+  simplification.
+- Quality evidence is unit-test level (synthetic low-rank data); no model-level
+  benchmark or downstream-task evaluation has been run.
+
 ## [0.9.0] — 2026-06-12
 
 ### Added — KVSink-adapted sink protection (`method="kivi_sink"`)

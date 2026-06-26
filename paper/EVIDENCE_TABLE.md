@@ -67,5 +67,30 @@ Confidence: **verified** (traced to code + measured data file I read), **plausib
 | PolarQuant | AISTATS 2026 | MLX re-impl |
 | SpectralQuant (SVD rotation, signal/noise split) | (author-original framing on top of spectral KV findings) | **Most plausibly novel algorithmic piece** |
 | RVQ analytical Gaussian/Laplacian codebooks | classical RVQ + TurboQuant | zero-calibration analytical codebook precompute |
+| PALU (group-head low-rank K+V projection) | Chang et al., ICLR 2025, arXiv:2407.21118 | MLX re-impl; **true latent storage** (cache holds `[S,r]`, not full fp16 — unlike repo's SVDq); group-head SVD fit from prefill batch; mixed-bit latents reuse SVDq coder; fused recon-attention kernel **not** ported |
 
 **Genuine contributions:** (a) first unified, Metal-accelerated KV-cache quantization *suite* for Apple-Silicon unified memory; (b) a verified Metal `quantize_vq` kernel (13× / 98% peak-mem); (c) a clean 3-line `mlx_lm` integration; (d) a broad 12-model engineering sweep; (e) SpectralQuant as the most novel algorithm. **Not** invention of the underlying quantizers.
+
+## KVSink-adapted sink protection (0.9.0) — added rows
+
+| # | Claim | Asserted in | Implementing code | Measuring artifact | Conditions | Confidence | Notes |
+|---|---|---|---|---|---|---|---|
+| 21 | Planted high-norm sinks detected & preserved bit-exact; neighbors quantized | README 0.9.0 section, CHANGELOG | `cache/sink_cache.py` | `tests/cache/test_sink_cache.py::test_planted_sinks_detected_and_preserved` (PASSES) | synthetic, 25× planted sinks at {0,7,20}, S=64, b=2 | **verified** | Unit-test level only. |
+| 22 | Sink-protected MSE < plain KIVI at equal bit-width | README, CHANGELOG | same | `::test_sink_protection_beats_plain_kivi_on_planted_sinks` (PASSES) | synthetic planted sinks {0,7,20,41,90}, S=128, b=2 | **verified (synthetic)** | Requires calibration exclusion; without it the claim FAILS (reproduced during development — sinks inflate group scales). |
+| 23 | Dynamic selection MSE < Preserve-First-N at equal fp16 budget | README, CHANGELOG | same | `::test_dynamic_selection_vs_pfn_equal_budget` (PASSES) | sinks NOT all at front ({0,7,20,41,90}), k=5 | **verified (synthetic)** | The KVSink paper's central claim, reproduced at cache level. |
+| 24 | `n_sink_tokens=0` ≡ plain KIVI bit-for-bit | CHANGELOG | same | `::test_zero_sinks_equals_plain_kivi` (PASSES) | S=64, b=2 | **verified** | |
+| 25 | "KVSink-adapted", not faithful port | all docs | `sink_cache.py` docstring | design decision: paper needs hidden-state emergence-layer signal, cache sees only K/V; proxy = key L2-norm | — | **verified (by construction)** | Labeling rule: never plain "KVSink". |
+| 26 | End-to-end throughput/compression for kivi_sink | (none claimed) | `benchmark_scripts/benchmark_sink.py` | **NOT RUN** — no results.json exists | — | **unverified — explicitly not claimed** | Benchmark skipped per user; docs state this. |
+| 27 | Full suite 344/348 passing | README badge, CHANGELOG 0.9.0 | — | `pytest -q` run 2026-06-12: 344 passed, 4 failed (pre-existing flaky VecInfer parity set) | repo HEAD post-0.9.0 | **verified** | Flake count varies 4–5 run to run; same documented set. |
+
+## PALU true-latent low-rank K+V (0.15.0) — added rows
+
+| # | Claim | Asserted in | Implementing code | Measuring artifact | Conditions | Confidence | Notes |
+|---|---|---|---|---|---|---|---|
+| 28 | Cache stores latent `[S, r]`, not full fp16 `[S, D]` (parent ring buffer bypassed) | README, docs, CHANGELOG 0.15.0 | `cache/palu_cache.py` | `tests/cache/test_palu_cache.py::test_storage_is_latent_not_full_fp16` (PASSES) | synthetic, D=64, r=16, H=4 | **verified (synthetic)** | The structural differentiator vs SVDq. Asserts `cache.keys is None` and latent buffer last-dim == r. |
+| 29 | PALU reconstruction MSE < naive 2-bit on **both** K and V (low-rank data) | README, docs | `quantizers/palu.py`, `cache/palu_cache.py` | `::test_reconstruction_lower_mse_than_raw_2bit_both_tensors` (PASSES); offline harness in `benchmark_palu.py` (K 1.54 vs 2.37, V 1.54 vs 2.52 at S=256,D=128,r=16) | synthetic rank-8 (test) / rank-16 (harness) | **verified (synthetic)** | Both tensors, unlike SVDq which leaves values fp16. Offline harness numbers are synthetic, not model-level. |
+| 30 | Full-KV effective rate < 1 bit/element at default settings | README, docs | `cache/palu_cache.py` `assigned_avg_bits` | `::test_assigned_avg_bits_sub_2` (PASSES); offline harness reports 0.31 bits at r=16/D=128 | r/D × mixed-bit weighting | **verified (analytic)** | Analytic rate `(r/D)·avg_bits`; exact value depends on rank chosen at prefill. |
+| 31 | Both K and V compressed vs fp16 (byte accounting) | README, docs | `cache/palu_cache.py` `_account_bytes` | `::test_both_tensors_compressed`, `::test_low_rank_only_values_still_compress` (PASS) | realised latent + projection bytes | **verified (synthetic)** | Accounting includes amortised V_g/μ_g projection bytes; not inflated. |
+| 32 | "PALU-adapted", not faithful port | all docs | `palu_cache.py` / `palu.py` docstrings | design decisions: prefill-batch SVD (not offline calib); uniform rank across groups; fused recon-attention kernel not ported | — | **verified (by construction)** | Labeling rule: never plain "PALU". Peak memory at attend time **not** reduced (fp16 reconstructed for SDPA) — stated as limitation. |
+| 33 | End-to-end throughput/compression for palu | (none claimed) | `benchmark_scripts/benchmark_palu.py` | **NOT RUN** — no results.json exists | — | **unverified — explicitly not claimed** | Same discipline as kivi_sink row 26: no model-level numbers until json committed. |
+| 34 | `for_model()` now propagates method-specific config fields | CHANGELOG 0.15.0 | `cache/base.py` (dataclasses.replace) | verified manually during dev: `palu_rank=24` survives `for_model`; previously dropped to default | fake 3-layer model | **verified** | Pre-existing bug fix; also repairs svdq_*/kitty_*/kvquant_* propagation through `for_model`. |

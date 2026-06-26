@@ -11,7 +11,22 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.14.0 — Latest
+## v0.15.0 — Latest
+
+### New
+- **PALU** (`method="palu"`) — true low-rank latent storage for **both keys and values**, the repo's first method where the cache itself stays low-rank rather than reconstructing full fp16 for storage. At prefill it partitions heads into `palu_n_head_groups` groups, fits one shared projection per group via group-head SVD (G-LRD), and stores the projected codes `[S, r]` directly; full fp16 K/V is reconstructed only at attend time. Latents are mixed-bit quantized (top-25% of channels by singular value at 4-bit, the rest at 2-bit) for a full-KV effective rate below 1 bit/element on low-rank data. Unlike [SVDq](algorithms/svdq) — keys-only, reconstructs full fp16 and so wins on bandwidth accounting — PALU bypasses the parent fp16 ring buffer entirely (the storage win is real). Zero calibration. A PALU-adapted (arXiv:2407.21118, ICLR 2025) implementation: we fit projections from the prefill batch instead of an offline calibration set, and we do **not** port PALU's fused low-rank-reconstruction attention kernel (we reconstruct then call MLX SDPA), so peak memory during attention is not reduced — only stored cache size.
+- `PALUKVCache` — new cache wrapper in `veloxquant_mlx/cache/palu_cache.py` (true latent storage; parent fp16 buffer bypassed, own offset bookkeeping)
+- PALU primitives in `veloxquant_mlx/quantizers/palu.py`: `head_group_bounds()`, `group_head_svd()`, `project_to_latent()`, `reconstruct_from_latent()`, `quantize_latent()` (reuses the SVDq mixed-bit latent coder)
+- New `KVCacheConfig` fields: `palu_rank`, `palu_energy_threshold`, `palu_n_head_groups`, `palu_hi_bit`, `palu_lo_bit`, `palu_hi_fraction`, `palu_group_size`, `palu_quantize_values`
+- 13 tests in `tests/cache/test_palu_cache.py` + 9 in `tests/quantizers/test_palu.py`: factory dispatch, no-bits-leak, group projections stored, shape (prefill + decode), **latent-storage assertion** (buffers hold `[S, r]`, parent `keys is None`), PALU-beats-naive-2bit on both K and V, decode accumulation + offset growth, both-tensors-compressed accounting, low-rank-only values, sub-2-bit effective rate, energy-threshold rank, head-grouping, group SVD subspace recovery, determinism
+- `benchmark_scripts/benchmark_palu.py` — throughput + memory sweep vs SVDq, KIVI, fp16, plus an offline full-KV reconstruction-MSE harness (PALU vs naive 2-bit on low-rank K and V)
+
+### Fixed
+- `KVCacheBuilder.for_model()` now propagates **all** method-specific config fields (`svdq_*`, `kitty_*`, `kvquant_*`, `palu_*`, …) to each per-layer cache via `dataclasses.replace`. Previously it rebuilt the per-layer config field by field and silently dropped method hyperparameters, so methods built through `for_model` fell back to defaults regardless of what the user passed.
+
+---
+
+## v0.14.0
 
 ### New
 - **KVQuant-NUQ** (`method="kvquant"`) — non-uniform quantization datatype plus dense/sparse outlier isolation, the repo's first method that places quantization levels by the data distribution rather than uniformly. For each group it fits `2^bits` signpost levels via online 1-D Lloyd-Max (k-means), and carves the top-magnitude `outlier_fraction` of elements out to an fp16 sparse side-channel so a handful of outliers cannot stretch the level range. Keys are quantized per-channel (levels frozen after prefill), values per-token. At equal bit-width this strictly reduces reconstruction error on non-uniform K/V — measured ~73% lower MSE than uniform at 3-bit on Laplacian data. Zero calibration. A faithful adaptation of KVQuant (arXiv:2401.18079, NeurIPS 2024): we implement the two cache-observable pillars (NUQ + dense/sparse) and document the third (pre-RoPE key quantization, which needs a model-forward hook) as out of scope.

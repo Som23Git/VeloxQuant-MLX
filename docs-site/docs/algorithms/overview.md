@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements fourteen KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements fifteen KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -30,6 +30,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [AdaKV-proxy](../algorithms/adakv) | adaptive (2–4) | fp16 | None | adaptive | ★★★★ | Per-head adaptive bits, layers on KIVI |
 | [XQuant](../algorithms/xquant) | ~1.0–1.4 | yes | None | 11–16× | ★★★★ | First cross-layer reuse — adjacent layers share codes |
 | [KVQuant-NUQ](../algorithms/kvquant) | 2–4 (non-uniform) | 2–4 | None | 5–8× | ★★★★★ | Non-uniform datatype + outlier isolation |
+| [PALU](../algorithms/palu) | ~0.6 (low-rank) | ~0.6 (low-rank) | None | high (full-KV) | ★★★ | First true latent cache — both K and V stored low-rank |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -77,6 +78,7 @@ These work immediately on any model with no setup beyond installation.
 - **[AdaKV-proxy](../algorithms/adakv)** — Per-head adaptive bit allocation layered on KIVI: ranks heads by online inter-token key-norm variance and solves a per-head bit budget so the average bits/element hits a configured target. Zero calibration; complements Kitty's per-channel axis.
 - **[XQuant](../algorithms/xquant)** — Cross-layer reuse: adjacent layers are paired (anchor/reuse), the anchor publishes its quantized codes through a shared coordinator, and reuse layers store only their own scale/zero (+ optional residual). The first method to exploit *inter-layer* redundancy — sub-1.4-bit effective keys on correlated models, zero calibration.
 - **[KVQuant-NUQ](../algorithms/kvquant)** — Non-uniform quantization datatype: places `2^bits` signpost levels where the data actually is via online Lloyd-Max fitting, plus dense/sparse outlier isolation that carves the top few extreme elements out to fp16. The first non-uniform-datatype method — strictly lower reconstruction error than uniform at the same bit-width, zero calibration.
+- **[PALU](../algorithms/palu)** — True low-rank latent storage: fits one shared projection per head-group from the prefill batch and stores the cache as latent codes `[S, r]` for *both* keys and values, reconstructing fp16 only at attend time. Unlike SVDq (keys-only, reconstructs full fp16), the cache itself stays low-rank, so the storage win is real. Layered with mixed-bit latent quantization for a full-KV effective rate below 1 bit/element. Zero calibration.
 
 ### Calibration-required methods
 

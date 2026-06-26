@@ -11,17 +11,17 @@
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.14.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.15.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
-  <img src="https://img.shields.io/badge/tests-414%2F419%20passing-22c55e?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/tests-436%2F441%20passing-22c55e?style=flat-square" alt="Tests"/>
   <a href="https://doi.org/10.5281/zenodo.20647305"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20647305-1f6feb?style=flat-square" alt="DOI"/></a>
 </p>
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.14.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.15.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="MEDIUM_BLOG_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="MEDIUM_BLOG_TURBOQUANT_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -300,6 +300,22 @@ config = KVCacheConfig(method="kivi_sink", bit_width_inlier=2,
 **Evidence (unit tests on synthetic planted-sink data — `tests/cache/test_sink_cache.py`, 9 passing):** planted sinks preserved bit-exact while neighbors quantize; sink-protected MSE **< plain KIVI** at equal bit-width; dynamic selection MSE **< Preserve-First-N at equal fp16 budget** when sinks are not all at the front (the paper's central claim, reproduced at cache level); `n_sink_tokens=0` reproduces plain KIVI bit-for-bit.
 
 **Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_sink.py` is ready but has not been run — no throughput or compression figures are claimed for this method until its `results.json` is committed. Known v1 limitation: sink selection is prefill-dominant (tokens already quantized are not retroactively restored).
+
+## PALU — true low-rank latent storage — new in 0.15.0
+
+`method="palu"` is the first method where the KV cache *itself* stays low-rank. *Inspired by, **not a faithful port of***, [PALU (Chang et al., ICLR 2025)](https://arxiv.org/abs/2407.21118): at prefill it partitions the attention heads into groups, fits one shared projection per group via group-head SVD (PALU's G-LRD), and stores the projected latent codes `[S, r]` **directly** — full fp16 keys/values are reconstructed only at attend time. Both keys **and** values are compressed (unlike [SVDq](#svdq), which is keys-only and reconstructs full fp16 so its win is bandwidth accounting). The latents are mixed-bit quantized (top-25% of channels by singular value at 4-bit, the rest at 2-bit) for a full-KV effective rate **below 1 bit/element** on low-rank data. Zero calibration.
+
+```python
+config = KVCacheConfig(method="palu", head_dim=128,
+                       palu_energy_threshold=0.90,   # rank from singular-value energy
+                       palu_n_head_groups=4,         # heads share a projection
+                       palu_hi_bit=4, palu_lo_bit=2, # mixed-bit latents
+                       palu_quantize_values=True)    # False → low-rank-only (fp16 latents)
+```
+
+**Evidence (unit tests on synthetic low-rank data — `tests/cache/test_palu_cache.py` (13) + `tests/quantizers/test_palu.py` (9), all passing):** the cache stores `[S, r]` latents and the parent fp16 ring buffer is never populated (`cache.keys is None`); PALU reconstruction MSE **< naive 2-bit on both keys and values**; both tensors compress vs fp16; group-head SVD recovers a planted rank-r subspace; `assigned_avg_bits < 2.0`; deterministic. The offline harness in `benchmark_palu.py` reports key MSE 1.54 vs 2.37 and value MSE 1.54 vs 2.52 (naive 2-bit) at r=16/D=128 — **synthetic, not model-level**.
+
+**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_palu.py` is ready but has not been run — no throughput or compression figures are claimed until its `results.json` is committed. Known limitation: PALU's fused low-rank-reconstruction attention kernel is **not** ported (we reconstruct fp16 then call MLX SDPA), so peak memory *during attention* is not reduced — only the stored cache size.
 
 ## SpectralQuant — new in 0.6.0
 
@@ -691,6 +707,7 @@ Contributions welcome — please open an issue first for anything beyond a small
 - [VecInfer (2024)](https://arxiv.org/abs/2510.06175) — Yao et al., "Efficient LLM Inference with Low-Bit KV Cache via Outlier-Suppressed Vector Quantization"
 - [PolarQuant (AISTATS 2026)](https://arxiv.org/abs/2502.02617) — "PolarQuant: Quantizing KV Caches with Polar Transformation"
 - [QJL (2024)](https://arxiv.org/abs/2406.03482) — Zandieh et al., "QJL: 1-Bit Quantized JL Transform for KV Cache Quantization"
+- [PALU (ICLR 2025)](https://arxiv.org/abs/2407.21118) — Chang et al., "Palu: Compressing KV-Cache with Low-Rank Projection" — group-head low-rank projection of keys and values (true latent storage)
 
 </details>
 
