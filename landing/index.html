@@ -263,6 +263,75 @@
 
     .btn-purple:hover { background: rgba(124,58,237,0.3); border-color: var(--purple); }
 
+    /* ── HERO PILLS ── */
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .hero-pill {
+      display: inline-block;
+      padding: 0.3rem 0.85rem;
+      background: rgba(0,212,255,0.07);
+      border: 1px solid rgba(0,212,255,0.25);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.01em;
+    }
+
+    /* ── HERO ALGO DETAILS ── */
+    .hero-algo-details {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0 auto 1.5rem;
+      max-width: 620px;
+      text-align: center;
+    }
+
+    .hero-algo-details summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.78rem;
+      list-style: none;
+      opacity: 0.7;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    .hero-algo-details summary::-webkit-details-marker { display: none; }
+    .hero-algo-details summary::before { content: '▸ '; font-size: 0.65rem; }
+    .hero-algo-details[open] summary::before { content: '▾ '; }
+    .hero-algo-details summary:hover { opacity: 1; color: var(--accent); }
+
+    .hero-algo-details[open] {
+      padding: 0.6rem 0.9rem;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      line-height: 1.7;
+    }
+
+    /* ── HERO TERTIARY LINKS ── */
+    .hero-tertiary {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-tertiary a {
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 0.2s;
+    }
+
+    .hero-tertiary a:hover { color: var(--accent); }
+    .hero-tertiary span { margin: 0 0.35rem; opacity: 0.4; }
+
     .hero-meta {
       font-size: 0.8rem;
       color: var(--muted);
@@ -275,6 +344,37 @@
       padding: 5rem 1.5rem;
       max-width: 1100px;
       margin: 0 auto;
+    }
+
+    /* ── KV EXPLAINER ── */
+    .explainer-section {
+      padding: 3rem 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .explainer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .explainer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+    }
+
+    .explainer-text {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.75;
+      margin-top: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .explainer-grid { grid-template-columns: 1fr; }
     }
 
     .section-label {
@@ -300,6 +400,22 @@
     }
 
     /* ── STAT CARDS ── */
+    .stat-hero-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-hero {
+      background: linear-gradient(135deg, var(--surface) 60%, rgba(0,212,255,0.06));
+      border-color: rgba(0,212,255,0.4) !important;
+    }
+
+    .stat-hero .stat-number {
+      font-size: 4rem !important;
+    }
+
     .stat-row {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -433,6 +549,27 @@
 
     .algo-stat-row .label { color: var(--muted); }
     .algo-stat-row .value { color: #a78bfa; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+    /* ── PREREQUISITES BAR ── */
+    .prereq-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      background: rgba(0,212,255,0.05);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 8px;
+      font-size: 0.84rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .prereq-bar .prereq-label { color: var(--accent); font-weight: 600; }
+    .prereq-bar code { font-family: 'JetBrains Mono', monospace; color: var(--code-text); font-size: 0.82rem; }
+    .prereq-bar .prereq-sep { opacity: 0.35; }
+    .prereq-bar a { color: var(--accent); text-decoration: none; }
+    .prereq-bar a:hover { text-decoration: underline; }
 
     /* ── CODE BLOCKS ── */
     .code-section { padding: 5rem 1.5rem; max-width: 1100px; margin: 0 auto; }
@@ -568,6 +705,39 @@
     .td-muted { color: var(--muted); font-size: 0.8rem; }
     .td-winner { color: #4ade80; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
 
+    /* ── BAR CELLS ── */
+    .bar-cell {
+      position: relative;
+      padding: 0 !important;
+      min-width: 90px;
+    }
+
+    .bar-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: rgba(0,212,255,0.1);
+      border-right: 2px solid rgba(0,212,255,0.4);
+      pointer-events: none;
+      transition: width 0.4s ease;
+    }
+
+    .bar-fill-purple {
+      background: rgba(124,58,237,0.1);
+      border-right-color: rgba(124,58,237,0.5);
+    }
+
+    .bar-cell .bar-text {
+      position: relative;
+      z-index: 1;
+      display: block;
+      padding: 0.8rem 1.1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+
     .bench-note {
       font-size: 0.8rem;
       color: var(--muted);
@@ -617,6 +787,76 @@
       color: var(--muted);
     }
 
+    /* ── FILTER BAR ── */
+    .algo-filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      padding: 0.35rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); }
+
+    .algo-card.hidden-by-filter {
+      display: none !important;
+    }
+
+    .algo-no-results {
+      display: none;
+      grid-column: 1/-1;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 2rem;
+    }
+
+    /* ── PICKER INTRO ── */
+    .picker-intro {
+      margin-bottom: 2.5rem;
+      padding: 1.5rem;
+      background: rgba(255,255,255,0.015);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .picker-intro-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .picker-card-link {
+      text-decoration: none;
+      display: block;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    }
+
+    .picker-card-link:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 0 16px rgba(0,212,255,0.1);
+    }
+
+    .picker-card-link .picker-detail { transition: color 0.2s; }
+    .picker-card-link:hover .picker-detail { color: var(--text); }
+
     /* ── INSTALL SECTION ── */
     .install-grid {
       display: grid;
@@ -645,6 +885,50 @@
       color: var(--accent);
       font-weight: 700;
       font-size: 0.8rem;
+    }
+
+    /* ── PROVENANCE STRIP ── */
+    .provenance-strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1.1rem 1.5rem;
+      text-align: center;
+      background: rgba(255,255,255,0.01);
+    }
+
+    .provenance-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.7;
+      margin-bottom: 0.6rem;
+    }
+
+    .provenance-venues {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.4rem 0.6rem;
+      align-items: center;
+    }
+
+    .provenance-item {
+      font-size: 0.82rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .provenance-item em {
+      font-style: normal;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .provenance-dot {
+      color: var(--border);
+      font-size: 0.75rem;
     }
 
     /* ── FOOTER ── */
@@ -1156,6 +1440,7 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
+      .stat-hero-row { grid-template-columns: 1fr 1fr; }
       .stat-row { grid-template-columns: repeat(2, 1fr); }
       .vecinfer-inner { grid-template-columns: 1fr; }
       .algo-card.vecinfer-card { grid-column: span 1; }
@@ -1172,9 +1457,50 @@
       .stat-row { grid-template-columns: repeat(2, 1fr); }
     }
 
+    /* ── HAMBURGER TOGGLE ── */
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      z-index: 110;
+    }
+
+    .nav-toggle span {
+      width: 22px;
+      height: 2px;
+      background: var(--muted);
+      border-radius: 2px;
+      transition: all 0.25s ease;
+      display: block;
+    }
+
+    .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); background: var(--accent); }
+    .nav-toggle.open span:nth-child(2) { opacity: 0; }
+    .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--accent); }
+
     @media (max-width: 480px) {
       nav { padding: 0 1rem; }
-      .nav-links { display: none; }
+      .nav-toggle { display: flex; }
+      .nav-links {
+        display: none;
+        position: fixed;
+        inset: 60px 0 0 0;
+        background: rgba(8,8,15,0.97);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        z-index: 105;
+        border-top: 1px solid var(--border);
+      }
+      .nav-links.open { display: flex; }
+      .nav-links a { font-size: 1.1rem; }
       .stat-row { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -1184,7 +1510,10 @@
   <!-- ── NAVIGATION ── -->
   <nav id="navbar">
     <a href="#hero" class="nav-logo">VeloxQuant-MLX</a>
-    <ul class="nav-links">
+    <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
       <li><a href="#algorithms">Algorithms</a></li>
       <li><a href="#metal">Metal Kernels</a></li>
       <li><a href="#quickstart">Quickstart</a></li>
@@ -1213,31 +1542,42 @@
     </div>
     <div class="hero-content">
       <div class="badge" id="hero-badge"></div>
-      <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
-      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant · PALU · CacheGen · MiniCache — in MLX</p>
+      <h1>Run longer LLM contexts<br>on your <span>Mac</span></h1>
       <p class="hero-oneliner">
-        Up to <strong style="color:var(--accent)">16× key cache compression</strong> with near-fp16 throughput on M-series chips.
-        Now with <strong style="color:#a78bfa">custom Metal kernels</strong> — 13× faster quantize, 98% less peak memory, and <strong style="color:#22c55e">RaBitQ 1-bit quantization</strong> fitting 6× more context in the same RAM. Plug into <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code> with three lines.
+        VeloxQuant-MLX compresses the KV cache of any <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code> model —
+        up to <strong style="color:var(--accent)">16× smaller</strong>, with near-identical output quality.
+        Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
+      <div class="hero-pills">
+        <span class="hero-pill">18 algorithms</span>
+        <span class="hero-pill">3-line setup</span>
+        <span class="hero-pill">Zero-calibration options</span>
+        <span class="hero-pill">Apple Silicon only</span>
+      </div>
+      <details class="hero-algo-details">
+        <summary>See all 18 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache
+      </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
         <span id="install-cmd">pip install VeloxQuant-MLX</span>
         <button class="copy-btn" id="hero-copy-btn" aria-label="Copy install command">Copy</button>
       </div>
       <div class="cta-row">
-        <a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener" class="btn btn-outline">
-          &#9679; View on GitHub
+        <a href="#quickstart" class="btn btn-filled">
+          Get started <span data-icon>→</span>
         </a>
-        <a href="/docs/" class="btn btn-outline">
-          Read the Docs <span data-icon>→</span>
-        </a>
-        <a href="#benchmarks" class="btn btn-purple">
+        <a href="#benchmarks" class="btn btn-outline">
           See benchmarks <span data-icon>↓</span>
         </a>
-        <a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener" class="btn btn-filled">
-          PyPI <span data-icon>→</span>
-        </a>
       </div>
+      <p class="hero-tertiary">
+        <a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a>
+        <span>·</span>
+        <a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a>
+        <span>·</span>
+        <a href="/docs/">Docs</a>
+      </p>
       <p class="hero-meta">
         MIT License
         <span>·</span>
@@ -1245,8 +1585,46 @@
         <span>·</span>
         Apple Silicon M1+
         <span>·</span>
-        10 models validated
+        12 models validated
       </p>
+    </div>
+  </section>
+
+  <!-- ── RESEARCH PROVENANCE STRIP ── -->
+  <div class="provenance-strip">
+    <p class="provenance-label">Implements peer-reviewed research from</p>
+    <div class="provenance-venues">
+      <span class="provenance-item">SIGMOD 2024 <em>RaBitQ</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">NeurIPS 2024 <em>KVQuant · MiniCache</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">ICML 2024 <em>KIVI</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">ICLR 2025 <em>PALU</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">ICML 2025 <em>CommVQ</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">SIGCOMM 2024 <em>CacheGen</em></span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── KV CACHE EXPLAINER ── -->
+  <section id="explainer" class="explainer-section">
+    <div class="explainer-grid">
+      <div class="explainer-card fade-in">
+        <p class="section-label" style="margin-bottom:0.4rem">What is a KV cache?</p>
+        <p class="explainer-text">
+          Every time an LLM generates a token, it reads back the <strong style="color:var(--text)">key and value tensors</strong> for every previous token in the context. These tensors are stored in RAM — that's the <em>KV cache</em>. At long contexts, it dominates memory: a 7B model at 128k tokens needs ~25 GB of KV cache alone, even on a compressed model.
+        </p>
+      </div>
+      <div class="explainer-card fade-in">
+        <p class="section-label" style="margin-bottom:0.4rem">What does VeloxQuant-MLX do?</p>
+        <p class="explainer-text">
+          It quantizes those tensors on the fly — trading a few bits of precision for <strong style="color:var(--text)">dramatically less RAM</strong>. At 16× compression, a cache that needed 25 GB needs under 2 GB. Same model. More context. Runs on your Mac with <strong style="color:var(--accent)">near-identical output quality</strong> and unchanged <code style="font-family:'JetBrains Mono',monospace;font-size:0.88em">mlx_lm</code> API.
+        </p>
+      </div>
     </div>
   </section>
 
@@ -1257,18 +1635,20 @@
     <p class="section-label">Why VeloxQuant-MLX</p>
     <h2 class="section-title">Numbers that matter</h2>
     <p class="section-desc">Measured on real Apple Silicon hardware across 10 production models. All numbers from end-to-end generation — not synthetic benchmarks.</p>
-    <div class="stat-row">
-      <div class="stat-card purple fade-in">
+    <div class="stat-hero-row">
+      <div class="stat-card stat-hero purple fade-in">
         <div class="stat-number">16×</div>
         <div class="stat-label">Max key cache compression<br>VecInfer-1bit, head_dim=128</div>
       </div>
+      <div class="stat-card stat-hero purple fade-in">
+        <div class="stat-number">98%</div>
+        <div class="stat-label">Peak memory reduction<br>at Falcon3-7B OOM trigger shape</div>
+      </div>
+    </div>
+    <div class="stat-row">
       <div class="stat-card purple fade-in">
         <div class="stat-number">13×</div>
         <div class="stat-label">Metal kernel speedup<br>on quantize_vq at S=2048+</div>
-      </div>
-      <div class="stat-card purple fade-in">
-        <div class="stat-number">98%</div>
-        <div class="stat-label">Peak memory reduction<br>at Falcon3-7B OOM trigger shape</div>
       </div>
       <div class="stat-card fade-in">
         <div class="stat-number">7.5×</div>
@@ -1300,10 +1680,57 @@
     <p class="section-label">Algorithms</p>
     <h2 class="section-title">Eighteen quantization strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
+
+    <!-- ── FILTER BAR ── -->
+    <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
+      <button class="filter-btn active" data-filter="all">All (18)</button>
+      <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
+      <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
+      <button class="filter-btn" data-filter="metal">Metal kernel</button>
+      <button class="filter-btn" data-filter="extreme">Highest compression</button>
+    </div>
+
+    <!-- ── METHOD PICKER (inline — choose before you scroll) ── -->
+    <div class="picker-intro fade-in">
+      <p class="picker-intro-label">Not sure which to use? Choose by goal:</p>
+      <div class="picker-grid">
+        <a href="#algo-rvq" class="picker-card picker-card-link">
+          <div class="picker-goal">Everyday long-context work</div>
+          <div class="picker-method">RVQ-1bit</div>
+          <div class="picker-detail">7.5× · zero-shot · the default choice → see details ↓</div>
+        </a>
+        <a href="#algo-vecinfer" class="picker-card picker-card-link">
+          <div class="picker-goal">Maximum memory savings</div>
+          <div class="picker-method purple">VecInfer-1bit</div>
+          <div class="picker-detail">16× · one-time calibration · Metal-accelerated → see details ↓</div>
+        </a>
+        <a href="#algo-spectral" class="picker-card picker-card-link" style="border-color:rgba(34,197,94,0.35);">
+          <div class="picker-goal">Best quality at moderate compression</div>
+          <div class="picker-method" style="color:#22c55e">SpectralQuant</div>
+          <div class="picker-detail">5.95× · +7–10pp cosine sim · universal → see details ↓</div>
+        </a>
+        <a href="#algo-rabitq" class="picker-card picker-card-link" style="border-color:rgba(34,197,94,0.35);">
+          <div class="picker-goal">Maximum context in fixed RAM</div>
+          <div class="picker-method" style="color:#22c55e">RaBitQ + MSE-b4</div>
+          <div class="picker-detail">6× full KV · 103k tokens @ 8 GB → see details ↓</div>
+        </a>
+        <a href="#algo-ratequant" class="picker-card picker-card-link">
+          <div class="picker-goal">Heterogeneous layer sensitivity</div>
+          <div class="picker-method">RateQuant</div>
+          <div class="picker-detail">Per-layer allocation · 1.6s calibration → see details ↓</div>
+        </a>
+        <a href="#algo-commvq" class="picker-card picker-card-link" style="border-color:rgba(0,212,255,0.25);">
+          <div class="picker-goal">RoPE-compatible exact VQ</div>
+          <div class="picker-method">CommVQ</div>
+          <div class="picker-detail">64× key compression · ICML 2025 → see details ↓</div>
+        </a>
+      </div>
+    </div>
+
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in">
+      <div id="algo-vecinfer" class="algo-card vecinfer-card fade-in" data-tags="metal extreme">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">METAL-ACCELERATED IN 0.5.1</div>
@@ -1352,42 +1779,42 @@
       </div>
 
       <!-- RVQ -->
-      <div class="algo-card fade-in">
+      <div id="algo-rvq" class="algo-card fade-in" data-tags="zero-cal">
         <div class="algo-badge">RVQ</div>
         <div class="algo-title">TurboQuant RVQ</div>
         <div class="algo-desc">Two-pass scalar residual vector quantization. 1-bit sign quantizer + Laplacian residual stage. Achieves <strong style="color:var(--text)">7.5× compression</strong> with cosine similarity 0.92, within 5% of fp16 throughput on most 7–8B models. No calibration required.</div>
       </div>
 
       <!-- RateQuant -->
-      <div class="algo-card fade-in">
+      <div id="algo-ratequant" class="algo-card fade-in" data-tags="">
         <div class="algo-badge">RATE</div>
         <div class="algo-title">RateQuant</div>
         <div class="algo-desc">Per-layer bit allocation via reverse-waterfilling (arxiv:2605.06675). 1.6s real-activation calibration measures sensitivity per layer and allocates more bits where it matters. <strong style="color:var(--text)">Equal quality at lower average bit-width</strong>.</div>
       </div>
 
       <!-- PolarQuant -->
-      <div class="algo-card fade-in">
+      <div id="algo-polarquant" class="algo-card fade-in" data-tags="zero-cal">
         <div class="algo-badge">POLAR</div>
         <div class="algo-title">PolarQuant</div>
         <div class="algo-desc">Recursive polar coordinate decomposition for clustered key distributions. Lossless angular encoding preserves inner-product structure critical to attention score accuracy.</div>
       </div>
 
       <!-- QJL -->
-      <div class="algo-card fade-in">
+      <div id="algo-qjl" class="algo-card fade-in" data-tags="zero-cal extreme">
         <div class="algo-badge">1-BIT</div>
         <div class="algo-title">QJL</div>
         <div class="algo-desc">Johnson-Lindenstrauss 1-bit sign sketch. An inner-product-preserving random projection for extreme compression scenarios. Minimal memory footprint with provable approximation guarantees.</div>
       </div>
 
       <!-- KIVI -->
-      <div class="algo-card fade-in">
+      <div id="algo-kivi" class="algo-card fade-in" data-tags="zero-cal">
         <div class="algo-badge">KIVI</div>
         <div class="algo-title">KIVI — asymmetric baseline</div>
         <div class="algo-desc">Re-implementation of KIVI (Liu, Yuan et al., ICML 2024, <a href="https://arxiv.org/abs/2402.02750" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2402.02750</a>) — the field's most-cited KV-cache baseline. <strong style="color:var(--text)">Per-channel keys, per-token values</strong>, fp16 residual window, fully deterministic (no calibration). Measured <strong style="color:var(--text)">5.8× key / ~4× full-KV at 100–106% of fp16 throughput</strong> on Llama-3.2-3B, Qwen2.5-7B, Mistral-7B (M4). Included so every other method has a recognized comparison point.</div>
       </div>
 
       <!-- SpectralQuant — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-spectral" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.6.0</div>
@@ -1435,7 +1862,7 @@
       </div>
 
       <!-- CommVQ -->
-      <div class="algo-card fade-in">
+      <div id="algo-commvq" class="algo-card fade-in" data-tags="extreme">
         <div class="algo-badge new-badge">ICML 2025</div>
         <div class="algo-title">CommVQ — RoPE-Commutative VQ</div>
         <div class="algo-desc">
@@ -1446,7 +1873,7 @@
       </div>
 
       <!-- RaBitQ — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-rabitq" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv metal extreme zero-cal">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.7.0 — FULL KV</div>
@@ -1496,7 +1923,7 @@
       </div>
 
       <!-- MiniCache — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-minicache" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.16.0 — CROSS-LAYER DEPTH MERGE</div>
@@ -1540,7 +1967,7 @@
       </div>
 
       <!-- CacheGen — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-cachegen" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.16.0 — ENTROPY-CODED CACHE</div>
@@ -1584,7 +2011,7 @@
       </div>
 
       <!-- PALU — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-palu" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv zero-cal extreme">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.15.0 — TRUE LOW-RANK LATENT CACHE</div>
@@ -1628,7 +2055,7 @@
       </div>
 
       <!-- KVQuant-NUQ — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-kvquant" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv zero-cal">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.14.0 — NON-UNIFORM DATATYPE</div>
@@ -1672,7 +2099,7 @@
       </div>
 
       <!-- XQuant — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-xquant" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv zero-cal extreme">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge">CROSS-LAYER REUSE</div>
@@ -1716,7 +2143,7 @@
       </div>
 
       <!-- AdaKV-proxy — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-adakv" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge">PER-HEAD ADAPTIVE BITS</div>
@@ -1760,7 +2187,7 @@
       </div>
 
       <!-- Kitty — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-kitty" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge">ADAPTIVE MIXED-PRECISION</div>
@@ -1804,7 +2231,7 @@
       </div>
 
       <!-- SVDq — full-width featured card -->
-      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+      <div id="algo-svdq" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="extreme">
         <div class="vecinfer-inner">
           <div>
             <div class="algo-badge new-badge">NEW IN 0.10.0 — SUB-2-BIT KEYS</div>
@@ -1847,6 +2274,7 @@
         </div>
       </div>
 
+      <div class="algo-no-results" id="algo-no-results">No algorithms match this filter. <button class="filter-btn" style="margin-left:0.5rem" onclick="document.querySelector('.filter-btn[data-filter=all]').click()">Show all</button></div>
     </div>
   </section>
 
@@ -1928,6 +2356,17 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <p class="section-label">Quickstart</p>
     <h2 class="section-title">Plug into <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em;color:#a78bfa">mlx_lm</code> in 3 lines</h2>
     <p class="section-desc" style="margin-bottom:1.5rem">Same <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm.generate</code> API — just pass a compressed cache.</p>
+
+    <div class="prereq-bar fade-in">
+      <span class="prereq-label">Prerequisites:</span>
+      <code>pip install VeloxQuant-MLX mlx-lm</code>
+      <span class="prereq-sep">·</span>
+      Python 3.11+
+      <span class="prereq-sep">·</span>
+      Apple Silicon M1+
+      <span class="prereq-sep">·</span>
+      <a href="#install">Full install guide →</a>
+    </div>
 
     <div class="code-tabs">
       <button class="tab-btn active" data-tab="rvq">RVQ-1bit (recommended)</button>
@@ -2071,19 +2510,19 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
   <!-- ── BENCHMARKS ── -->
   <section id="benchmarks">
     <p class="section-label">Benchmarks</p>
-    <h2 class="section-title">10 models · 8 configs · Apple Silicon</h2>
-    <p class="section-desc">All numbers from end-to-end <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm.generate</code> with a 200-token prompt, 120-token generation. Apple M-series, unified memory.</p>
+    <h2 class="section-title">12 models · Apple Silicon · end-to-end generation</h2>
+    <p class="section-desc">All numbers from end-to-end <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm.generate</code> with a 200-token prompt, 120-token generation. Apple M-series, unified memory. Bar width = compression ratio relative to 16× max.</p>
 
     <div class="table-wrap fade-in">
       <table>
         <thead>
           <tr>
             <th>Model</th>
-            <th>FP16 (tok/s)</th>
-            <th>RVQ-1bit</th>
-            <th>RVQ compress</th>
-            <th>VecInfer-1bit</th>
-            <th>VI compress</th>
+            <th>FP16 baseline<br><span style="font-weight:400;opacity:0.6;font-size:0.72rem">tok/s</span></th>
+            <th>RVQ-1bit<br><span style="font-weight:400;opacity:0.6;font-size:0.72rem">tok/s vs fp16</span></th>
+            <th>RVQ compression<br><span style="font-weight:400;opacity:0.6;font-size:0.72rem">key cache ratio</span></th>
+            <th>VecInfer-1bit<br><span style="font-weight:400;opacity:0.6;font-size:0.72rem">tok/s vs fp16</span></th>
+            <th>VecInfer compression<br><span style="font-weight:400;opacity:0.6;font-size:0.72rem">key cache ratio</span></th>
             <th>Best pick</th>
           </tr>
         </thead>
@@ -2092,135 +2531,103 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
             <td>SmolLM2-135M</td>
             <td>250.4</td>
             <td class="td-highlight">188.5</td>
-            <td class="td-highlight">7.1×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:44%"></span><span class="bar-text">7.1×</span></td>
             <td class="td-highlight">175.8</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
             <td>Llama-3.2-1B</td>
             <td>105.4</td>
             <td class="td-highlight">104.3</td>
-            <td class="td-highlight">7.1×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:44%"></span><span class="bar-text">7.1×</span></td>
             <td class="td-highlight">91.2</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
             <td>Llama-3.2-3B</td>
             <td>47.6</td>
             <td class="td-highlight">46.2</td>
-            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:47%"></span><span class="bar-text">7.5×</span></td>
             <td class="td-highlight">40.2</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
             <td>Llama-3.1-8B</td>
             <td>20.5</td>
             <td class="td-highlight">20.6</td>
-            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:47%"></span><span class="bar-text">7.5×</span></td>
             <td class="td-highlight">19.6</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
             <td>Mistral-7B</td>
             <td>23.6</td>
             <td class="td-highlight">22.8</td>
-            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:47%"></span><span class="bar-text">7.5×</span></td>
             <td class="td-highlight">9.8</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr style="background: rgba(124,58,237,0.04);">
             <td><strong>Qwen2.5-7B</strong></td>
             <td>21.0</td>
             <td class="td-highlight">20.7</td>
-            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:47%"></span><span class="bar-text">7.5×</span></td>
             <td class="td-winner">21.5 ↑ fp16</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-purple">VecInfer-1bit</td>
           </tr>
           <tr>
             <td>Qwen3-8B</td>
             <td>20.3</td>
             <td class="td-highlight">19.6</td>
-            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:47%"></span><span class="bar-text">7.5×</span></td>
             <td class="td-highlight">2.4</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr>
             <td>Phi-4</td>
             <td>10.4</td>
             <td class="td-highlight">8.1</td>
-            <td class="td-highlight">7.5×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:47%"></span><span class="bar-text">7.5×</span></td>
             <td class="td-highlight">4.0</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">TQ-2bit (9.6)</td>
           </tr>
           <tr>
             <td>Falcon3-7B</td>
             <td>17.3</td>
             <td class="td-highlight">21.7</td>
-            <td class="td-highlight">7.8×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:49%"></span><span class="bar-text">7.8×</span></td>
             <td class="td-highlight">17.0</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-muted">RVQ-1bit</td>
           </tr>
           <tr style="background: rgba(124,58,237,0.04);">
             <td><strong>gemma-3-4b</strong></td>
             <td>26.0</td>
             <td class="td-highlight">24.2</td>
-            <td class="td-highlight">7.8×</td>
+            <td class="td-highlight bar-cell"><span class="bar-fill" style="width:49%"></span><span class="bar-text">7.8×</span></td>
             <td class="td-winner">22.6</td>
-            <td class="td-purple">16×</td>
+            <td class="td-purple bar-cell"><span class="bar-fill bar-fill-purple" style="width:100%"></span><span class="bar-text" style="color:#a78bfa">16×</span></td>
             <td class="td-purple">VecInfer-1bit</td>
           </tr>
         </tbody>
       </table>
     </div>
     <div class="bench-note">
-      <strong style="color:var(--accent)">Highlighted rows</strong> — Qwen2.5-7B VecInfer-1bit <em>exceeds</em> fp16 throughput at 16× compression (strong GQA: 28q/4kv heads). gemma-3-4b matches fp16 at 16×.
+      <strong style="color:var(--accent)">Highlighted rows</strong> — Qwen2.5-7B VecInfer-1bit <em>exceeds</em> fp16 throughput at 16× compression (strong GQA: 28q/4kv heads). gemma-3-4b matches fp16 at 16×. Bar widths show compression ratio relative to the 16× maximum.
       Full per-model plots and raw JSON in <a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener" style="color:var(--accent)">figures/vecinfer/</a> in the repo.
     </div>
 
-    <!-- method picker -->
-    <p class="section-label" style="margin-top:3rem">Decision guide</p>
-    <h3 class="section-title" style="font-size:1.4rem">Which method for your use case?</h3>
-    <div class="picker-grid fade-in">
-      <div class="picker-card">
-        <div class="picker-goal">Everyday long-context work</div>
-        <div class="picker-method">RVQ-1bit</div>
-        <div class="picker-detail">7.5× compression · no calibration · &lt;5% throughput cost on most 7–8B models. The default choice.</div>
-      </div>
-      <div class="picker-card">
-        <div class="picker-goal">Maximum memory savings</div>
-        <div class="picker-method purple">VecInfer-1bit</div>
-        <div class="picker-detail">16× compression · one-time codebook calibration · best on models with strong GQA (Qwen2.5, Gemma). Cuts 4 GB cache to 256 MB.</div>
-      </div>
-      <div class="picker-card">
-        <div class="picker-goal">Heterogeneous layer sensitivity</div>
-        <div class="picker-method">RateQuant</div>
-        <div class="picker-detail">Per-layer allocation · 1.6s calibration · closes the quality gap at fractional average bits. Best on Gemma3, Falcon3 (sensitivity ratio &gt;6×).</div>
-      </div>
-      <div class="picker-card" style="border-color:rgba(34,197,94,0.35);">
-        <div class="picker-goal">Best quality at moderate compression</div>
-        <div class="picker-method" style="color:#22c55e">SpectralQuant</div>
-        <div class="picker-detail">5.95× compression · ~5–30s one-time calibration · +7–10pp cosine sim over TurboQuant. Universal — works on every architecture including Gemma 4 multimodal. Best when quality matters most.</div>
-      </div>
-      <div class="picker-card" style="border-color:rgba(34,197,94,0.35);">
-        <div class="picker-goal">Maximum context length in fixed RAM</div>
-        <div class="picker-method" style="color:#22c55e">RaBitQ + MSE-b4</div>
-        <div class="picker-detail">6× full KV compression · 1-bit keys + 4-bit values · fits 103k tokens in 8 GB vs 17k for fp16 · Metal Hamming kernel · best when context length is the bottleneck.</div>
-      </div>
-      <div class="picker-card" style="border-color:rgba(0,212,255,0.25);">
-        <div class="picker-goal">RoPE-compatible exact VQ</div>
-        <div class="picker-method">CommVQ</div>
-        <div class="picker-detail">64× key compression · RoPE-commutative codebook (ICML 2025) · exact positional encoding at decode time · no attention score distortion from RoPE mismatch.</div>
-      </div>
-    </div>
+    <p class="bench-note" style="margin-top:2rem">
+      See the full algorithm details and decision guide in the <a href="#algorithms" style="color:var(--accent)">Algorithms section above</a>.
+    </p>
   </section>
 
   <div class="divider"></div>
@@ -2264,7 +2671,7 @@ pip install -e ".[dev]"</span></pre>
           <li>NumPy ≥ 1.26</li>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
-          <li>10 production models validated</li>
+          <li>12 production models validated</li>
           <li>212 tests, all passing (incl. 7 Metal parity tests)</li>
         </ul>
       </div>
@@ -2324,7 +2731,11 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.14.0 — KVQuant-NUQ shipped';
+      const text = 'v0.16.0 — CacheGen + MiniCache shipped';
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        badge.textContent = text;
+        return;
+      }
       let i = 0;
       badge.innerHTML = '';
       const cursor = document.createElement('span');
@@ -2336,7 +2747,6 @@ pip install -e ".[dev]"</span></pre>
         i++;
         if (i >= text.length) {
           clearInterval(interval);
-          // remove blinking cursor after typing completes (keep it 1.5s)
           setTimeout(() => cursor.remove(), 1500);
         }
       }, 35);
@@ -2344,6 +2754,7 @@ pip install -e ".[dev]"</span></pre>
 
     // ── 5. MATRIX RAIN ──
     (function initMatrix() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const canvas = document.getElementById('matrix-canvas');
       const hero = document.getElementById('hero');
       const ctx = canvas.getContext('2d');
@@ -2454,6 +2865,7 @@ pip install -e ".[dev]"</span></pre>
     function bootCode(preEl) {
       if (preEl.dataset.booted) return;
       preEl.dataset.booted = 'true';
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
       // Collect all child nodes (text + span elements) preserving HTML
       const original = preEl.innerHTML;
@@ -2513,6 +2925,55 @@ pip install -e ".[dev]"</span></pre>
     }, { threshold: 0.25 });
 
     document.querySelectorAll('.code-wrap').forEach(el => codeObserver.observe(el));
+
+    // ── ALGORITHM FILTER ──
+    (function() {
+      const filterBtns = document.querySelectorAll('.filter-btn[data-filter]');
+      const algoCards  = document.querySelectorAll('.algo-grid .algo-card');
+      const noResults  = document.getElementById('algo-no-results');
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const filter = btn.dataset.filter;
+          let visible = 0;
+          algoCards.forEach(card => {
+            if (filter === 'all') {
+              card.classList.remove('hidden-by-filter');
+              visible++;
+            } else {
+              const tags = (card.dataset.tags || '').split(' ');
+              const match = tags.includes(filter);
+              card.classList.toggle('hidden-by-filter', !match);
+              if (match) visible++;
+            }
+          });
+          if (noResults) noResults.style.display = visible === 0 ? 'block' : 'none';
+        });
+      });
+    })();
+
+    // ── HAMBURGER MENU ──
+    (function() {
+      const toggle = document.getElementById('nav-toggle');
+      const links  = document.getElementById('nav-links');
+      if (!toggle || !links) return;
+      toggle.addEventListener('click', () => {
+        const open = links.classList.toggle('open');
+        toggle.classList.toggle('open', open);
+        toggle.setAttribute('aria-expanded', open);
+        document.body.style.overflow = open ? 'hidden' : '';
+      });
+      links.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => {
+          links.classList.remove('open');
+          toggle.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+          document.body.style.overflow = '';
+        });
+      });
+    })();
 
     // ── 8. MAGNETIC BUTTONS ──
     document.querySelectorAll('.btn').forEach(btn => {
