@@ -38,6 +38,8 @@ const sidebars: SidebarsConfig = {
         'algorithms/xquant',
         'algorithms/kvquant',
         'algorithms/palu',
+        'algorithms/cachegen',
+        'algorithms/minicache',
       ],
     },
   ],

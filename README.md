@@ -11,17 +11,17 @@
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.15.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.16.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
-  <img src="https://img.shields.io/badge/tests-436%2F441%20passing-22c55e?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/tests-478%2F484%20passing-22c55e?style=flat-square" alt="Tests"/>
   <a href="https://doi.org/10.5281/zenodo.20647305"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20647305-1f6feb?style=flat-square" alt="DOI"/></a>
 </p>
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.15.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.16.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="MEDIUM_BLOG_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="MEDIUM_BLOG_TURBOQUANT_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -316,6 +316,38 @@ config = KVCacheConfig(method="palu", head_dim=128,
 **Evidence (unit tests on synthetic low-rank data — `tests/cache/test_palu_cache.py` (13) + `tests/quantizers/test_palu.py` (9), all passing):** the cache stores `[S, r]` latents and the parent fp16 ring buffer is never populated (`cache.keys is None`); PALU reconstruction MSE **< naive 2-bit on both keys and values**; both tensors compress vs fp16; group-head SVD recovers a planted rank-r subspace; `assigned_avg_bits < 2.0`; deterministic. The offline harness in `benchmark_palu.py` reports key MSE 1.54 vs 2.37 and value MSE 1.54 vs 2.52 (naive 2-bit) at r=16/D=128 — **synthetic, not model-level**.
 
 **Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_palu.py` is ready but has not been run — no throughput or compression figures are claimed until its `results.json` is committed. Known limitation: PALU's fused low-rank-reconstruction attention kernel is **not** ported (we reconstruct fp16 then call MLX SDPA), so peak memory *during attention* is not reduced — only the stored cache size.
+
+## CacheGen — entropy-coded KV cache — new in 0.16.0
+
+`method="cachegen"` is the first method in the suite to **entropy-code** the quantized KV. *Inspired by, **not a faithful port of***, [CacheGen (Liu et al., SIGCOMM 2024)](https://arxiv.org/abs/2310.07240): every other method packs codes at a fixed bit-width; CacheGen exploits **token-wise locality** (adjacent tokens' KV are similar) by applying a reversible token-delta transform to the codes and compressing the low-entropy residual toward its Shannon entropy. Reconstruction is **identical to plain group quant** (lossless over the codes) — the win is storage.
+
+```python
+config = KVCacheConfig(method="cachegen", head_dim=128,
+                       cachegen_bits=4, cachegen_group_size=32,
+                       cachegen_use_delta=True)
+```
+
+We do **not** ship a serial range codec (it would bottleneck MLX's parallel decode); the entropy-coded byte size is modelled from the measured symbol entropy and **capped at the fixed-width packed size**, so savings are never negative.
+
+**Evidence (`tests/cache/test_cachegen_cache.py` (12) + `tests/quantizers/test_cachegen.py` (9), all passing):** reconstruction byte-identical to `_group_quant_dequant`; token-delta reversible; delta entropy < raw entropy on correlated data; positive savings on correlated, exactly 0% (never negative) on iid; entropy primitives correct (0 for constants, 1 bit for 50/50). Offline harness: ~17% savings on correlated 3-bit, 0% on iid — **synthetic, not model-level.**
+
+**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_cachegen.py` is ready but has not been run. Known limitation: storage-only win (codes dequant to fp16 for SDPA) — does not reduce attend-time working set.
+
+## MiniCache — cross-layer depth merge — new in 0.16.0
+
+`method="minicache"` compresses across **network depth**. *Inspired by* [MiniCache (Liu et al., NeurIPS 2024)](https://arxiv.org/abs/2405.14366): adjacent middle-to-deep layers have nearly identical KV *directions*, so a pair is merged into one shared **SLERP**-interpolated direction plus each layer's own per-token magnitude (a pair costs ~one layer). High-divergence token pairs are kept unmerged (the retention set). A different route to inter-layer redundancy than [XQuant](#xquant--cross-layer-kv-cache-reuse): XQuant reuses *codes*, MiniCache merges the *tensors*.
+
+```python
+config = KVCacheConfig(method="minicache", head_dim=128,
+                       minicache_start_frac=0.5,           # only merge past mid-depth
+                       minicache_retention_threshold=0.9,  # keep divergent pairs
+                       minicache_slerp_t=0.5)
+caches = KVCacheBuilder.for_model(model, config)  # requires for_model (shared coordinator)
+```
+
+**Evidence (`tests/cache/test_minicache_cache.py` (11) + `tests/quantizers/test_minicache.py` (11), all passing):** role assignment (early all primary, deep has merge); SLERP unit-norm + endpoint correctness; similar layers (cosine 0.9995) merge MSE < 2e-4 with 0% retention; opposite directions 100% retained and reconstructed exactly; magnitude preserved through the shared direction; degenerate (no-coordinator) primary is a lossless passthrough. Offline harness confirms the merge-vs-retain split — **synthetic, not model-level.**
+
+**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_minicache.py` is ready but has not been run. Known limitation: MiniCache merges fp16 directions (no extra quantization) and the merge happens on reconstructed tensors, so attend-time working set is not reduced — the win is stored cache size.
 
 ## SpectralQuant — new in 0.6.0
 
@@ -708,6 +740,8 @@ Contributions welcome — please open an issue first for anything beyond a small
 - [PolarQuant (AISTATS 2026)](https://arxiv.org/abs/2502.02617) — "PolarQuant: Quantizing KV Caches with Polar Transformation"
 - [QJL (2024)](https://arxiv.org/abs/2406.03482) — Zandieh et al., "QJL: 1-Bit Quantized JL Transform for KV Cache Quantization"
 - [PALU (ICLR 2025)](https://arxiv.org/abs/2407.21118) — Chang et al., "Palu: Compressing KV-Cache with Low-Rank Projection" — group-head low-rank projection of keys and values (true latent storage)
+- [CacheGen (SIGCOMM 2024)](https://arxiv.org/abs/2310.07240) — Liu et al., "CacheGen: KV Cache Compression and Streaming for Fast Large Language Model Serving" — entropy coding of the quantized KV via token-wise locality
+- [MiniCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14366) — Liu et al., "MiniCache: KV Cache Compression in Depth Dimension for Large Language Models" — cross-layer SLERP merge of adjacent layers' KV directions
 
 </details>
 

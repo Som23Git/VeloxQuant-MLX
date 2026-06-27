@@ -4,8 +4,79 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 > Detailed release notes for 0.10.0–0.14.0 (SVDq, Kitty, AdaKV-proxy, XQuant,
 > KVQuant-NUQ) live in the docs-site changelog
-> (`docs-site/docs/changelog.md`). The entries below cover the latest release
+> (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
+
+## [0.16.0] — 2026-06-26
+
+### Added — CacheGen: entropy-coded KV cache (`method="cachegen"`)
+
+- **`veloxquant_mlx.cache.cachegen_cache.CacheGenKVCache`** — the repo's first
+  **entropy-coded** cache. *Inspired by, not a faithful port of,* "CacheGen: KV
+  Cache Compression and Streaming for Fast LLM Serving" (Liu et al., **SIGCOMM
+  2024**, arXiv:2310.07240). Every other method packs codes at a fixed
+  bit-width; CacheGen exploits token-wise locality (adjacent tokens' KV are
+  similar) by applying a reversible token-delta transform to the quantized codes
+  and compressing the low-entropy residual stream toward its Shannon entropy.
+  Reconstruction is identical to plain group quant (lossless over the codes).
+- **Adaptation:** rather than ship a serial range codec (which would bottleneck
+  MLX's parallel decode), the entropy-coded byte size is modelled from the
+  measured symbol entropy of the delta stream and **capped at the fixed-width
+  packed size** — a real coder falls back to raw packing when the stream is
+  incompressible, so savings are never negative (exactly 0% on iid data, ~10–17%
+  on token-correlated data).
+- Primitives in `veloxquant_mlx/quantizers/cachegen.py`: `quantize_to_codes`,
+  `dequant_codes`, `token_delta`, `symbol_entropy_bits`, `entropy_coded_bytes`,
+  `fixed_width_bytes`, `cachegen_quant_dequant`.
+- Config: `cachegen_bits`, `cachegen_group_size`, `cachegen_use_delta`.
+- **Tests** — `tests/cache/test_cachegen_cache.py` (12) +
+  `tests/quantizers/test_cachegen.py` (9): lossless reconstruction vs group
+  quant, reversible token-delta, delta-entropy < raw-entropy on correlated data,
+  positive savings on correlated / never-negative on iid, entropy primitives
+  (0 for constants, 1 bit for 50/50, bounded by log2-alphabet), byte-accounting
+  ordering, decode, determinism.
+- **Benchmark** — `benchmark_scripts/benchmark_cachegen.py` (offline entropy
+  harness + throughput vs KIVI/fp16). **Not yet run.**
+
+### Added — MiniCache: cross-layer depth-dimension merge (`method="minicache"`)
+
+- **`veloxquant_mlx.cache.minicache_cache.MiniCacheKVCache`** +
+  **`MiniCacheCoordinator`** — cross-layer compression in the **depth
+  dimension**. *Inspired by* "MiniCache: KV Cache Compression in Depth Dimension
+  for Large Language Models" (Liu et al., **NeurIPS 2024**, arXiv:2405.14366).
+  Adjacent middle-to-deep layers have nearly identical KV directions, so a pair
+  is merged into one shared **SLERP**-interpolated direction plus each layer's
+  own per-token magnitude (a pair costs ~one layer). High-divergence token pairs
+  are kept unmerged (the retention set). A different route to inter-layer
+  redundancy than XQuant — XQuant reuses quantized *codes*, MiniCache merges the
+  *tensors*.
+- **Adaptation:** faithful to the magnitude/direction SLERP + token retention;
+  integrated via a shared coordinator (the XQuant pattern) rather than a modified
+  attention forward. The primary layer publishes its KV so the later-arriving
+  merge layer can perform the merge — both then reconstruct from the shared
+  direction.
+- Primitives in `veloxquant_mlx/quantizers/minicache.py`: `pair_layers_depth`,
+  `to_mag_dir`, `slerp`, `merge_pair`, `reconstruct_layer`, `merge_similarity`.
+- Config: `minicache_start_frac`, `minicache_group_size`,
+  `minicache_retention_threshold`, `minicache_slerp_t`, `minicache_max_ctx`.
+- **Tests** — `tests/cache/test_minicache_cache.py` (11) +
+  `tests/quantizers/test_minicache.py` (11): role assignment (early all primary,
+  deep has merge), SLERP endpoints/unit-norm/collinear-fallback, similar layers
+  merge MSE < 2e-4 with 0% retention, opposite directions 100% retained and
+  reconstructed exactly, magnitude preservation, `n_retained+n_merged==total`,
+  degenerate lossless passthrough, coordinator `max_ctx` guard, determinism.
+- **Benchmark** — `benchmark_scripts/benchmark_minicache.py` (offline merge-
+  quality harness + throughput vs XQuant/KIVI/fp16). **Not yet run.**
+
+### Honest scope
+
+- Both are **storage**-compression methods: CacheGen's entropy coding and
+  MiniCache's merge reduce stored cache size but reconstruct fp16 for SDPA, so
+  neither reduces working-set memory at attend time. On Apple Silicon's
+  bandwidth-bound decode they are lower-leverage than the low-rank (PALU/SVDq)
+  and quantization methods.
+- Quality evidence is unit-test level (synthetic data); no model-level benchmark
+  or downstream-task evaluation has been run.
 
 ## [0.15.0] — 2026-06-26
 

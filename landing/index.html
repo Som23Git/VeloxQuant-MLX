@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU — all in MLX. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys AND values as latent [S, r] codes (not full fp16) and reconstructs only at attend time, for a full-KV effective rate below 1 bit/element. Zero calibration. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache — all in MLX. New in 0.16.0: CacheGen is the first entropy-coded cache (token-locality storage win), and MiniCache merges adjacent deep layers' KV via SLERP so a pair costs one. Zero calibration. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1299,7 +1299,7 @@
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
     <h2 class="section-title">Fourteen quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16 and reconstructs only at attend time, for a full-KV effective rate below 1 bit/element, zero calibration. New in 0.14.0: KVQuant-NUQ fits non-uniform quantization levels to the data distribution via online Lloyd-Max, plus dense/sparse outlier isolation — ~73% lower reconstruction error than uniform at 3-bit. New in 0.13.0: XQuant reuses quantized KV codes across adjacent layers, the first cross-layer method. Mix and match per layer with RateQuant.</p>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 
       <!-- VecInfer — full-width featured card -->
@@ -1489,6 +1489,94 @@
               <div class="algo-stat-row">
                 <span class="label">Metal kernel</span>
                 <span class="value">rabitq_hamming_score</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MiniCache — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.16.0 — CROSS-LAYER DEPTH MERGE</div>
+            <div class="algo-title" style="font-size:1.25rem">MiniCache — Cross-Layer Depth-Dimension Merging</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from MiniCache (arXiv:2405.14366, NeurIPS 2024). Compresses the cache <strong style="color:#22c55e">across network depth</strong>: adjacent middle-to-deep layers have nearly identical KV directions, so a pair is merged into <strong style="color:#22c55e">one shared SLERP direction</strong> plus each layer's own per-token magnitude — a pair of layers costs roughly one. A different route to inter-layer redundancy than XQuant: XQuant reuses <em>codes</em>, MiniCache merges the <em>tensors</em>. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Magnitude / direction split</strong> — each KV vector decomposed into length + unit direction<br>
+              <strong style="color:var(--text)">② SLERP merge</strong> — the two layers' directions spherically interpolated into one shared unit vector, stored once<br>
+              <strong style="color:var(--text)">③ Per-layer magnitudes</strong> — each layer keeps its own per-token scalar, so reconstruction is <code>magnitude × shared_direction</code><br>
+              <strong style="color:var(--text)">④ Token retention</strong> — high-divergence token pairs (low direction cosine) are kept unmerged, capping worst-case error<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> In the middle-to-deep portion of an LLM, adjacent layers' KV directions are nearly collinear — the representation evolves slowly with depth. Merging the shared direction and keeping only per-layer magnitudes recovers both layers from one stored vector.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Cross-layer mechanism</span>
+                <span class="value" style="color:#22c55e">SLERP tensor merge</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Merged-layer cost</span>
+                <span class="value" style="color:#22c55e">~1 layer per pair</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Unmergeable tokens</span>
+                <span class="value">retained (cosine threshold)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs XQuant</span>
+                <span class="value">merges tensors, not codes</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CacheGen — full-width featured card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.16.0 — ENTROPY-CODED CACHE</div>
+            <div class="algo-title" style="font-size:1.25rem">CacheGen — Entropy-Coded KV Cache via Token Locality</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from CacheGen (arXiv:2310.07240, SIGCOMM 2024). The first method in the suite to <strong style="color:#22c55e">entropy-code the codes themselves</strong> rather than just pick a bit-width. Exploits token-wise locality — adjacent tokens' KV are similar — by delta-coding the quantized codes and compressing the low-entropy residual toward its Shannon entropy. Reconstruction is <strong style="color:#22c55e">identical to group quant</strong>; the win is storage. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Group quantize</strong> — asymmetric min/max codes, same as KIVI<br>
+              <strong style="color:var(--text)">② Token-delta transform</strong> — consecutive tokens' codes subtracted; the deltas concentrate near zero<br>
+              <strong style="color:var(--text)">③ Entropy model</strong> — compressed size measured from the delta stream's Shannon entropy<br>
+              <strong style="color:var(--text)">④ Never-worse cap</strong> — bounded at fixed-width packing, so incompressible data costs 0% extra, never negative<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> In long coherent contexts adjacent tokens' KV move slowly, so the per-token code deltas are low-entropy. An entropy coder spends far fewer than <code>bits</code> per symbol on that stream — a lossless storage win on top of the lossy quantization.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">entropy coding (lossless)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Savings on correlated KV</span>
+                <span class="value" style="color:#22c55e">~10–17% over packing</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Reconstruction</span>
+                <span class="value">identical to group quant</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Incompressible data</span>
+                <span class="value">0% (never negative)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
               </div>
             </div>
           </div>

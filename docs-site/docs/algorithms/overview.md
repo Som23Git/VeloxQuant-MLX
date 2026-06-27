@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements fifteen KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements seventeen KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -31,6 +31,8 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [XQuant](../algorithms/xquant) | ~1.0–1.4 | yes | None | 11–16× | ★★★★ | First cross-layer reuse — adjacent layers share codes |
 | [KVQuant-NUQ](../algorithms/kvquant) | 2–4 (non-uniform) | 2–4 | None | 5–8× | ★★★★★ | Non-uniform datatype + outlier isolation |
 | [PALU](../algorithms/palu) | ~0.6 (low-rank) | ~0.6 (low-rank) | None | high (full-KV) | ★★★ | First true latent cache — both K and V stored low-rank |
+| [CacheGen](../algorithms/cachegen) | 3–4 (entropy) | 3–4 (entropy) | None | +10–17% over packing | ★★★ | First entropy-coded cache — storage win on correlated KV |
+| [MiniCache](../algorithms/minicache) | fp16 (merged) | fp16 (merged) | None | ~2× on merged layers | ★★★ | Cross-layer SLERP merge — pairs of deep layers cost one |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -79,6 +81,8 @@ These work immediately on any model with no setup beyond installation.
 - **[XQuant](../algorithms/xquant)** — Cross-layer reuse: adjacent layers are paired (anchor/reuse), the anchor publishes its quantized codes through a shared coordinator, and reuse layers store only their own scale/zero (+ optional residual). The first method to exploit *inter-layer* redundancy — sub-1.4-bit effective keys on correlated models, zero calibration.
 - **[KVQuant-NUQ](../algorithms/kvquant)** — Non-uniform quantization datatype: places `2^bits` signpost levels where the data actually is via online Lloyd-Max fitting, plus dense/sparse outlier isolation that carves the top few extreme elements out to fp16. The first non-uniform-datatype method — strictly lower reconstruction error than uniform at the same bit-width, zero calibration.
 - **[PALU](../algorithms/palu)** — True low-rank latent storage: fits one shared projection per head-group from the prefill batch and stores the cache as latent codes `[S, r]` for *both* keys and values, reconstructing fp16 only at attend time. Unlike SVDq (keys-only, reconstructs full fp16), the cache itself stays low-rank, so the storage win is real. Layered with mixed-bit latent quantization for a full-KV effective rate below 1 bit/element. Zero calibration.
+- **[CacheGen](../algorithms/cachegen)** — Entropy coding: the first method to compress the *codes* themselves rather than just pick a bit-width. Exploits token-wise locality (adjacent tokens' KV are similar) by delta-coding the quantized codes and entropy-coding the low-entropy residual stream toward its Shannon entropy. Reconstruction is identical to group quant; the win is storage, capped to never exceed fixed-width packing. Zero calibration.
+- **[MiniCache](../algorithms/minicache)** — Cross-layer depth merging: adjacent middle-to-deep layers share one SLERP-interpolated direction while each keeps its own per-token magnitude, so a pair of layers costs roughly one. High-divergence token pairs are retained unmerged. A different route to inter-layer redundancy than XQuant (which reuses codes); MiniCache merges the tensors. Zero calibration.
 
 ### Calibration-required methods
 

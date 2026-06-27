@@ -11,7 +11,26 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.15.0 — Latest
+## v0.16.0 — Latest
+
+### New
+- **CacheGen** (`method="cachegen"`) — the repo's first **entropy-coded** KV cache. Every other method packs codes at a fixed bit-width; CacheGen exploits token-wise locality (adjacent tokens' KV are similar) by applying a reversible token-delta transform to the quantized codes and compressing the low-entropy residual stream toward its Shannon entropy. Reconstruction is identical to plain group quant (lossless over the codes); the contribution is the storage accounting. CacheGen-adapted (arXiv:2310.07240, SIGCOMM 2024): rather than ship a serial range codec that would bottleneck MLX decode, the entropy-coded byte size is modelled from the measured symbol entropy and capped at the fixed-width packed size, so savings are never negative (exactly 0% on incompressible iid data, ~10–17% on correlated data).
+  - `CacheGenKVCache` (`veloxquant_mlx/cache/cachegen_cache.py`); primitives in `veloxquant_mlx/quantizers/cachegen.py`: `quantize_to_codes`, `dequant_codes`, `token_delta`, `symbol_entropy_bits`, `entropy_coded_bytes`, `fixed_width_bytes`, `cachegen_quant_dequant`
+  - Config: `cachegen_bits`, `cachegen_group_size`, `cachegen_use_delta`
+  - 12 cache tests + 9 quantizer tests; `benchmark_scripts/benchmark_cachegen.py` (not run)
+- **MiniCache** (`method="minicache"`) — cross-layer compression in the **depth dimension**. Adjacent middle-to-deep layers have nearly identical KV directions, so a pair is merged into one shared SLERP-interpolated direction plus each layer's own per-token magnitude (a pair costs ~one layer). High-divergence token pairs are kept unmerged (the retention set). A different route to inter-layer redundancy than [XQuant](algorithms/xquant) — XQuant reuses quantized *codes*, MiniCache merges the *tensors* via spherical interpolation. MiniCache-adapted (arXiv:2405.14366, NeurIPS 2024): faithful to the magnitude/direction SLERP + token retention, integrated via a shared `MiniCacheCoordinator` (the XQuant pattern) rather than a modified attention forward.
+  - `MiniCacheKVCache` (`veloxquant_mlx/cache/minicache_cache.py`), `MiniCacheCoordinator` (`veloxquant_mlx/cache/minicache_coordinator.py`); primitives in `veloxquant_mlx/quantizers/minicache.py`: `pair_layers_depth`, `to_mag_dir`, `slerp`, `merge_pair`, `reconstruct_layer`, `merge_similarity`
+  - Config: `minicache_start_frac`, `minicache_group_size`, `minicache_retention_threshold`, `minicache_slerp_t`, `minicache_max_ctx`
+  - 11 cache tests + 11 quantizer tests; `benchmark_scripts/benchmark_minicache.py` (not run)
+  - Requires `KVCacheBuilder.for_model()` for the shared coordinator; a single factory-built cache is a degenerate lossless-passthrough primary.
+
+### Honest scope
+- Both are **storage**-compression methods: CacheGen's entropy coding and MiniCache's merge both reduce stored cache size but reconstruct fp16 for SDPA, so neither reduces working-set memory at attend time. On Apple Silicon's bandwidth-bound decode they are lower-leverage than the low-rank (PALU/SVDq) and quantization methods.
+- Quality evidence is unit-test level (synthetic data); no model-level benchmark run yet.
+
+---
+
+## v0.15.0
 
 ### New
 - **PALU** (`method="palu"`) — true low-rank latent storage for **both keys and values**, the repo's first method where the cache itself stays low-rank rather than reconstructing full fp16 for storage. At prefill it partitions heads into `palu_n_head_groups` groups, fits one shared projection per group via group-head SVD (G-LRD), and stores the projected codes `[S, r]` directly; full fp16 K/V is reconstructed only at attend time. Latents are mixed-bit quantized (top-25% of channels by singular value at 4-bit, the rest at 2-bit) for a full-KV effective rate below 1 bit/element on low-rank data. Unlike [SVDq](algorithms/svdq) — keys-only, reconstructs full fp16 and so wins on bandwidth accounting — PALU bypasses the parent fp16 ring buffer entirely (the storage win is real). Zero calibration. A PALU-adapted (arXiv:2407.21118, ICLR 2025) implementation: we fit projections from the prefill batch instead of an offline calibration set, and we do **not** port PALU's fused low-rank-reconstruction attention kernel (we reconstruct then call MLX SDPA), so peak memory during attention is not reduced — only stored cache size.

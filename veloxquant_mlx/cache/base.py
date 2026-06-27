@@ -35,7 +35,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
-        "adakv", "xquant", "kvquant", "palu",
+        "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -100,6 +100,16 @@ class KVCacheConfig:
     palu_hi_fraction: float = 0.25         # fraction of latent channels at hi_bit
     palu_group_size: int = 32              # token group size for latent quantization
     palu_quantize_values: bool = True      # low-rank + mixed-bit values too (False = LR-only)
+    # --- CacheGen configuration (entropy-coded byte model over group quant) ----
+    cachegen_bits: int = 4                 # base group-quant bit-width
+    cachegen_group_size: int = 32          # token group size
+    cachegen_use_delta: bool = True        # token-delta transform before entropy coding
+    # --- MiniCache configuration (cross-layer depth-dimension SLERP merge) -----
+    minicache_start_frac: float = 0.5      # depth fraction below which layers are never merged
+    minicache_group_size: int = 2          # layers per merge group (2 = pairs)
+    minicache_retention_threshold: float = 0.9  # cosine below which a token pair is kept unmerged
+    minicache_slerp_t: float = 0.5         # SLERP interpolation factor
+    minicache_max_ctx: int = 8192          # coordinator per-group token budget
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -156,6 +166,8 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.xquant_cache import XQuantKVCache
         from veloxquant_mlx.cache.kvquant_cache import KVQuantKVCache
         from veloxquant_mlx.cache.palu_cache import PALUKVCache
+        from veloxquant_mlx.cache.cachegen_cache import CacheGenKVCache
+        from veloxquant_mlx.cache.minicache_cache import MiniCacheKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -211,12 +223,20 @@ class KVCacheFactory:
             cache = KVQuantKVCache(config)
         elif config.method == "palu":
             cache = PALUKVCache(config)
+        elif config.method == "cachegen":
+            cache = CacheGenKVCache(config)
+        elif config.method == "minicache":
+            # Single-cache construction yields a degenerate (coordinator-less)
+            # primary that behaves as lossless fp16 passthrough. Cross-layer
+            # merging requires KVCacheBuilder.for_model(), which builds the
+            # shared MiniCacheCoordinator and assigns primary/merge roles.
+            cache = MiniCacheKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
-                f"adakv, xquant, kvquant, palu."
+                f"adakv, xquant, kvquant, palu, cachegen, minicache."
             )
 
         if config.sliding_window is not None:
@@ -470,6 +490,10 @@ class KVCacheBuilder:
         if config.method == "xquant":
             return KVCacheBuilder._build_xquant(layers, args, config, _FallbackCache)
 
+        # --- MiniCache: cross-layer merge needs a shared coordinator + roles --
+        if config.method == "minicache":
+            return KVCacheBuilder._build_minicache(layers, args, config, _FallbackCache)
+
         caches = []
         attn_idx = 0  # index into b_spec, advances only for attention layers
         for i, layer in enumerate(layers):
@@ -552,6 +576,62 @@ class KVCacheBuilder:
             )
             caches.append(XQuantKVCache(layer_cfg, role=role, group_id=group_id,
                                         coordinator=coordinator))
+        return caches
+
+    @staticmethod
+    def _build_minicache(layers, args, config: "KVCacheConfig", fallback_cls) -> list:
+        """Build one shared MiniCacheCoordinator and role-assigned caches per layer.
+
+        Primary/merge roles are assigned over *attention-bearing* layers only,
+        and only middle-to-deep layers (>= ``minicache_start_frac`` of depth) are
+        eligible for merging — earlier layers are standalone primaries.
+        """
+        from veloxquant_mlx.cache.minicache_cache import MiniCacheKVCache
+        from veloxquant_mlx.cache.minicache_coordinator import MiniCacheCoordinator
+        from veloxquant_mlx.quantizers.minicache import pair_layers_depth
+
+        def _head_dim(layer):
+            attn = getattr(layer, "self_attn", None) or getattr(layer, "attn", None)
+            if attn is None:
+                return None
+            hd = getattr(attn, "head_dim", None)
+            if hd is None and args is not None:
+                hd = getattr(args, "head_dim", None) or (
+                    args.hidden_size // args.num_attention_heads
+                )
+            return hd
+
+        attn_layer_idx = [i for i, L in enumerate(layers) if _head_dim(L) is not None]
+        roles = pair_layers_depth(
+            len(attn_layer_idx),
+            start_frac=config.minicache_start_frac,
+            group_size=config.minicache_group_size,
+        )
+        coordinator = MiniCacheCoordinator(max_ctx=config.minicache_max_ctx)
+
+        role_by_layer: dict[int, tuple[str, int]] = {
+            attn_layer_idx[k]: roles[k] for k in range(len(attn_layer_idx))
+        }
+
+        caches = []
+        for i, layer in enumerate(layers):
+            hd = _head_dim(layer)
+            if hd is None:
+                caches.append(fallback_cls())
+                continue
+            role, group_id = role_by_layer[i]
+            layer_cfg = KVCacheConfig(
+                method="minicache",
+                head_dim=hd,
+                seed=config.seed + i,
+                minicache_start_frac=config.minicache_start_frac,
+                minicache_group_size=config.minicache_group_size,
+                minicache_retention_threshold=config.minicache_retention_threshold,
+                minicache_slerp_t=config.minicache_slerp_t,
+                minicache_max_ctx=config.minicache_max_ctx,
+            )
+            caches.append(MiniCacheKVCache(layer_cfg, role=role, group_id=group_id,
+                                           coordinator=coordinator))
         return caches
 
     def __repr__(self) -> str:
