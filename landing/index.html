@@ -1214,7 +1214,7 @@
     <div class="hero-content">
       <div class="badge" id="hero-badge"></div>
       <h1>Fast KV Cache Quantization<br>for <span>Apple Silicon</span></h1>
-      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ — in MLX</p>
+      <p class="hero-sub">TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant · PALU · CacheGen · MiniCache — in MLX</p>
       <p class="hero-oneliner">
         Up to <strong style="color:var(--accent)">16× key cache compression</strong> with near-fp16 throughput on M-series chips.
         Now with <strong style="color:#a78bfa">custom Metal kernels</strong> — 13× faster quantize, 98% less peak memory, and <strong style="color:#22c55e">RaBitQ 1-bit quantization</strong> fitting 6× more context in the same RAM. Plug into <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm</code> with three lines.
@@ -1298,7 +1298,7 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Fourteen quantization strategies</h2>
+    <h2 class="section-title">Eighteen quantization strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
     <div class="algo-grid">
 

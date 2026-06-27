@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements seventeen KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements eighteen KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -25,6 +25,8 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [QJL](../algorithms/qjl) | 1 | fp16 | None | 8× key only | ★★★ | Simplest, fastest to set up |
 | [PolarQuant](../algorithms/polarquant) | 1–2 | 2 | None | 8× | ★★★ | Geometric key distributions |
 | [CommVQ](../algorithms/commvq) | 2–4 | fp16 | None | 4–8× | ★★★★ | RoPE-compatible models |
+| [KIVI](../algorithms/kivi) | 2 | 2 | None | 4× total | ★★★ | Tuning-free asymmetric baseline |
+| [KIVI-Sink](../algorithms/kivi-sink) | 2 | 2 | None | 4× total | ★★★★ | Sink-protected low-bit quantization |
 | [SVDq](../algorithms/svdq) | ~1.25 | fp16 | SVD at prefill | 12.8× key | ★★★ | Sub-2-bit keys, long context |
 | [Kitty](../algorithms/kitty) | ~2.5 | fp16 | None | 6.4× key | ★★★★ | Adaptive channel precision, zero calibration |
 | [AdaKV-proxy](../algorithms/adakv) | adaptive (2–4) | fp16 | None | adaptive | ★★★★ | Per-head adaptive bits, layers on KIVI |

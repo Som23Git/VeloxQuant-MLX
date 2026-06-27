@@ -30,7 +30,7 @@
 
 ---
 
-A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **nine quantization strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **eighteen quantization strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
