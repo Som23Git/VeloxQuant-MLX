@@ -1310,42 +1310,21 @@
     .algo-card.vecinfer-card::before {
       content: '';
       position: absolute;
-      inset: -1.5px;
+      inset: -1px;
       border-radius: calc(var(--radius) + 1px);
-      background: conic-gradient(
-        from var(--angle, 0deg),
-        #00d4ff 0%,
-        #7c3aed 25%,
-        #00d4ff 50%,
-        #7c3aed 75%,
-        #00d4ff 100%
-      );
+      background: linear-gradient(135deg, rgba(0,212,255,0.5), rgba(124,58,237,0.5));
       z-index: -1;
-      animation: border-rotate 4s linear infinite;
-      opacity: 0.7;
+      opacity: 0.25;
+      transition: opacity 0.4s ease;
     }
 
-    @property --angle {
-      syntax: '<angle>';
-      initial-value: 0deg;
-      inherits: false;
+    /* Gentle sheen only on hover — a single fade-up, no perpetual motion */
+    .algo-card.vecinfer-card:hover::before {
+      opacity: 0.6;
     }
 
-    @keyframes border-rotate {
-      to { --angle: 360deg; }
-    }
-
-    /* Fallback for browsers without @property */
-    @supports not (background: conic-gradient(from 0deg, red, blue)) {
-      .algo-card.vecinfer-card::before {
-        background: linear-gradient(135deg, #00d4ff, #7c3aed);
-        animation: border-fade 3s ease-in-out infinite;
-      }
-
-      @keyframes border-fade {
-        0%, 100% { opacity: 0.4; }
-        50%       { opacity: 0.9; }
-      }
+    @media (prefers-reduced-motion: reduce) {
+      .algo-card.vecinfer-card::before { transition: none; }
     }
 
     /* ── 4. SCANLINE ON STAT CARDS ── */
