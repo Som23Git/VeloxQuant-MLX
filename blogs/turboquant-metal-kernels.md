@@ -536,4 +536,4 @@ The full source is in [VeloxQuant-MLX](https://github.com/rajveer43/VeloxQuant-M
 
 ---
 
-*Code: [github.com/rajveer43/VeloxQuant-MLX](https://github.com/rajveer43/VeloxQuant-MLX) · Previous post: [I Wrote a Metal Kernel to Stop My Mac From OOMing on LLM Inference](MEDIUM_BLOG_METAL_KERNELS.md)*
+*Code: [github.com/rajveer43/VeloxQuant-MLX](https://github.com/rajveer43/VeloxQuant-MLX) · Previous post: [I Wrote a Metal Kernel to Stop My Mac From OOMing on LLM Inference](metal-kernels.md)*

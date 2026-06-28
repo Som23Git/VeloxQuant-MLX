@@ -2347,7 +2347,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     </div>
 
     <div class="bench-note" style="margin-top:1.5rem;">
-      <strong style="color:#a78bfa">Honest caveat:</strong> the kernel pays a ~50–200µs launch overhead per call on Apple Silicon. On tiny models (SmolLM2 135M, 30 layers, ~60 launches/token) that overhead can exceed the work saved. The kernel is built for the regime that needs it — 7B+ models with realistic context lengths. <strong style="color:var(--text)">Phase 2</strong> (fused dequant + SDPA, never materializing fp16 keys) is on the roadmap. See the full writeup: <a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/MEDIUM_BLOG_METAL_KERNELS.md" target="_blank" rel="noopener" style="color:var(--accent)">Metal kernels blog post</a>.
+      <strong style="color:#a78bfa">Honest caveat:</strong> the kernel pays a ~50–200µs launch overhead per call on Apple Silicon. On tiny models (SmolLM2 135M, 30 layers, ~60 launches/token) that overhead can exceed the work saved. The kernel is built for the regime that needs it — 7B+ models with realistic context lengths. <strong style="color:var(--text)">Phase 2</strong> (fused dequant + SDPA, never materializing fp16 keys) is on the roadmap. See the full writeup: <a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/blogs/metal-kernels.md" target="_blank" rel="noopener" style="color:var(--accent)">Metal kernels blog post</a>.
     </div>
   </section>
 
@@ -2685,6 +2685,7 @@ pip install -e ".[dev]"</span></pre>
     <ul class="footer-links">
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
+      <li><a href="/docs/blog/" rel="noopener">All blog posts</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
       <li><a href="https://medium.com/@rajveer.rathod1301/stop-losing-80-of-your-macs-memory-to-llm-inference-here-s-how-00b6d4d7a0d0" target="_blank" rel="noopener">Blog: 10-model study</a></li>
       <li><a href="https://medium.com/@rajveer.rathod1301/i-wrote-a-30-line-metal-shader-that-fixed-an-oom-bug-and-made-kv-cache-quantization-13-faster-4840a2bd6347" target="_blank" rel="noopener">Blog: Metal kernels</a></li>

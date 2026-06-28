@@ -22,8 +22,8 @@
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.16.0-64748b?style=flat-square" alt="Changelog"/></a>
-  <a href="MEDIUM_BLOG_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
-  <a href="MEDIUM_BLOG_TURBOQUANT_METAL_KERNELS.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
+  <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
+  <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
 
 </div>
@@ -70,7 +70,8 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 12. [Architecture](#architecture)
 13. [CLI](#cli)
 14. [Development](#development)
-15. [References](#references)
+15. [Blog posts](#blog-posts)
+16. [References](#references)
 
 ---
 
@@ -475,7 +476,7 @@ out[vec_idx] = best_idx;
 
 </details>
 
-Read the full writeup: [MEDIUM_BLOG_METAL_KERNELS.md](MEDIUM_BLOG_METAL_KERNELS.md)
+Read the full writeup: [blogs/metal-kernels.md](blogs/metal-kernels.md)
 
 ---
 
@@ -725,6 +726,24 @@ Contributions welcome — please open an issue first for anything beyond a small
 
 ---
 
+## Blog posts
+
+All blog posts live in the [`blogs/`](blogs/) directory and are published at
+**https://veloxquant-mlx.netlify.app/docs/blog/**.
+
+| File | Description | Live |
+|---|---|---|
+| [`blogs/overview.md`](blogs/overview.md) | High-level overview of VeloxQuant-MLX and its goals | [↗](https://veloxquant-mlx.netlify.app/docs/blog/overview) |
+| [`blogs/10-model-study.md`](blogs/10-model-study.md) | End-to-end benchmark study across 10 production models | [↗](https://veloxquant-mlx.netlify.app/docs/blog/10-model-study) |
+| [`blogs/hands-on.md`](blogs/hands-on.md) | Hands-on tutorial: compressing your first model | [↗](https://veloxquant-mlx.netlify.app/docs/blog/hands-on) |
+| [`blogs/kivi.md`](blogs/kivi.md) | Deep dive into the KIVI asymmetric quantization baseline | [↗](https://veloxquant-mlx.netlify.app/docs/blog/kivi) |
+| [`blogs/metal-kernels.md`](blogs/metal-kernels.md) | How the Metal compute kernel cuts quantize latency 13× | [↗](https://veloxquant-mlx.netlify.app/docs/blog/metal-kernels) |
+| [`blogs/results.md`](blogs/results.md) | Detailed benchmark results and analysis | [↗](https://veloxquant-mlx.netlify.app/docs/blog/results) |
+| [`blogs/tensorops-research.md`](blogs/tensorops-research.md) | TensorOps research notes and findings | [↗](https://veloxquant-mlx.netlify.app/docs/blog/tensorops-research) |
+| [`blogs/turboquant-metal-kernels.md`](blogs/turboquant-metal-kernels.md) | TurboQuant + Metal kernels: combined writeup | [↗](https://veloxquant-mlx.netlify.app/docs/blog/turboquant-metal-kernels) |
+
+---
+
 ## References
 
 <details>
@@ -787,8 +806,8 @@ MIT — see [LICENSE](LICENSE).
   <sub>
     <a href="https://veloxquant-mlx.netlify.app/">Landing page</a> ·
     <a href="https://github.com/rajveer43/VeloxQuant-MLX/issues">Issues</a> ·
-    <a href="MEDIUM_BLOG.md">Blog: 10-model study</a> ·
-    <a href="MEDIUM_BLOG_METAL_KERNELS.md">Blog: Metal kernels v1</a> ·
-    <a href="MEDIUM_BLOG_TURBOQUANT_METAL_KERNELS.md">Blog: TurboQuant Metal kernels</a>
+    <a href="blogs/10-model-study.md">Blog: 10-model study</a> ·
+    <a href="blogs/metal-kernels.md">Blog: Metal kernels v1</a> ·
+    <a href="blogs/turboquant-metal-kernels.md">Blog: TurboQuant Metal kernels</a>
   </sub>
 </div>

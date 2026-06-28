@@ -36,7 +36,14 @@ const config: Config = {
           editUrl:
             'https://github.com/rajveer43/veloxquant-mlx/edit/master/docs-site/',
         },
-        blog: false,
+        blog: {
+          showReadingTime: true,
+          blogTitle: 'VeloxQuant-MLX Blog',
+          blogDescription: 'Deep dives into KV cache quantization, Metal kernels, and Apple Silicon LLM inference',
+          postsPerPage: 'ALL',
+          blogSidebarTitle: 'All posts',
+          blogSidebarCount: 'ALL',
+        },
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -88,6 +95,11 @@ const config: Config = {
           position: 'left',
         },
         {
+          to: '/blog',
+          label: 'Blog',
+          position: 'left',
+        },
+        {
           href: 'https://github.com/rajveer43/veloxquant-mlx',
           label: 'GitHub',
           position: 'right',
@@ -122,6 +134,7 @@ const config: Config = {
         {
           title: 'More',
           items: [
+            { label: 'Blog', to: '/blog' },
             { label: 'Changelog', to: '/changelog' },
             { label: 'Home', href: '/' },
           ],
@@ -134,12 +147,15 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
       additionalLanguages: ['python', 'bash', 'toml'],
     },
-    algolia: {
-      appId: process.env.YOUR_APP_ID!,
-      apiKey: process.env.YOUR_SEARCH_API_KEY!,
-      indexName: 'veloxquant-mlx',
-      contextualSearch: true,
-    },
+    // algolia search is configured via env vars on Netlify; disabled locally
+    ...(process.env.YOUR_APP_ID ? {
+      algolia: {
+        appId: process.env.YOUR_APP_ID!,
+        apiKey: process.env.YOUR_SEARCH_API_KEY!,
+        indexName: 'veloxquant-mlx',
+        contextualSearch: true,
+      },
+    } : {}),
   } satisfies Preset.ThemeConfig,
 };
 
