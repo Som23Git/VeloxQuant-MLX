@@ -258,7 +258,7 @@ That gap is the GitHub issue. If MLX adds `tensor<>` support to `metal_kernel`, 
 
 ## What Is in the Library Now
 
-[veloxquant_mlx/metal/fused_sdpa.py](veloxquant_mlx/metal/fused_sdpa.py) has:
+[veloxquant_mlx/metal/fused_sdpa.py](https://github.com/rajveer43/VeloxQuant-MLX/blob/master/veloxquant_mlx/metal/fused_sdpa.py) has:
 
 - `metal::precise::exp` for both softmax `exp` calls — correctness guarantee regardless of MLX math mode
 - `simd_broadcast_first` replacing threadgroup barriers for `running_m` — 256 fewer barriers at S_kv=4096
@@ -287,7 +287,7 @@ I wrote the kernel first. I found the API gap last. Three sessions later.
 
 - VeloxQuant-MLX on PyPI: [pypi.org/project/VeloxQuant-MLX](https://pypi.org/project/VeloxQuant-MLX)
 - GitHub: [github.com/rajveer43/VeloxQuant-MLX](https://github.com/rajveer43/VeloxQuant-MLX)
-- The kernel: [veloxquant_mlx/metal/fused_sdpa.py](veloxquant_mlx/metal/fused_sdpa.py)
+- The kernel: [veloxquant_mlx/metal/fused_sdpa.py](https://github.com/rajveer43/VeloxQuant-MLX/blob/master/veloxquant_mlx/metal/fused_sdpa.py)
 - MLX issue filed: [github.com/ml-explore/mlx/issues](https://github.com/ml-explore/mlx/issues)
 - Previous post (Phase 2 mistake): [Medium — I Spent 8 Hours Writing a FlashAttention Kernel](https://medium.com/@rajveer.rathod1301)
 - Previous post (Phase 1 win): [Medium — I Wrote a Metal Kernel to Stop My Mac From OOMing](https://medium.com/@rajveer.rathod1301)

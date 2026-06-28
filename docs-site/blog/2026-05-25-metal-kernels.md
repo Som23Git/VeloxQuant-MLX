@@ -334,6 +334,6 @@ If you've been hesitant to write custom GPU kernels because it sounds intimidati
 
 GitHub: [github.com/rajveer43/VeloxQuant-MLX](https://github.com/rajveer43/VeloxQuant-MLX)
 PyPI: [pypi.org/project/VeloxQuant-MLX](https://pypi.org/project/VeloxQuant-MLX)
-Benchmark figures: [`figures/metal/summary.png`](figures/metal/summary.png) in the repo
+Benchmark figures: [`figures/metal/summary.png`](https://github.com/rajveer43/VeloxQuant-MLX/blob/master/figures/metal/summary.png) in the repo
 
 If this saves your Mac from OOMing tonight, leave a star — or open an issue if it doesn't.
