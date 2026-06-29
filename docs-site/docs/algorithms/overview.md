@@ -35,6 +35,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [PALU](../algorithms/palu) | ~0.6 (low-rank) | ~0.6 (low-rank) | None | high (full-KV) | ★★★ | First true latent cache — both K and V stored low-rank |
 | [CacheGen](../algorithms/cachegen) | 3–4 (entropy) | 3–4 (entropy) | None | +10–17% over packing | ★★★ | First entropy-coded cache — storage win on correlated KV |
 | [MiniCache](../algorithms/minicache) | fp16 (merged) | fp16 (merged) | None | ~2× on merged layers | ★★★ | Cross-layer SLERP merge — pairs of deep layers cost one |
+| [GEAR](../algorithms/gear) | 2–4 (+ feedback) | 2–4 (+ feedback) | None | quality at low bits | ★★★ | First error-feedback cache — residual low-rank + sparse outliers |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -85,6 +86,7 @@ These work immediately on any model with no setup beyond installation.
 - **[PALU](../algorithms/palu)** — True low-rank latent storage: fits one shared projection per head-group from the prefill batch and stores the cache as latent codes `[S, r]` for *both* keys and values, reconstructing fp16 only at attend time. Unlike SVDq (keys-only, reconstructs full fp16), the cache itself stays low-rank, so the storage win is real. Layered with mixed-bit latent quantization for a full-KV effective rate below 1 bit/element. Zero calibration.
 - **[CacheGen](../algorithms/cachegen)** — Entropy coding: the first method to compress the *codes* themselves rather than just pick a bit-width. Exploits token-wise locality (adjacent tokens' KV are similar) by delta-coding the quantized codes and entropy-coding the low-entropy residual stream toward its Shannon entropy. Reconstruction is identical to group quant; the win is storage, capped to never exceed fixed-width packing. Zero calibration.
 - **[MiniCache](../algorithms/minicache)** — Cross-layer depth merging: adjacent middle-to-deep layers share one SLERP-interpolated direction while each keeps its own per-token magnitude, so a pair of layers costs roughly one. High-divergence token pairs are retained unmerged. A different route to inter-layer redundancy than XQuant (which reuses codes); MiniCache merges the tensors. Zero calibration.
+- **[GEAR](../algorithms/gear)** — Error feedback: the first method to reconstruct what an ultra-low-bit base quantizer threw away, rather than just pick a bit-width. It adds a low-rank approximation of the quantization *residual* plus a sparse correction for the few outlier entries the low-rank term cannot absorb — `X ~= Quant_b(X) + L·R + S`. The residual SVD reuses the same shared helper as SVDq/PALU, but applied to the error rather than the signal. Composes over any base quantizer to recover quality at low bits. Zero calibration.
 
 ### Calibration-required methods
 

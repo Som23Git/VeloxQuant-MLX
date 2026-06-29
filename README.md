@@ -350,6 +350,23 @@ caches = KVCacheBuilder.for_model(model, config)  # requires for_model (shared c
 
 **Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_minicache.py` is ready but has not been run. Known limitation: MiniCache merges fp16 directions (no extra quantization) and the merge happens on reconstructed tensors, so attend-time working set is not reduced — the win is stored cache size.
 
+## GEAR — error-feedback KV cache — new in 0.17.0
+
+`method="gear"` is the first method in the suite on the **error-feedback** axis. *Inspired by, **not a faithful port of***, [GEAR (Kang et al., arXiv:2403.05527)](https://arxiv.org/abs/2403.05527): every other method picks a bit-width or a cache layout and lives with the quantization error; GEAR makes *any* ultra-low-bit base quantizer near-lossless by reconstructing what it threw away — `X ≈ Quant_b(X) + L·R + S`: an ultra-low-bit base quant, a **low-rank** approximation of the quantization *residual*, and a **sparse** matrix correcting the outlier entries the low-rank term cannot absorb. Unlike CacheGen (reconstruction identical to group quant), GEAR's reconstruction genuinely **recovers quality** the base bit-width loses.
+
+```python
+config = KVCacheConfig(method="gear", head_dim=128,
+                       gear_bits=2,                # ultra-low base bit-width
+                       gear_rank=8,                # residual low-rank (keep small)
+                       gear_sparse_fraction=0.005, # top-|residual| kept exact
+                       gear_quantize_values=True)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**Evidence (`tests/cache/test_gear_cache.py` (10) + `tests/quantizers/test_gear.py` (13), all passing):** GEAR reconstruction MSE strictly below base-quant-alone on low-rank+outlier data; low-rank-alone and sparse-alone each help; `rank=0, sparse=0` collapses exactly to base group quant; a rank-`r` residual recovered to `< eps`; sparse selection picks true top-magnitude entries; byte-accounting ordering `base_only ≤ compressed ≤ fp16` at realistic head dim; `error_recovery_ratio` in `(0,1]`; values-off path keeps values fp16; build via both `create` and `for_model`. Offline harness reports 11–22% MSE improvement on synthetic low-rank data — **synthetic, not model-level.**
+
+**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_gear.py` is an offline-synthetic harness (loads no model) and has not been run on hardware for committed numbers. Known limitation: the *stored* cache shrinks but reconstruction is fp16 for SDPA, so attend-time working set is not reduced; the low-rank/sparse factors are overhead, so keep the rank low relative to the head dim.
+
 ## SpectralQuant — new in 0.6.0
 
 SpectralQuant implements ["3% Is All You Need: Breaking TurboQuant's Compression Limit via Spectral Structure"](https://arxiv.org/abs/2506.xxxxx). The key insight: **KV cache keys concentrate ~96% of their variance in just 3–4% of dimensions universally across all transformer architectures**. SpectralQuant exploits this by rotating keys into their eigenvector basis before quantization — no more wasting bits on noise dimensions.
@@ -761,6 +778,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [PALU (ICLR 2025)](https://arxiv.org/abs/2407.21118) — Chang et al., "Palu: Compressing KV-Cache with Low-Rank Projection" — group-head low-rank projection of keys and values (true latent storage)
 - [CacheGen (SIGCOMM 2024)](https://arxiv.org/abs/2310.07240) — Liu et al., "CacheGen: KV Cache Compression and Streaming for Fast Large Language Model Serving" — entropy coding of the quantized KV via token-wise locality
 - [MiniCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14366) — Liu et al., "MiniCache: KV Cache Compression in Depth Dimension for Large Language Models" — cross-layer SLERP merge of adjacent layers' KV directions
+- [GEAR (arXiv:2403.05527)](https://arxiv.org/abs/2403.05527) — Kang et al., "GEAR: An Efficient KV Cache Compression Recipe for Near-Lossless Generative Inference of LLM" — error feedback: low-rank residual + sparse outlier correction over a base quantizer
 
 </details>
 

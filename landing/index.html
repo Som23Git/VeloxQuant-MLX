@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache — all in MLX. New in 0.16.0: CacheGen is the first entropy-coded cache (token-locality storage win), and MiniCache merges adjacent deep layers' KV via SLERP so a pair costs one. Zero calibration. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR — all in MLX. New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus sparse outlier correction to recover quality at low bits. Zero calibration. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1530,14 +1530,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">18 algorithms</span>
+        <span class="hero-pill">19 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 18 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache
+        <summary>See all 19 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1586,6 +1586,8 @@
       <span class="provenance-item">ICML 2025 <em>CommVQ</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">SIGCOMM 2024 <em>CacheGen</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">arXiv 2024 <em>GEAR</em></span>
     </div>
   </div>
 
@@ -1660,7 +1662,7 @@
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
     <h2 class="section-title">Eighteen quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus a sparse outlier correction (<code>X ≈ Quant_b(X) + L·R + S</code>), recovering quality the base bit-width loses. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
@@ -1981,6 +1983,50 @@
               <div class="algo-stat-row">
                 <span class="label">Incompressible data</span>
                 <span class="value">0% (never negative)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GEAR — full-width featured card -->
+      <div id="algo-gear" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.17.0 — ERROR-FEEDBACK CACHE</div>
+            <div class="algo-title" style="font-size:1.25rem">GEAR — Error-Feedback KV Cache (Residual Low-Rank + Sparse Outliers)</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from GEAR (arXiv:2403.05527, Kang et al.). The first method in the suite on the <strong style="color:#22c55e">error-feedback axis</strong> — instead of just picking a bit-width, it reconstructs what an ultra-low-bit base quantizer threw away: <code>X ≈ Quant_b(X) + L·R + S</code>. Unlike CacheGen (reconstruction identical to group quant), GEAR's reconstruction genuinely <strong style="color:#22c55e">recovers quality</strong> the base bit-width loses. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Base quantize</strong> — ultra-low-bit group quant, borrowed from the shared quantizer<br>
+              <strong style="color:var(--text)">② Residual low-rank</strong> — truncated SVD of the quantization error <code>E = X − dequant(Quant_b(X))</code> gives <code>L·R</code><br>
+              <strong style="color:var(--text)">③ Sparse outliers</strong> — the top-magnitude entries the low-rank term cannot absorb are kept exact<br>
+              <strong style="color:var(--text)">④ Reconstruct</strong> — <code>base + L·R + S</code> to fp16 for SDPA<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> The residual of a coherent KV matrix is itself low-rank, so a small rank recovers most of the lost signal cheaply; a handful of sparse corrections mop up the outliers. Composes over any base quantizer to push the bit-width lower without the usual quality cliff.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">error feedback</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Recovers</span>
+                <span class="value" style="color:#22c55e">quality at low bits</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Decomposition</span>
+                <span class="value">base + low-rank + sparse</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Reconstruction</span>
+                <span class="value">improved vs base quant</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Calibration</span>
@@ -2713,7 +2759,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.16.0 — CacheGen + MiniCache shipped';
+      const text = 'v0.17.0 — GEAR error-feedback cache shipped';
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         badge.textContent = text;
         return;

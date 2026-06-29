@@ -11,7 +11,22 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.16.0 — Latest
+## v0.17.0 — Latest
+
+### New
+- **GEAR** (`method="gear"`) — the repo's first **error-feedback** KV cache. Every other method picks a bit-width or a cache layout and lives with the quantization error; GEAR makes *any* ultra-low-bit base quantizer near-lossless by reconstructing what it threw away, via the three-part decomposition `X ~= Quant_b(X) + L·R + S`: an ultra-low-bit base quant, a **low-rank** approximation of the quantization *residual* `E = X - dequant(Quant_b(X))`, and a **sparse** matrix correcting the top-magnitude outlier entries the low-rank term cannot absorb. Unlike CacheGen (reconstruction identical to group quant), GEAR's reconstruction genuinely **recovers quality** the base bit-width loses. GEAR-adapted (arXiv:2403.05527, Kang et al.): the residual SVD is computed per `update_and_fetch` call (reusing the SVDq/PALU prefill-SVD pattern) and GEAR's fused dequant CUDA kernel is not ported — we reconstruct fp16 then call MLX SDPA, so stored size shrinks but attend-time peak memory does not.
+  - `GEARKVCache` (`veloxquant_mlx/cache/gear_cache.py`); primitives in `veloxquant_mlx/quantizers/gear.py`: `quantize_base`, `residual`, `lowrank_error`, `sparse_outliers`, `gear_compress`, `gear_reconstruct`, `gear_bytes`, `base_only_bytes`, `gear_quant_dequant`. The base quant is borrowed from CacheGen and the truncated-SVD helper (`_quant_utils._truncated_svd`) is shared with SVDq/PALU.
+  - Config: `gear_bits`, `gear_rank`, `gear_energy_threshold`, `gear_sparse_fraction`, `gear_group_size`, `gear_quantize_values`
+  - 10 cache tests + 13 quantizer tests; `benchmark_scripts/benchmark_gear.py` (offline-synthetic, not run)
+  - Single-layer (no coordinator); `KVCacheBuilder.for_model()` propagates the `gear_*` fields automatically via `dataclasses.replace`.
+
+### Honest scope
+- GEAR's **stored** cache (base codes + low-rank factors + sparse triples) shrinks, but the working set *during* attention is the reconstructed fp16 K/V — attend-time peak memory is not reduced. The low-rank factors and sparse triples are overhead, so the rank must be genuinely low relative to the head dim (the GEAR premise); the overhead is reported honestly and never hidden.
+- Quality evidence is unit-test level (synthetic low-rank-plus-outlier data); no model-level benchmark run yet.
+
+---
+
+## v0.16.0
 
 ### New
 - **CacheGen** (`method="cachegen"`) — the repo's first **entropy-coded** KV cache. Every other method packs codes at a fixed bit-width; CacheGen exploits token-wise locality (adjacent tokens' KV are similar) by applying a reversible token-delta transform to the quantized codes and compressing the low-entropy residual stream toward its Shannon entropy. Reconstruction is identical to plain group quant (lossless over the codes); the contribution is the storage accounting. CacheGen-adapted (arXiv:2310.07240, SIGCOMM 2024): rather than ship a serial range codec that would bottleneck MLX decode, the entropy-coded byte size is modelled from the measured symbol entropy and capped at the fixed-width packed size, so savings are never negative (exactly 0% on incompressible iid data, ~10–17% on correlated data).

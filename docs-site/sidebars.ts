@@ -40,6 +40,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/palu',
         'algorithms/cachegen',
         'algorithms/minicache',
+        'algorithms/gear',
       ],
     },
   ],
