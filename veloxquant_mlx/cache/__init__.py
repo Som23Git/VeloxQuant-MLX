@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from veloxquant_mlx.cache.base import KVCacheBuilder, KVCacheConfig, KVCacheFactory
 from veloxquant_mlx.cache.cachegen_cache import CacheGenKVCache
+from veloxquant_mlx.cache.gear_cache import GEARKVCache
 from veloxquant_mlx.cache.minicache_cache import MiniCacheKVCache
 from veloxquant_mlx.cache.palu_cache import PALUKVCache
 from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
@@ -14,6 +15,7 @@ __all__ = [
     "KVCacheConfig",
     "KVCacheFactory",
     "CacheGenKVCache",
+    "GEARKVCache",
     "MiniCacheKVCache",
     "PALUKVCache",
     "PolarQuantKVCache",

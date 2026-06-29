@@ -35,7 +35,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
-        "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache",
+        "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -110,6 +110,13 @@ class KVCacheConfig:
     minicache_retention_threshold: float = 0.9  # cosine below which a token pair is kept unmerged
     minicache_slerp_t: float = 0.5         # SLERP interpolation factor
     minicache_max_ctx: int = 8192          # coordinator per-group token budget
+    # --- GEAR configuration (error-feedback: residual low-rank + sparse outliers) ---
+    gear_bits: int = 2                     # ultra-low base bit-width
+    gear_rank: Optional[int] = None        # residual low-rank; None → energy threshold
+    gear_energy_threshold: float = 0.90    # residual singular-value energy to retain
+    gear_sparse_fraction: float = 0.01     # top-|residual| fraction kept exact (0 = pure low-rank)
+    gear_group_size: int = 32              # base group-quant token group size
+    gear_quantize_values: bool = True      # apply GEAR to values too (False = keys only)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -168,6 +175,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.palu_cache import PALUKVCache
         from veloxquant_mlx.cache.cachegen_cache import CacheGenKVCache
         from veloxquant_mlx.cache.minicache_cache import MiniCacheKVCache
+        from veloxquant_mlx.cache.gear_cache import GEARKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -231,12 +239,14 @@ class KVCacheFactory:
             # merging requires KVCacheBuilder.for_model(), which builds the
             # shared MiniCacheCoordinator and assigns primary/merge roles.
             cache = MiniCacheKVCache(config)
+        elif config.method == "gear":
+            cache = GEARKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
-                f"adakv, xquant, kvquant, palu, cachegen, minicache."
+                f"adakv, xquant, kvquant, palu, cachegen, minicache, gear."
             )
 
         if config.sliding_window is not None:
