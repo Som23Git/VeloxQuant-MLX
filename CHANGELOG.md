@@ -7,6 +7,50 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.17.0] — 2026-06-29
+
+### Added — GEAR: error-feedback KV cache (`method="gear"`)
+
+- **`veloxquant_mlx.cache.gear_cache.GEARKVCache`** — the repo's first
+  **error-feedback** cache. *Inspired by, not a faithful port of,* "GEAR: An
+  Efficient KV Cache Compression Recipe for Near-Lossless Generative Inference of
+  LLM" (Kang et al., arXiv:2403.05527). Every other method picks a bit-width (or
+  a cache layout) and lives with the quantization error; GEAR makes *any*
+  ultra-low-bit base quantizer near-lossless by reconstructing what it threw away
+  via the three-part decomposition `X ≈ Quant_b(X) + L·R + S`: an ultra-low-bit
+  base group quant, a **low-rank** approximation of the quantization residual
+  `E = X − dequant(Quant_b(X))`, and a **sparse** matrix correcting the
+  top-magnitude outlier entries the low-rank term cannot absorb. Unlike CacheGen
+  (reconstruction identical to group quant), GEAR's reconstruction genuinely
+  **recovers quality** the base bit-width loses.
+- **Adaptation:** the residual SVD is computed per `update_and_fetch` call on the
+  tensor the cache holds (reusing the SVDq/PALU prefill-SVD pattern), and GEAR's
+  fused streaming-dequant CUDA kernel is **not** ported — we reconstruct fp16
+  then call MLX SDPA, so the *stored* cache shrinks but attend-time peak memory
+  does not. The base quant is borrowed from CacheGen and the truncated-SVD helper
+  (`_quant_utils._truncated_svd`) is shared with SVDq/PALU.
+- Primitives in `veloxquant_mlx/quantizers/gear.py`: `quantize_base`, `residual`,
+  `lowrank_error`, `sparse_outliers`, `gear_compress`, `gear_reconstruct`,
+  `gear_bytes`, `base_only_bytes`, `gear_quant_dequant` (+ `GEARState`).
+- Config: `gear_bits`, `gear_rank`, `gear_energy_threshold`,
+  `gear_sparse_fraction`, `gear_group_size`, `gear_quantize_values`. Single-layer
+  (no coordinator); `KVCacheBuilder.for_model()` propagates the `gear_*` fields
+  automatically via `dataclasses.replace`.
+- **Tests** — `tests/cache/test_gear_cache.py` (10) +
+  `tests/quantizers/test_gear.py` (13): GEAR reconstruction MSE strictly below
+  base-quant-alone on low-rank+outlier data; low-rank-alone and sparse-alone each
+  help; `rank=0, sparse=0` collapses exactly to base group quant; rank-`r`
+  residual recovered to `< eps`; sparse selection picks true top-magnitude
+  entries; byte-accounting ordering `base_only ≤ compressed ≤ fp16`;
+  `error_recovery_ratio` in `(0,1]`; values-off path; decode accumulation;
+  determinism; build via both `create` and `for_model`.
+- **Benchmark** — `benchmark_scripts/benchmark_gear.py` (offline-synthetic,
+  loads no model). **Not yet run** on hardware for committed numbers.
+- **Honest scope:** the stored cache shrinks but reconstruction is fp16 for SDPA,
+  so attend-time peak memory is not reduced; the low-rank/sparse factors are
+  overhead, so the rank must be low relative to the head dim (the GEAR premise) —
+  reported honestly, never hidden.
+
 ## [0.16.0] — 2026-06-26
 
 ### Added — CacheGen: entropy-coded KV cache (`method="cachegen"`)
