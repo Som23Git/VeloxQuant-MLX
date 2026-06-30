@@ -35,7 +35,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
-        "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear",
+        "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -117,6 +117,12 @@ class KVCacheConfig:
     gear_sparse_fraction: float = 0.01     # top-|residual| fraction kept exact (0 = pure low-rank)
     gear_group_size: int = 32              # base group-quant token group size
     gear_quantize_values: bool = True      # apply GEAR to values too (False = keys only)
+    # --- ZipCache-adapted configuration (saliency-adaptive per-token mixed-precision) ---
+    zipcache_hi_bits: int = 4             # bit-width for salient (high-norm) tokens
+    zipcache_lo_bits: int = 2             # bit-width for non-salient tokens
+    zipcache_hi_fraction: float = 0.20   # fraction of tokens routed to hi_bits
+    zipcache_group_size: int = 32         # token group size for min/max quantization
+    zipcache_quantize_values: bool = True # apply mixed-precision to values too
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -176,6 +182,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.cachegen_cache import CacheGenKVCache
         from veloxquant_mlx.cache.minicache_cache import MiniCacheKVCache
         from veloxquant_mlx.cache.gear_cache import GEARKVCache
+        from veloxquant_mlx.cache.zipcache_cache import ZipCacheKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -241,12 +248,14 @@ class KVCacheFactory:
             cache = MiniCacheKVCache(config)
         elif config.method == "gear":
             cache = GEARKVCache(config)
+        elif config.method == "zipcache":
+            cache = ZipCacheKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
-                f"adakv, xquant, kvquant, palu, cachegen, minicache, gear."
+                f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache."
             )
 
         if config.sliding_window is not None:
