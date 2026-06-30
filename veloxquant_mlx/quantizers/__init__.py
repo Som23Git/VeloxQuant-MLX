@@ -10,6 +10,18 @@ from veloxquant_mlx.quantizers.turboquant_rvq import TurboQuantRVQ
 from veloxquant_mlx.quantizers.comm_vq import CommVQQuantizer
 from veloxquant_mlx.quantizers.rabitq import RaBitQQuantizer
 from veloxquant_mlx.quantizers.kivi import KIVIQuantizer
+from veloxquant_mlx.quantizers.zipcache import (
+    ZipCacheState,
+    token_key_norms,
+    saliency_mask,
+    channel_quant,
+    channel_dequant,
+    zipcache_compress,
+    zipcache_reconstruct,
+    zipcache_bytes,
+    base_only_bytes,
+    zipcache_quant_dequant,
+)
 
 __all__ = [
     "QuantizerFactory",
@@ -22,4 +34,14 @@ __all__ = [
     "CommVQQuantizer",
     "RaBitQQuantizer",
     "KIVIQuantizer",
+    "ZipCacheState",
+    "token_key_norms",
+    "saliency_mask",
+    "channel_quant",
+    "channel_dequant",
+    "zipcache_compress",
+    "zipcache_reconstruct",
+    "zipcache_bytes",
+    "base_only_bytes",
+    "zipcache_quant_dequant",
 ]
