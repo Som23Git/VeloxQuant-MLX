@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements eighteen KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements nineteen KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -36,6 +36,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [CacheGen](../algorithms/cachegen) | 3–4 (entropy) | 3–4 (entropy) | None | +10–17% over packing | ★★★ | First entropy-coded cache — storage win on correlated KV |
 | [MiniCache](../algorithms/minicache) | fp16 (merged) | fp16 (merged) | None | ~2× on merged layers | ★★★ | Cross-layer SLERP merge — pairs of deep layers cost one |
 | [GEAR](../algorithms/gear) | 2–4 (+ feedback) | 2–4 (+ feedback) | None | quality at low bits | ★★★ | First error-feedback cache — residual low-rank + sparse outliers |
+| [ZipCache-adapted](../algorithms/zipcache) | adaptive (2–4) | adaptive (2–4) | None | adaptive | ★★★★ | Per-token mixed bit-width — salient tokens get hi_bits, rest get lo_bits |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -66,6 +67,9 @@ Are adjacent layers in your model highly correlated?
 
 Are your K/V distributions heavy-tailed / non-uniform?
 └── Yes, want best quality per bit without calibration → KVQuant-NUQ
+
+Do a small fraction of your tokens have disproportionate attention weight?
+└── Yes, want token-level bit allocation (not fp16 protection) → ZipCache-adapted
 ```
 
 ## Method families
@@ -87,6 +91,7 @@ These work immediately on any model with no setup beyond installation.
 - **[CacheGen](../algorithms/cachegen)** — Entropy coding: the first method to compress the *codes* themselves rather than just pick a bit-width. Exploits token-wise locality (adjacent tokens' KV are similar) by delta-coding the quantized codes and entropy-coding the low-entropy residual stream toward its Shannon entropy. Reconstruction is identical to group quant; the win is storage, capped to never exceed fixed-width packing. Zero calibration.
 - **[MiniCache](../algorithms/minicache)** — Cross-layer depth merging: adjacent middle-to-deep layers share one SLERP-interpolated direction while each keeps its own per-token magnitude, so a pair of layers costs roughly one. High-divergence token pairs are retained unmerged. A different route to inter-layer redundancy than XQuant (which reuses codes); MiniCache merges the tensors. Zero calibration.
 - **[GEAR](../algorithms/gear)** — Error feedback: the first method to reconstruct what an ultra-low-bit base quantizer threw away, rather than just pick a bit-width. It adds a low-rank approximation of the quantization *residual* plus a sparse correction for the few outlier entries the low-rank term cannot absorb — `X ~= Quant_b(X) + L·R + S`. The residual SVD reuses the same shared helper as SVDq/PALU, but applied to the error rather than the signal. Composes over any base quantizer to recover quality at low bits. Zero calibration.
+- **[ZipCache-adapted](../algorithms/zipcache)** — Per-token mixed bit-width: the first method to allocate bit-width *per token* within the quantized space. Uses key L2-norm as a saliency proxy (the same proxy as KIVI-Sink and AdaKV-proxy, but with a different decision): the top `hi_fraction` tokens by norm get `hi_bits`; the rest get `lo_bits`. Both groups remain quantized — not fp16 protection. The effective average rate is `hi_frac×hi_bits + (1-hi_frac)×lo_bits`. Labeled "ZipCache-adapted" because the paper's true signal (attention scores) is not observable at the cache level. Zero calibration.
 
 ### Calibration-required methods
 

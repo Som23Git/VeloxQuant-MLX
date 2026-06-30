@@ -11,7 +11,23 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.17.0 — Latest
+## v0.18.0 — Latest
+
+### New
+- **ZipCache-adapted** (`method="zipcache"`) — the repo's first **per-token mixed bit-width** cache. The top `hi_fraction` of tokens by key L2-norm (the saliency proxy) are quantized at `hi_bits`; the rest at `lo_bits`. Both groups remain quantized — not fp16. ZipCache-adapted (arXiv:2405.14256, NeurIPS 2024, He et al.): the paper's true signal is normalized attention scores, which are not observable by a cache wrapper; key L2-norm is the proxy (same as KIVI-Sink and AdaKV-proxy, but here the decision is bit-width routing rather than fp16 protection or head budgeting).
+  - `ZipCacheKVCache` (`veloxquant_mlx/cache/zipcache_cache.py`); primitives in `veloxquant_mlx/quantizers/zipcache.py`: `token_key_norms`, `saliency_mask`, `channel_quant`, `channel_dequant`, `zipcache_compress`, `zipcache_reconstruct`, `zipcache_bytes`, `base_only_bytes`, `zipcache_quant_dequant`.
+  - Config: `zipcache_hi_bits`, `zipcache_lo_bits`, `zipcache_hi_fraction`, `zipcache_group_size`, `zipcache_quantize_values`.
+  - 16 quantizer tests + 11 cache tests; `benchmark_scripts/benchmark_zipcache.py` (offline-synthetic, not run).
+  - Single-layer (no coordinator); `KVCacheBuilder.for_model()` propagates all `zipcache_*` fields via `dataclasses.replace`.
+
+### Honest scope
+- The saliency proxy (key L2-norm) is weaker than true attention scores. This is the third use of the key-norm proxy in this repo; each prior use is on a different decision (KIVI-Sink: fp16 protection; AdaKV-proxy: head budget).
+- The effective average key rate is `hi_frac×hi_bits + (1-hi_frac)×lo_bits` — between `lo_bits` and `hi_bits`, as expected.
+- No model-level benchmark run yet; stored bytes and reconstruction MSE are test-verified on synthetic data.
+
+---
+
+## v0.17.0
 
 ### New
 - **GEAR** (`method="gear"`) — the repo's first **error-feedback** KV cache. Every other method picks a bit-width or a cache layout and lives with the quantization error; GEAR makes *any* ultra-low-bit base quantizer near-lossless by reconstructing what it threw away, via the three-part decomposition `X ~= Quant_b(X) + L·R + S`: an ultra-low-bit base quant, a **low-rank** approximation of the quantization *residual* `E = X - dequant(Quant_b(X))`, and a **sparse** matrix correcting the top-magnitude outlier entries the low-rank term cannot absorb. Unlike CacheGen (reconstruction identical to group quant), GEAR's reconstruction genuinely **recovers quality** the base bit-width loses. GEAR-adapted (arXiv:2403.05527, Kang et al.): the residual SVD is computed per `update_and_fetch` call (reusing the SVDq/PALU prefill-SVD pattern) and GEAR's fused dequant CUDA kernel is not ported — we reconstruct fp16 then call MLX SDPA, so stored size shrinks but attend-time peak memory does not.
