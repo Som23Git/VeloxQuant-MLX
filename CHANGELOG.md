@@ -7,6 +7,43 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.18.0] — 2026-06-30
+
+### Added — ZipCache: saliency-adaptive per-token mixed-precision (`method="zipcache"`)
+
+- **`veloxquant_mlx.cache.zipcache_cache.ZipCacheKVCache`** — the repo's first
+  **per-token mixed bit-width** cache. *Inspired by, not a faithful port of,*
+  "ZipCache: Accurate and Efficient KV Cache Quantization with Salient Token
+  Identification" (He et al., NeurIPS 2024, arXiv:2405.14256). The top
+  `zipcache_hi_fraction` of tokens by key L2-norm are quantized at `zipcache_hi_bits`;
+  the rest at `zipcache_lo_bits`. Both groups remain quantized — this is not fp16
+  protection (KIVI-Sink) nor head budgeting (AdaKV-proxy). Effective average key rate:
+  `hi_frac × hi_bits + (1-hi_frac) × lo_bits`.
+- **Adaptation:** the paper's true saliency signal is normalized attention scores,
+  which are not observable by a cache wrapper. Key L2-norm is the proxy (same signal
+  used by KIVI-Sink and AdaKV-proxy, but with a different decision — bit-width routing
+  rather than fp16 protection or head budgeting). This is the third use of the key-norm
+  proxy; the proxy weakness is documented plainly.
+- Primitives in `veloxquant_mlx/quantizers/zipcache.py`: `token_key_norms`,
+  `saliency_mask`, `channel_quant`, `channel_dequant`, `zipcache_compress`,
+  `zipcache_reconstruct`, `zipcache_bytes`, `base_only_bytes`, `zipcache_quant_dequant`
+  (+ `ZipCacheState`).
+- Config: `zipcache_hi_bits`, `zipcache_lo_bits`, `zipcache_hi_fraction`,
+  `zipcache_group_size`, `zipcache_quantize_values`. Single-layer (no coordinator);
+  `KVCacheBuilder.for_model()` propagates all `zipcache_*` fields automatically via
+  `dataclasses.replace`.
+- **Tests** — `tests/quantizers/test_zipcache.py` (16 tests) +
+  `tests/cache/test_zipcache_cache.py` (11 tests): saliency mask selects exact
+  top-fraction by key-norm; 4-bit channel quant cosine > 0.995; 2-bit cosine > 0.8;
+  compress/reconstruct shape and dtype; `hi_fraction=0` and `=1` edge cases;
+  byte ordering `compressed ≤ fp16`, mixed-bit ≥ all-lo-bit baseline; effective avg
+  bits in `[lo_bits, hi_bits]`; values-off passthrough; decode accumulation;
+  determinism; build via both `create` and `for_model`.
+- **Benchmark** — `benchmark_scripts/benchmark_zipcache.py` (offline-synthetic,
+  loads no model). **Not yet run** on hardware for committed numbers.
+- **Honest scope:** proxy weakness (key-norm, not true attention scores) is stated in
+  all docs; no model-level benchmark run yet.
+
 ## [0.17.0] — 2026-06-29
 
 ### Added — GEAR: error-feedback KV cache (`method="gear"`)

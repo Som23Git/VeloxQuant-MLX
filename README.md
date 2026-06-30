@@ -11,7 +11,7 @@
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.17.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.18.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
@@ -21,7 +21,7 @@
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.17.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.18.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -366,6 +366,24 @@ caches = KVCacheBuilder.for_model(model, config)
 **Evidence (`tests/cache/test_gear_cache.py` (10) + `tests/quantizers/test_gear.py` (13), all passing):** GEAR reconstruction MSE strictly below base-quant-alone on low-rank+outlier data; low-rank-alone and sparse-alone each help; `rank=0, sparse=0` collapses exactly to base group quant; a rank-`r` residual recovered to `< eps`; sparse selection picks true top-magnitude entries; byte-accounting ordering `base_only ≤ compressed ≤ fp16` at realistic head dim; `error_recovery_ratio` in `(0,1]`; values-off path keeps values fp16; build via both `create` and `for_model`. Offline harness reports 11–22% MSE improvement on synthetic low-rank data — **synthetic, not model-level.**
 
 **Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_gear.py` is an offline-synthetic harness (loads no model) and has not been run on hardware for committed numbers. Known limitation: the *stored* cache shrinks but reconstruction is fp16 for SDPA, so attend-time working set is not reduced; the low-rank/sparse factors are overhead, so keep the rank low relative to the head dim.
+
+## ZipCache-adapted — saliency-adaptive per-token mixed precision — new in 0.18.0
+
+`method="zipcache"` is the repo's first **per-token mixed bit-width** cache. *Inspired by, **not a faithful port of***, [ZipCache (He et al., NeurIPS 2024, arXiv:2405.14256)](https://arxiv.org/abs/2405.14256): the top `hi_fraction` of tokens by key L2-norm are quantized at `hi_bits`; the rest at `lo_bits`. Both groups remain quantized — not fp16. This is the fourth use of the key-norm proxy in the repo, but with a different decision: bit-width routing rather than fp16 protection (KIVI-Sink) or head budgeting (AdaKV-proxy).
+
+```python
+config = KVCacheConfig(method="zipcache", head_dim=128,
+                       zipcache_hi_bits=4,        # salient tokens get 4-bit
+                       zipcache_lo_bits=2,         # rest get 2-bit
+                       zipcache_hi_fraction=0.20,  # top 20% by key-norm
+                       zipcache_group_size=32,
+                       zipcache_quantize_values=True)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**Evidence (`tests/cache/test_zipcache_cache.py` (11) + `tests/quantizers/test_zipcache.py` (16), all passing):** saliency mask selects top-fraction by key-norm exactly; 4-bit channel quant cosine > 0.995; 2-bit cosine > 0.8; compress/reconstruct preserves shape and fp16 dtype; `hi_fraction=1.0` beats `hi_fraction=0.0`; byte ordering compressed ≤ fp16, mixed-bit ≥ all-lo baseline; effective avg bits in `[lo_bits, hi_bits]`; values-off passthrough; decode accumulation; determinism; `for_model` config propagation.
+
+**Honest limitation:** the proxy (key L2-norm) is weaker than true attention scores. No model-level benchmark yet — `benchmark_scripts/benchmark_zipcache.py` is an offline-synthetic harness.
 
 ## SpectralQuant — new in 0.6.0
 
@@ -779,6 +797,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [CacheGen (SIGCOMM 2024)](https://arxiv.org/abs/2310.07240) — Liu et al., "CacheGen: KV Cache Compression and Streaming for Fast Large Language Model Serving" — entropy coding of the quantized KV via token-wise locality
 - [MiniCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14366) — Liu et al., "MiniCache: KV Cache Compression in Depth Dimension for Large Language Models" — cross-layer SLERP merge of adjacent layers' KV directions
 - [GEAR (arXiv:2403.05527)](https://arxiv.org/abs/2403.05527) — Kang et al., "GEAR: An Efficient KV Cache Compression Recipe for Near-Lossless Generative Inference of LLM" — error feedback: low-rank residual + sparse outlier correction over a base quantizer
+- [ZipCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14256) — He et al., "ZipCache: Accurate and Efficient KV Cache Quantization with Salient Token Identification" — per-token mixed bit-width via saliency-adaptive allocation (adapted: key-norm proxy for the attention-score saliency signal)
 
 </details>
 
