@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR — all in MLX. New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus sparse outlier correction to recover quality at low bits. Zero calibration. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted — all in MLX. New in 0.18.0: ZipCache-adapted is a saliency-adaptive cache — a key-norm proxy routes a small fraction of tokens to a higher bit-width while the rest stay at a low base rate. Zero calibration. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1530,14 +1530,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">19 algorithms</span>
+        <span class="hero-pill">20 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 19 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR
+        <summary>See all 20 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1588,6 +1588,8 @@
       <span class="provenance-item">SIGCOMM 2024 <em>CacheGen</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">arXiv 2024 <em>GEAR</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">NeurIPS 2024 <em>ZipCache</em></span>
     </div>
   </div>
 
@@ -1661,12 +1663,12 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Eighteen quantization strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus a sparse outlier correction (<code>X ≈ Quant_b(X) + L·R + S</code>), recovering quality the base bit-width loses. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Twenty quantization strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.18.0: ZipCache-adapted is the first saliency-adaptive cache — a key-norm proxy ranks tokens, routing a small top fraction to a higher bit-width while the rest stay at a low base rate (<code>hi_bits</code> for salient tokens, <code>lo_bits</code> for the rest). New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus a sparse outlier correction (<code>X ≈ Quant_b(X) + L·R + S</code>), recovering quality the base bit-width loses. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (18)</button>
+      <button class="filter-btn active" data-filter="all">All (20)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -1983,6 +1985,50 @@
               <div class="algo-stat-row">
                 <span class="label">Incompressible data</span>
                 <span class="value">0% (never negative)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ZipCache — full-width featured card -->
+      <div id="algo-zipcache" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.18.0 — SALIENCY-ADAPTIVE CACHE</div>
+            <div class="algo-title" style="font-size:1.25rem">ZipCache-adapted — Saliency-Adaptive Per-Token Mixed Precision</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from ZipCache (arXiv:2405.14256, NeurIPS 2024, He et al.). The first method in the suite on the <strong style="color:#22c55e">per-token saliency axis</strong> — instead of one bit-width for every token, a small top fraction gets a higher bit-width and the rest stay at a low base rate. The paper ranks tokens by attention score; since a cache wrapper cannot observe attention scores, this implementation substitutes a <strong style="color:#22c55e">key-norm proxy</strong> (the same proxy family as KIVI-Sink and AdaKV-proxy). Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Score tokens</strong> — per-token key-norm proxy stands in for the paper's attention-score saliency signal<br>
+              <strong style="color:var(--text)">② Split by saliency</strong> — top <code>hi_fraction</code> of tokens flagged salient, the rest are not<br>
+              <strong style="color:var(--text)">③ Mixed-bit quantize</strong> — salient tokens quantized at <code>hi_bits</code>, the rest at <code>lo_bits</code>, both per-channel group quant<br>
+              <strong style="color:var(--text)">④ Reconstruct</strong> — dequantize each token at its assigned bit-width back to fp16 for SDPA<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Attention weight concentrates on a small set of tokens at any given step; preserving precision there while compressing the rest harder captures most of the achievable quality at a much lower average bit-width than a uniform scheme.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">per-token saliency</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Saliency signal</span>
+                <span class="value">key-norm proxy (adapted)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Bit-width</span>
+                <span class="value">hi_bits salient, lo_bits rest</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Default split</span>
+                <span class="value">4-bit / 2-bit, 20% salient</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Calibration</span>
@@ -2759,7 +2805,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.17.0 — GEAR error-feedback cache shipped';
+      const text = 'v0.18.0 — ZipCache saliency-adaptive cache shipped';
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         badge.textContent = text;
         return;
