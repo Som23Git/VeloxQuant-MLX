@@ -1,0 +1,179 @@
+"""SnapKV-adapted KV cache — prefill observation-window token eviction.
+
+Inspired by "SnapKV: LLM Knows What You are Looking for Before Generation"
+(Yuan et al., ICLR 2025, arXiv:2404.14469). Documented as "SnapKV-adapted
+(VeloxQuant-MLX implementation)" — not a faithful port.
+
+Token eviction: during prefill (S > 1), the last ``snap_obs_window`` key rows
+act as proxy queries; their softmax attention over all prefix tokens produces
+a per-token importance score. Only the top-``snap_budget`` tokens (plus the
+first ``snap_n_sink`` sink positions) are retained as fp16. All subsequent
+decode tokens (S == 1) are always appended — never evicted.
+
+This is the repo's first **eviction** method. Every other method compresses
+all tokens to fewer bits; SnapKV-adapted stores fewer tokens at full fp16
+precision. The two axes compose: wrap a quantizer cache around the selected
+subset for combined eviction + compression.
+
+Adaptation limitations (stated plainly):
+  - Key-as-query proxy: obs-window uses key vectors, not true prompt query
+    vectors (not visible at ``update_and_fetch``).
+  - No max-pool smoothing (paper's ``kernel_size > 1`` not implemented).
+  - Uniform ``snap_budget`` across all heads.
+
+Byte accounting:
+    evicted_key_bytes / evicted_value_bytes  — fp16 bytes for the kept subset
+    full_key_bytes    / full_value_bytes     — hypothetical cost without eviction
+    eviction_ratio                           — full_fp16 / kept_fp16 (> 1 = savings)
+    tokens_kept / tokens_total              — diagnostic token counters
+"""
+from __future__ import annotations
+
+from typing import Any
+
+import mlx.core as mx
+from mlx_lm.models.cache import KVCache as _MLXKVCache
+
+from veloxquant_mlx.quantizers.snapkv import (
+    full_fp16_bytes,
+    snapkv_compress,
+    snapkv_fp16_bytes,
+)
+
+
+class SnapKVKVCache(_MLXKVCache):
+    """KV cache implementing SnapKV-adapted prefill eviction for one layer.
+
+    Args:
+        config: :class:`KVCacheConfig`. Fields consumed:
+            ``snap_budget``     (int, default 512)  — max tokens retained after prefill,
+            ``snap_obs_window`` (int, default 32)   — trailing keys used as proxy queries,
+            ``snap_n_sink``     (int, default 4)    — initial positions always kept.
+
+    Notes:
+        No ``.bits`` attribute — stores and returns fp16 K/V directly.
+        Single-layer (no coordinator); ``for_model`` propagates all ``snap_*``
+        fields automatically via ``dataclasses.replace``.
+        Eviction happens once at prefill (S > 1). Decode tokens (S == 1) are
+        always kept. Accumulated decode tokens grow the cache beyond the initial
+        budget in the decode phase — consistent with the paper's design (the
+        budget constrains prefill history, not the decode stream).
+    """
+
+    def __init__(self, config: Any) -> None:
+        super().__init__()
+        self._budget = int(getattr(config, "snap_budget", 512))
+        self._obs_window = int(getattr(config, "snap_obs_window", 32))
+        self._n_sink = int(getattr(config, "snap_n_sink", 4))
+
+        self._evicted_key_bytes = 0
+        self._evicted_value_bytes = 0
+        self._full_key_bytes = 0
+        self._full_value_bytes = 0
+        self._tokens_kept = 0
+        self._tokens_total = 0
+
+    # ------------------------------------------------------------------
+    def _evict_head(
+        self, keys: mx.array, values: mx.array
+    ) -> tuple[mx.array, mx.array, int]:
+        """Evict ``[S, D]`` K/V for one head → ``([n_kept, D], [n_kept, D], n_kept)``."""
+        state = snapkv_compress(
+            keys, values,
+            budget=self._budget,
+            obs_window=self._obs_window,
+            n_sink=self._n_sink,
+        )
+        return state.kept_keys, state.kept_values, state.n_kept
+
+    def _process_prefill(self, keys: mx.array, values: mx.array):
+        """Evict ``[B, H, S, D]`` prefill K/V per head; accumulate byte accounting."""
+        B, H, S, D = keys.shape
+        k_out_b, v_out_b = [], []
+        for b in range(B):
+            k_out_h, v_out_h = [], []
+            for h in range(H):
+                k_h, v_h, n_kept = self._evict_head(keys[b, h], values[b, h])
+                k_out_h.append(k_h)
+                v_out_h.append(v_h)
+                # byte accounting: kept fp16 K and V rows
+                self._evicted_key_bytes += n_kept * D * 2
+                self._evicted_value_bytes += n_kept * D * 2
+                self._full_key_bytes += S * D * 2
+                self._full_value_bytes += S * D * 2
+                self._tokens_kept += n_kept
+                self._tokens_total += S
+            k_out_b.append(mx.stack(k_out_h, axis=0))
+            v_out_b.append(mx.stack(v_out_h, axis=0))
+        return mx.stack(k_out_b, axis=0), mx.stack(v_out_b, axis=0)
+
+    def _process_decode(self, keys: mx.array, values: mx.array):
+        """Pass through decode tokens (S == 1) — never evicted."""
+        B, H, S, D = keys.shape
+        fp16_cost = B * H * S * D * 2
+        self._evicted_key_bytes += fp16_cost
+        self._evicted_value_bytes += fp16_cost
+        self._full_key_bytes += fp16_cost
+        self._full_value_bytes += fp16_cost
+        self._tokens_kept += B * H * S
+        self._tokens_total += B * H * S
+        return keys.astype(mx.float16), values.astype(mx.float16)
+
+    # ------------------------------------------------------------------
+    def update_and_fetch(self, keys: mx.array, values: mx.array):
+        is_prefill = keys.shape[2] > 1
+        if is_prefill:
+            k_out, v_out = self._process_prefill(keys, values)
+        else:
+            k_out, v_out = self._process_decode(keys, values)
+        return super().update_and_fetch(k_out, v_out)
+
+    # ------------------------------------------------------------------
+    @property
+    def evicted_key_bytes(self) -> int:
+        """Bytes stored for kept key rows (fp16)."""
+        return self._evicted_key_bytes
+
+    @property
+    def evicted_value_bytes(self) -> int:
+        """Bytes stored for kept value rows (fp16)."""
+        return self._evicted_value_bytes
+
+    @property
+    def full_key_bytes(self) -> int:
+        """Hypothetical fp16 key cost without any eviction."""
+        return self._full_key_bytes
+
+    @property
+    def full_value_bytes(self) -> int:
+        """Hypothetical fp16 value cost without any eviction."""
+        return self._full_value_bytes
+
+    @property
+    def tokens_kept(self) -> int:
+        """Total token positions retained across all heads and steps."""
+        return self._tokens_kept
+
+    @property
+    def tokens_total(self) -> int:
+        """Total token positions seen (before eviction) across all heads and steps."""
+        return self._tokens_total
+
+    @property
+    def eviction_ratio(self) -> float:
+        """full_fp16_bytes / kept_fp16_bytes; > 1 means storage savings."""
+        total_kept = self._evicted_key_bytes + self._evicted_value_bytes
+        total_full = self._full_key_bytes + self._full_value_bytes
+        if total_kept == 0:
+            return 1.0
+        return total_full / total_kept
+
+    @property
+    def keep_rate(self) -> float:
+        """Fraction of tokens retained (tokens_kept / tokens_total)."""
+        if self._tokens_total == 0:
+            return 1.0
+        return self._tokens_kept / self._tokens_total
+
+
+__all__ = ["SnapKVKVCache"]

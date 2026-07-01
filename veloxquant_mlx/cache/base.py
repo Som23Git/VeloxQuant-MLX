@@ -35,7 +35,7 @@ class KVCacheConfig:
     method: Literal[
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
-        "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache",
+        "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -123,6 +123,10 @@ class KVCacheConfig:
     zipcache_hi_fraction: float = 0.20   # fraction of tokens routed to hi_bits
     zipcache_group_size: int = 32         # token group size for min/max quantization
     zipcache_quantize_values: bool = True # apply mixed-precision to values too
+    # --- SnapKV-adapted configuration (prefill observation-window token eviction) ---
+    snap_budget: int = 512               # max tokens retained after prefill eviction
+    snap_obs_window: int = 32            # trailing key rows used as proxy queries
+    snap_n_sink: int = 4                 # initial positions always kept (attention sinks)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -183,6 +187,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.minicache_cache import MiniCacheKVCache
         from veloxquant_mlx.cache.gear_cache import GEARKVCache
         from veloxquant_mlx.cache.zipcache_cache import ZipCacheKVCache
+        from veloxquant_mlx.cache.snapkv_cache import SnapKVKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -250,12 +255,14 @@ class KVCacheFactory:
             cache = GEARKVCache(config)
         elif config.method == "zipcache":
             cache = ZipCacheKVCache(config)
+        elif config.method == "snapkv":
+            cache = SnapKVKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
-                f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache."
+                f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv."
             )
 
         if config.sliding_window is not None:
