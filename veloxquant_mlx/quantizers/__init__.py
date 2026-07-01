@@ -30,6 +30,14 @@ from veloxquant_mlx.quantizers.snapkv import (
     snapkv_fp16_bytes,
     full_fp16_bytes,
 )
+from veloxquant_mlx.quantizers.streaming_llm import (
+    StreamingWindow,
+    init_streaming_window,
+    stream_update,
+    stream_get_kv,
+    stream_fp16_bytes,
+    full_stream_fp16_bytes,
+)
 
 __all__ = [
     "QuantizerFactory",
@@ -58,4 +66,10 @@ __all__ = [
     "snapkv_compress",
     "snapkv_fp16_bytes",
     "full_fp16_bytes",
+    "StreamingWindow",
+    "init_streaming_window",
+    "stream_update",
+    "stream_get_kv",
+    "stream_fp16_bytes",
+    "full_stream_fp16_bytes",
 ]
