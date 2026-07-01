@@ -406,6 +406,52 @@ offline-synthetic harness.
 
 *Inspired by H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.) — not a faithful port.*
 
+## TOVA-adapted — current-step attention-weight eviction (memoryless) — new in 0.22.0
+
+`method="tova"` is the library's **fourth eviction axis** and the first **memoryless** one.
+*Inspired by, **not a faithful port of***, [TOVA / "Transformers are Multi-State RNNs" (Oren et al., 2024, arXiv:2401.06104)](https://arxiv.org/abs/2401.06104):
+on every step (prefill and decode alike), the new **key vector as a proxy query** attends to
+the post-append cache; when the cache exceeds `tova_budget`, the non-sink token with the
+**lowest current-step attention weight** is permanently evicted. The weights are then
+discarded — no score is carried across steps. The cache is bounded at all times to
+`tova_budget` positions.
+
+**The key contrast with H2O:** H2O accumulates attention mass, so a past heavy hitter resists
+eviction (inertial). TOVA scores by the present step only, so a token that stops being
+attended to is dropped even if it dominated earlier (memoryless, reactive). Neither policy
+dominates — that is exactly why both are provided.
+
+| Eviction axis | When it fires | Score signal | Memory shape |
+|---|---|---|---|
+| SnapKV-adapted | Once at prefill end | Key-as-query attention proxy | Grows during decode |
+| StreamingLLM-adapted | Every token | Position (recency + sink) | Constant |
+| H2O-adapted | Every token (budget exceeded) | Cumulative attention mass (inertial) | Constant (≤ budget) |
+| **TOVA-adapted** | Every token (budget exceeded) | Current-step attention weight (memoryless) | Constant (≤ budget) |
+
+```python
+config = KVCacheConfig(
+    method="tova",
+    head_dim=128,
+    tova_budget=512,   # max tokens retained at any time
+    tova_n_sink=4,     # initial positions never evicted (attention sinks)
+)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**Evidence:** 19 quantizer tests + 15 cache tests — all 34 passing. Budget-never-exceeded
+verified across a 30-step decode stress test. Sink protection verified. Memorylessness (no
+scores carried across steps) verified. Current-step eviction correctness verified with
+axis-aligned test vectors (an orthogonal token is dropped over an aligned one). Deterministic.
+
+**Honest limitation:** key-as-query proxy approximates the paper's true query attention
+signal; no RoPE position-ID remapping after eviction; uniform budget across all heads.
+No model-level (perplexity/throughput) benchmark run — `benchmark_scripts/benchmark_tova.py`
+is an offline-synthetic harness. Its results are committed in
+`benchmark_scripts/tova_benchmark_results.json` (28 configs on Apple Silicon); measured
+compression ratio equals `seq_len / budget` exactly across every config.
+
+*Inspired by TOVA (arXiv:2401.06104, Oren et al., 2024) — not a faithful port.*
+
 ## StreamingLLM-adapted — sink + recency-window constant-memory eviction — new in 0.20.0
 
 `method="streaming_llm"` is the repo's **first constant-memory cache** and first **structural positional eviction** method. *Inspired by, **not a faithful port of***, [StreamingLLM (Xiao et al., ICLR 2024, arXiv:2309.17453)](https://arxiv.org/abs/2309.17453): keep only the first `stream_n_sink` token positions (frozen attention sinks) and the most recent `stream_window_size` tokens (rolling FIFO). All other positions are permanently evicted. The cache never grows beyond `stream_n_sink + stream_window_size` positions regardless of generation length — **constant decode memory**.
@@ -887,6 +933,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [SnapKV (ICLR 2025)](https://arxiv.org/abs/2404.14469) — Yuan et al., "SnapKV: LLM Knows What You are Looking for Before Generation" — token eviction via prefill observation-window attention scoring (adapted: key-as-query proxy for the prompt query vectors)
 - [StreamingLLM (ICLR 2024)](https://arxiv.org/abs/2309.17453) — Xiao et al., "Efficient Streaming Language Models with Attention Sinks" — structural positional eviction: first N sinks + rolling recency window; constant-memory streaming (adapted: no attention mask adjustment, no RoPE position-ID remapping)
 - [H2O (ICLR 2024)](https://arxiv.org/abs/2306.14048) — Zhang et al., "H2O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models" — cumulative attention-mass token eviction with sink protection; budget-bounded constant-memory cache (adapted: key-as-query proxy for attention weights, no RoPE remapping)
+- [TOVA (arXiv:2401.06104)](https://arxiv.org/abs/2401.06104) — Oren et al., "Transformers are Multi-State RNNs" — memoryless current-step attention-weight token eviction; budget-bounded constant-memory cache, reactive counterpart to H2O's inertial cumulative scoring (adapted: key-as-query proxy for attention weights, no RoPE remapping)
 
 </details>
 

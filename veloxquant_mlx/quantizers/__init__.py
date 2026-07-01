@@ -46,6 +46,14 @@ from veloxquant_mlx.quantizers.h2o import (
     h2o_fp16_bytes,
     full_h2o_fp16_bytes,
 )
+from veloxquant_mlx.quantizers.tova import (
+    TovaState,
+    init_tova_state,
+    tova_update,
+    tova_get_kv,
+    tova_fp16_bytes,
+    full_tova_fp16_bytes,
+)
 
 __all__ = [
     "QuantizerFactory",
@@ -86,4 +94,10 @@ __all__ = [
     "h2o_get_kv",
     "h2o_fp16_bytes",
     "full_h2o_fp16_bytes",
+    "TovaState",
+    "init_tova_state",
+    "tova_update",
+    "tova_get_kv",
+    "tova_fp16_bytes",
+    "full_tova_fp16_bytes",
 ]

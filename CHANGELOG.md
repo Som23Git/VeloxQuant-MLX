@@ -7,6 +7,56 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.22.0] — 2026-07-01
+
+### Added — TOVA: current-step attention-weight eviction, memoryless (`method="tova"`)
+
+- **`veloxquant_mlx.cache.tova_cache.TOVAKVCache`** — the library's first
+  **memoryless** eviction method. *Inspired by, not a faithful port of,*
+  "Transformers are Multi-State RNNs" (Oren et al., 2024, arXiv:2401.06104), whose
+  TOVA (Token Omission Via Attention) policy keeps a fixed-size cache by dropping,
+  at each step, the single token receiving the **lowest attention weight in the
+  current step**. On every step (prefill and decode alike), the approximate
+  current-step attention distribution over the post-append cache is computed using
+  the **new key vector as a proxy query** (true queries are not visible at
+  cache-wrapper level — same approximation as SnapKV-adapted and H2O-adapted).
+  When the cache exceeds `tova_budget`, the **lowest current-step-weight non-sink
+  token** is permanently evicted. The cache is bounded at all times to
+  `tova_budget` positions.
+- **Fourth distinct eviction axis in VeloxQuant-MLX — and the key contrast with H2O:**
+  - SnapKV-adapted — score-based, fires once at prefill end; grows during decode.
+  - StreamingLLM-adapted — positional (recency + sinks), constant-memory throughout.
+  - H2O-adapted — **cumulative** attention mass (inertial: past heavy hitters resist eviction).
+  - TOVA-adapted — **current-step** attention weight (memoryless: a token that stops
+    being attended to is evicted even if it dominated earlier). TOVA is the more
+    reactive policy; H2O is the more conservative one.
+- **Adaptation limitations (documented, not hidden):**
+  - Key-as-query proxy: approximates the paper's true query attention signal.
+  - No RoPE position-ID remapping after eviction.
+  - Uniform `tova_budget` and `tova_n_sink` across all heads.
+- Primitives in `veloxquant_mlx/quantizers/tova.py`: `TovaState`,
+  `init_tova_state`, `tova_update`, `tova_get_kv`, `tova_fp16_bytes`,
+  `full_tova_fp16_bytes`. No `scores` field — state carries no cross-step history.
+- Config: `tova_budget` (int, default 512), `tova_n_sink` (int, default 4).
+  Single-layer (no coordinator); `KVCacheBuilder.for_model()` propagates all
+  `tova_*` fields via `dataclasses.replace`.
+- **Tests** — `tests/quantizers/test_tova.py` (19 tests) +
+  `tests/cache/test_tova_cache.py` (15 tests): init state, no-scores-field assertion,
+  single-token bootstrap, multi-token absorption, budget enforcement (never exceeded
+  across 30 decode steps), sink protection (sinks always present after evictions),
+  n_sink=0 edge case, memorylessness (no scores carried across steps), current-step
+  eviction correctness (a token orthogonal to the current key is dropped over a
+  similar one), byte accounting formula, compression_ratio, tokens_seen, factory
+  dispatch, for_model propagation, determinism.
+- Offline-synthetic harness in `benchmark_scripts/benchmark_tova.py` sweeping
+  `(seq_len, budget, n_sink)` on synthetic fp16 data — **run on Apple Silicon**;
+  results committed in `benchmark_scripts/tova_benchmark_results.json` (28 configs).
+  Measured compression ratio equals `seq_len / budget` exactly across every config
+  (e.g. 2048 tokens at budget 64 → 32×). No model-level perplexity/throughput
+  figures are claimed.
+
+---
+
 ## [0.21.0] — 2026-07-01
 
 ### Added — H2O: cumulative attention-mass heavy-hitter oracle eviction (`method="h2o"`)

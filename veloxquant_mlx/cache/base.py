@@ -36,7 +36,7 @@ class KVCacheConfig:
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
-        "streaming_llm", "h2o",
+        "streaming_llm", "h2o", "tova",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -134,6 +134,9 @@ class KVCacheConfig:
     # --- H2O-adapted configuration (cumulative attention-mass heavy-hitter eviction) ---
     h2o_budget: int = 512                # max tokens kept at any time (sinks + non-sinks)
     h2o_n_sink: int = 4                  # initial positions protected from eviction (attention sinks)
+    # --- TOVA-adapted configuration (current-step attention-weight eviction, memoryless) ---
+    tova_budget: int = 512               # max tokens kept at any time (sinks + non-sinks)
+    tova_n_sink: int = 4                 # initial positions protected from eviction (attention sinks)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -197,6 +200,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.snapkv_cache import SnapKVKVCache
         from veloxquant_mlx.cache.streaming_llm_cache import StreamingLLMKVCache
         from veloxquant_mlx.cache.h2o_cache import H2OKVCache
+        from veloxquant_mlx.cache.tova_cache import TOVAKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -270,13 +274,15 @@ class KVCacheFactory:
             cache = StreamingLLMKVCache(config)
         elif config.method == "h2o":
             cache = H2OKVCache(config)
+        elif config.method == "tova":
+            cache = TOVAKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o."
+                f"streaming_llm, h2o, tova."
             )
 
         if config.sliding_window is not None:

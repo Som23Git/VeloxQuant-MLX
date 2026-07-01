@@ -1,0 +1,254 @@
+[
+  {
+    "seq_len": 128,
+    "tova_budget": 64,
+    "tova_n_sink": 0,
+    "kept_tokens": 64,
+    "compression_ratio": 2.0,
+    "latency_ms_mean": 127.553,
+    "latency_ms_min": 126.844
+  },
+  {
+    "seq_len": 128,
+    "tova_budget": 64,
+    "tova_n_sink": 4,
+    "kept_tokens": 64,
+    "compression_ratio": 2.0,
+    "latency_ms_mean": 132.983,
+    "latency_ms_min": 130.96
+  },
+  {
+    "seq_len": 128,
+    "tova_budget": 128,
+    "tova_n_sink": 0,
+    "kept_tokens": 128,
+    "compression_ratio": 1.0,
+    "latency_ms_mean": 14.961,
+    "latency_ms_min": 14.415
+  },
+  {
+    "seq_len": 128,
+    "tova_budget": 128,
+    "tova_n_sink": 4,
+    "kept_tokens": 128,
+    "compression_ratio": 1.0,
+    "latency_ms_mean": 14.831,
+    "latency_ms_min": 14.482
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 64,
+    "tova_n_sink": 0,
+    "kept_tokens": 64,
+    "compression_ratio": 8.0,
+    "latency_ms_mean": 868.626,
+    "latency_ms_min": 858.722
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 64,
+    "tova_n_sink": 4,
+    "kept_tokens": 64,
+    "compression_ratio": 8.0,
+    "latency_ms_mean": 900.351,
+    "latency_ms_min": 895.181
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 128,
+    "tova_n_sink": 0,
+    "kept_tokens": 128,
+    "compression_ratio": 4.0,
+    "latency_ms_mean": 768.726,
+    "latency_ms_min": 755.048
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 128,
+    "tova_n_sink": 4,
+    "kept_tokens": 128,
+    "compression_ratio": 4.0,
+    "latency_ms_mean": 799.548,
+    "latency_ms_min": 794.315
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 256,
+    "tova_n_sink": 0,
+    "kept_tokens": 256,
+    "compression_ratio": 2.0,
+    "latency_ms_mean": 554.19,
+    "latency_ms_min": 550.832
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 256,
+    "tova_n_sink": 4,
+    "kept_tokens": 256,
+    "compression_ratio": 2.0,
+    "latency_ms_mean": 574.788,
+    "latency_ms_min": 564.467
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 512,
+    "tova_n_sink": 0,
+    "kept_tokens": 512,
+    "compression_ratio": 1.0,
+    "latency_ms_mean": 67.616,
+    "latency_ms_min": 67.013
+  },
+  {
+    "seq_len": 512,
+    "tova_budget": 512,
+    "tova_n_sink": 4,
+    "kept_tokens": 512,
+    "compression_ratio": 1.0,
+    "latency_ms_mean": 69.807,
+    "latency_ms_min": 67.279
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 64,
+    "tova_n_sink": 0,
+    "kept_tokens": 64,
+    "compression_ratio": 16.0,
+    "latency_ms_mean": 1882.231,
+    "latency_ms_min": 1865.809
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 64,
+    "tova_n_sink": 4,
+    "kept_tokens": 64,
+    "compression_ratio": 16.0,
+    "latency_ms_mean": 1947.828,
+    "latency_ms_min": 1937.961
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 128,
+    "tova_n_sink": 0,
+    "kept_tokens": 128,
+    "compression_ratio": 8.0,
+    "latency_ms_mean": 1786.049,
+    "latency_ms_min": 1780.384
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 128,
+    "tova_n_sink": 4,
+    "kept_tokens": 128,
+    "compression_ratio": 8.0,
+    "latency_ms_mean": 1861.175,
+    "latency_ms_min": 1846.306
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 256,
+    "tova_n_sink": 0,
+    "kept_tokens": 256,
+    "compression_ratio": 4.0,
+    "latency_ms_mean": 1594.864,
+    "latency_ms_min": 1590.425
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 256,
+    "tova_n_sink": 4,
+    "kept_tokens": 256,
+    "compression_ratio": 4.0,
+    "latency_ms_mean": 1657.435,
+    "latency_ms_min": 1652.515
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 512,
+    "tova_n_sink": 0,
+    "kept_tokens": 512,
+    "compression_ratio": 2.0,
+    "latency_ms_mean": 1156.303,
+    "latency_ms_min": 1151.297
+  },
+  {
+    "seq_len": 1024,
+    "tova_budget": 512,
+    "tova_n_sink": 4,
+    "kept_tokens": 512,
+    "compression_ratio": 2.0,
+    "latency_ms_mean": 1187.828,
+    "latency_ms_min": 1182.478
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 64,
+    "tova_n_sink": 0,
+    "kept_tokens": 64,
+    "compression_ratio": 32.0,
+    "latency_ms_mean": 3978.812,
+    "latency_ms_min": 3847.289
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 64,
+    "tova_n_sink": 4,
+    "kept_tokens": 64,
+    "compression_ratio": 32.0,
+    "latency_ms_mean": 4745.534,
+    "latency_ms_min": 4220.984
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 128,
+    "tova_n_sink": 0,
+    "kept_tokens": 128,
+    "compression_ratio": 16.0,
+    "latency_ms_mean": 3970.199,
+    "latency_ms_min": 3772.519
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 128,
+    "tova_n_sink": 4,
+    "kept_tokens": 128,
+    "compression_ratio": 16.0,
+    "latency_ms_mean": 4045.61,
+    "latency_ms_min": 4003.088
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 256,
+    "tova_n_sink": 0,
+    "kept_tokens": 256,
+    "compression_ratio": 8.0,
+    "latency_ms_mean": 3812.123,
+    "latency_ms_min": 3713.379
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 256,
+    "tova_n_sink": 4,
+    "kept_tokens": 256,
+    "compression_ratio": 8.0,
+    "latency_ms_mean": 3849.989,
+    "latency_ms_min": 3598.727
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 512,
+    "tova_n_sink": 0,
+    "kept_tokens": 512,
+    "compression_ratio": 4.0,
+    "latency_ms_mean": 3556.007,
+    "latency_ms_min": 3489.454
+  },
+  {
+    "seq_len": 2048,
+    "tova_budget": 512,
+    "tova_n_sink": 4,
+    "kept_tokens": 512,
+    "compression_ratio": 4.0,
+    "latency_ms_mean": 4005.999,
+    "latency_ms_min": 3613.187
+  }
+]
