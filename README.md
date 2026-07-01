@@ -367,6 +367,45 @@ caches = KVCacheBuilder.for_model(model, config)
 
 **Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_gear.py` is an offline-synthetic harness (loads no model) and has not been run on hardware for committed numbers. Known limitation: the *stored* cache shrinks but reconstruction is fp16 for SDPA, so attend-time working set is not reduced; the low-rank/sparse factors are overhead, so keep the rank low relative to the head dim.
 
+## H2O-adapted — cumulative attention-mass heavy-hitter oracle eviction — new in 0.21.0
+
+`method="h2o"` is the library's **third eviction axis** and the first based on
+**cumulative per-token attention mass**. *Inspired by, **not a faithful port of***,
+[H2O (Zhang et al., ICLR 2024, arXiv:2306.14048)](https://arxiv.org/abs/2306.14048):
+on every step (prefill and decode alike), each incoming token's approximate softmax
+attention distribution over the existing cache is computed — using the new **key vector
+as a proxy query** (true queries are not visible at cache-wrapper level). The weights
+are accumulated into a per-token cumulative importance score. When the cache exceeds
+`h2o_budget`, the **lowest-score non-sink token** is permanently evicted. The cache is
+bounded at all times to `h2o_budget` positions.
+
+| Eviction axis | When it fires | Score signal | Memory shape |
+|---|---|---|---|
+| SnapKV-adapted | Once at prefill end | Key-as-query attention proxy | Grows during decode |
+| StreamingLLM-adapted | Every token | Position (recency + sink) | Constant |
+| **H2O-adapted** | Every token (budget exceeded) | Cumulative attention mass | Constant (≤ budget) |
+
+```python
+config = KVCacheConfig(
+    method="h2o",
+    head_dim=128,
+    h2o_budget=512,   # max tokens retained at any time
+    h2o_n_sink=4,     # initial positions never evicted (attention sinks)
+)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**Evidence:** 18 quantizer tests + 15 cache tests — all 33 passing. Budget-never-exceeded
+verified across a 30-step decode stress test. Sink protection verified. Score non-negativity
+and accumulation across steps verified. Deterministic.
+
+**Honest limitation:** key-as-query proxy approximates the paper's true query attention
+signal; no RoPE position-ID remapping after eviction; uniform budget across all heads.
+No model-level benchmark run yet — `benchmark_scripts/benchmark_h2o.py` is an
+offline-synthetic harness.
+
+*Inspired by H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.) — not a faithful port.*
+
 ## StreamingLLM-adapted — sink + recency-window constant-memory eviction — new in 0.20.0
 
 `method="streaming_llm"` is the repo's **first constant-memory cache** and first **structural positional eviction** method. *Inspired by, **not a faithful port of***, [StreamingLLM (Xiao et al., ICLR 2024, arXiv:2309.17453)](https://arxiv.org/abs/2309.17453): keep only the first `stream_n_sink` token positions (frozen attention sinks) and the most recent `stream_window_size` tokens (rolling FIFO). All other positions are permanently evicted. The cache never grows beyond `stream_n_sink + stream_window_size` positions regardless of generation length — **constant decode memory**.
@@ -847,6 +886,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [ZipCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14256) — He et al., "ZipCache: Accurate and Efficient KV Cache Quantization with Salient Token Identification" — per-token mixed bit-width via saliency-adaptive allocation (adapted: key-norm proxy for the attention-score saliency signal)
 - [SnapKV (ICLR 2025)](https://arxiv.org/abs/2404.14469) — Yuan et al., "SnapKV: LLM Knows What You are Looking for Before Generation" — token eviction via prefill observation-window attention scoring (adapted: key-as-query proxy for the prompt query vectors)
 - [StreamingLLM (ICLR 2024)](https://arxiv.org/abs/2309.17453) — Xiao et al., "Efficient Streaming Language Models with Attention Sinks" — structural positional eviction: first N sinks + rolling recency window; constant-memory streaming (adapted: no attention mask adjustment, no RoPE position-ID remapping)
+- [H2O (ICLR 2024)](https://arxiv.org/abs/2306.14048) — Zhang et al., "H2O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models" — cumulative attention-mass token eviction with sink protection; budget-bounded constant-memory cache (adapted: key-as-query proxy for attention weights, no RoPE remapping)
 
 </details>
 

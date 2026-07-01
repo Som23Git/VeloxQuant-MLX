@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "VeloxQuant-MLX"
-version = "0.20.0"
-description = "Fast KV cache quantization for Apple Silicon — TurboQuant, RVQ, VecInfer (with Metal kernels), RateQuant, PolarQuant, SpectralQuant, CommVQ, RaBitQ, QJL, KIVI, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, and StreamingLLM-adapted in MLX"
+version = "0.21.0"
+description = "Fast KV cache quantization for Apple Silicon — TurboQuant, RVQ, VecInfer (with Metal kernels), RateQuant, PolarQuant, SpectralQuant, CommVQ, RaBitQ, QJL, KIVI, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, and H2O-adapted in MLX"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }

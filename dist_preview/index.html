@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ — all in MLX. New in 0.7.0: RaBitQ achieves 6× full KV compression on Falcon3-7B via 1-bit randomised Hadamard quantization. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, H2O — all in MLX. New in 0.21.0: H2O heavy-hitter oracle eviction — cumulative attention-mass budget-bounded cache. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1494,6 +1494,53 @@
         </div>
       </div>
 
+      <!-- H2O — full-width eviction card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.21.0 — EVICTION</div>
+            <div class="algo-title" style="font-size:1.25rem">H2O — Heavy-Hitter Oracle Eviction</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Inspired by <a href="https://arxiv.org/abs/2306.14048" target="_blank" rel="noopener" style="color:#a78bfa">H2O (Zhang et al., ICLR 2024, arXiv:2306.14048)</a>. The library's <strong style="color:var(--text)">third eviction axis</strong> — the first based on <strong style="color:var(--text)">cumulative attention mass</strong> accumulated token-by-token during generation.
+              <br><br>
+              On every decode step, each incoming key vector acts as a proxy query and attends softmax over all stored keys; the resulting weights are accumulated into a per-token importance score. When the cache exceeds <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">h2o_budget</code>, the <strong style="color:var(--text)">lowest-score non-sink token is permanently evicted</strong>. The cache stays at most <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">h2o_budget</code> positions throughout generation.
+              <br><br>
+              <strong style="color:var(--text)">SnapKV-adapted</strong> — score-based, fires once at prefill end; grows during decode.<br>
+              <strong style="color:var(--text)">StreamingLLM-adapted</strong> — positional (recency + sink), constant-memory.<br>
+              <strong style="color:#22c55e">H2O-adapted</strong> — cumulative attention mass, budget-bounded at every step.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Eviction signal</span>
+                <span class="value">Cumulative softmax mass</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Memory shape</span>
+                <span class="value" style="color:#22c55e">Constant (≤ budget)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Sink protection</span>
+                <span class="value">h2o_n_sink (default 4)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Prefill + decode</span>
+                <span class="value">Both evict continuously</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">33 / 33</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Config key</span>
+                <span class="value">method="h2o"</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -1564,7 +1611,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     </div>
 
     <div class="bench-note" style="margin-top:1.5rem;">
-      <strong style="color:#a78bfa">Honest caveat:</strong> the kernel pays a ~50–200µs launch overhead per call on Apple Silicon. On tiny models (SmolLM2 135M, 30 layers, ~60 launches/token) that overhead can exceed the work saved. The kernel is built for the regime that needs it — 7B+ models with realistic context lengths. <strong style="color:var(--text)">Phase 2</strong> (fused dequant + SDPA, never materializing fp16 keys) is on the roadmap. See the full writeup: <a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/MEDIUM_BLOG_METAL_KERNELS.md" target="_blank" rel="noopener" style="color:var(--accent)">Metal kernels blog post</a>.
+      <strong style="color:#a78bfa">Honest caveat:</strong> the kernel pays a ~50–200µs launch overhead per call on Apple Silicon. On tiny models (SmolLM2 135M, 30 layers, ~60 launches/token) that overhead can exceed the work saved. The kernel is built for the regime that needs it — 7B+ models with realistic context lengths. <strong style="color:var(--text)">Phase 2</strong> (fused dequant + SDPA, never materializing fp16 keys) is on the roadmap. See the full writeup: <a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/blogs/metal-kernels.md" target="_blank" rel="noopener" style="color:var(--accent)">Metal kernels blog post</a>.
     </div>
   </section>
 
@@ -1866,6 +1913,11 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
         <div class="picker-goal">RoPE-compatible exact VQ</div>
         <div class="picker-method">CommVQ</div>
         <div class="picker-detail">64× key compression · RoPE-commutative codebook (ICML 2025) · exact positional encoding at decode time · no attention score distortion from RoPE mismatch.</div>
+      </div>
+      <div class="picker-card" style="border-color:rgba(251,146,60,0.35);">
+        <div class="picker-goal">Importance-based constant-memory eviction</div>
+        <div class="picker-method" style="color:#fb923c">H2O</div>
+        <div class="picker-detail">Budget-bounded at every step · cumulative attention-mass score · evicts lowest-score non-sink token when over budget · better than recency-only (StreamingLLM) for heavy-hitter tokens.</div>
       </div>
     </div>
   </section>

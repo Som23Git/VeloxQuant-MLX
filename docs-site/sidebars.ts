@@ -44,6 +44,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/zipcache',
         'algorithms/snapkv',
         'algorithms/streaming_llm',
+        'algorithms/h2o',
       ],
     },
   ],

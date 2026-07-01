@@ -38,6 +38,14 @@ from veloxquant_mlx.quantizers.streaming_llm import (
     stream_fp16_bytes,
     full_stream_fp16_bytes,
 )
+from veloxquant_mlx.quantizers.h2o import (
+    H2OState,
+    init_h2o_state,
+    h2o_update,
+    h2o_get_kv,
+    h2o_fp16_bytes,
+    full_h2o_fp16_bytes,
+)
 
 __all__ = [
     "QuantizerFactory",
@@ -72,4 +80,10 @@ __all__ = [
     "stream_get_kv",
     "stream_fp16_bytes",
     "full_stream_fp16_bytes",
+    "H2OState",
+    "init_h2o_state",
+    "h2o_update",
+    "h2o_get_kv",
+    "h2o_fp16_bytes",
+    "full_h2o_fp16_bytes",
 ]

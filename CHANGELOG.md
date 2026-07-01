@@ -7,6 +7,50 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.21.0] — 2026-07-01
+
+### Added — H2O: cumulative attention-mass heavy-hitter oracle eviction (`method="h2o"`)
+
+- **`veloxquant_mlx.cache.h2o_cache.H2OKVCache`** — the library's first
+  **continuous-decode cumulative-score eviction** method. *Inspired by, not a
+  faithful port of,* "H2O: Heavy-Hitter Oracle for Efficient Generative Inference
+  of Large Language Models" (Zhang et al., ICLR 2024, arXiv:2306.14048). On every
+  step (prefill and decode alike), each incoming token's approximate attention
+  distribution over the existing cache is computed using the **new key vector as a
+  proxy query** (true queries are not visible at cache-wrapper level — same
+  approximation as SnapKV-adapted). The resulting softmax weights are accumulated
+  into a per-token cumulative importance score. When the cache exceeds
+  `h2o_budget`, the **lowest-score non-sink token** is permanently evicted.
+  The cache is thus bounded at all times to `h2o_budget` positions.
+- **Third distinct eviction axis in VeloxQuant-MLX:**
+  - SnapKV-adapted — score-based, fires once at prefill end; grows during decode.
+  - StreamingLLM-adapted — positional (recency + sinks), constant-memory throughout.
+  - H2O-adapted — cumulative attention mass, budget-bounded at every step.
+- **Adaptation limitations (documented, not hidden):**
+  - Key-as-query proxy: approximates the paper's true query attention signal.
+  - No RoPE position-ID remapping after eviction.
+  - Uniform `h2o_budget` and `h2o_n_sink` across all heads.
+  - Scores accumulate as a running sum of softmax weights; some paper variants
+    accumulate unnormalised logits — may diverge at very low budgets.
+- Primitives in `veloxquant_mlx/quantizers/h2o.py`: `H2OState`,
+  `init_h2o_state`, `h2o_update`, `h2o_get_kv`, `h2o_fp16_bytes`,
+  `full_h2o_fp16_bytes`.
+- Config: `h2o_budget` (int, default 512), `h2o_n_sink` (int, default 4).
+  Single-layer (no coordinator); `KVCacheBuilder.for_model()` propagates all
+  `h2o_*` fields via `dataclasses.replace`.
+- **Tests** — `tests/quantizers/test_h2o.py` (18 tests) +
+  `tests/cache/test_h2o_cache.py` (15 tests): init state, single-token bootstrap,
+  multi-token absorption, budget enforcement (never exceeded across 30 decode steps),
+  sink protection (sinks always present after evictions), n_sink=0 edge case,
+  score non-negativity, score accumulation across steps, byte accounting formula,
+  compression_ratio, tokens_seen, factory dispatch, for_model propagation,
+  determinism.
+- Offline-synthetic harness in `benchmark_scripts/benchmark_h2o.py` sweeping
+  `(seq_len, budget, n_sink)` on synthetic fp16 data. Not yet run on Apple Silicon
+  hardware.
+
+---
+
 ## [0.20.0] — 2026-07-01
 
 ### Added — StreamingLLM: sink + recency-window structural eviction (`method="streaming_llm"`)
