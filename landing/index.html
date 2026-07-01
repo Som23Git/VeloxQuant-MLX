@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted — all in MLX. New in 0.19.0: SnapKV-adapted is the first token eviction method — prefill observation-window attention scoring keeps only a budget of token positions and drops the rest. Zero calibration. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted — all in MLX. New in 0.20.0: StreamingLLM-adapted is the first constant-memory cache — keeps only the first N sink tokens plus the most recent W tokens, bounding the cache size forever. Zero calibration. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1530,14 +1530,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">21 algorithms</span>
+        <span class="hero-pill">22 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 21 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV
+        <summary>See all 22 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1591,6 +1591,7 @@
       <span class="provenance-dot">·</span>
       <span class="provenance-item">NeurIPS 2024 <em>ZipCache</em></span>
       <span class="provenance-dot">·</span>
+      <span class="provenance-item">ICLR 2024 <em>StreamingLLM</em></span>
       <span class="provenance-item">ICLR 2025 <em>SnapKV</em></span>
     </div>
   </div>
@@ -1665,12 +1666,12 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Twenty-one compression strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.19.0: SnapKV-adapted is the repo's first token eviction method — it retains only the top-<code>snap_budget</code> tokens from prefill by observation-window attention scoring, dropping the rest entirely. New in 0.18.0: ZipCache-adapted is the first saliency-adaptive cache — a key-norm proxy ranks tokens, routing a small top fraction to a higher bit-width while the rest stay at a low base rate (<code>hi_bits</code> for salient tokens, <code>lo_bits</code> for the rest). New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus a sparse outlier correction (<code>X ≈ Quant_b(X) + L·R + S</code>), recovering quality the base bit-width loses. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Twenty-two compression strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.20.0: StreamingLLM-adapted is the repo's first constant-memory cache — keeps only the first <code>stream_n_sink</code> sink tokens and the most recent <code>stream_window_size</code> tokens, so the cache never grows beyond a fixed bound regardless of generation length. New in 0.19.0: SnapKV-adapted is the repo's first token eviction method — it retains only the top-<code>snap_budget</code> tokens from prefill by observation-window attention scoring, dropping the rest entirely. New in 0.18.0: ZipCache-adapted is the first saliency-adaptive cache — a key-norm proxy ranks tokens, routing a small top fraction to a higher bit-width while the rest stay at a low base rate (<code>hi_bits</code> for salient tokens, <code>lo_bits</code> for the rest). New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus a sparse outlier correction (<code>X ≈ Quant_b(X) + L·R + S</code>), recovering quality the base bit-width loses. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (21)</button>
+      <button class="filter-btn active" data-filter="all">All (22)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -1987,6 +1988,55 @@
               <div class="algo-stat-row">
                 <span class="label">Incompressible data</span>
                 <span class="value">0% (never negative)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- StreamingLLM — full-width featured card -->
+      <div id="algo-streaming-llm" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.20.0 — CONSTANT-MEMORY CACHE</div>
+            <div class="algo-title" style="font-size:1.25rem">StreamingLLM-adapted — Sink + Recency-Window Structural Eviction</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from StreamingLLM (arXiv:2309.17453, ICLR 2024, Xiao et al.). The repo's first
+              <strong style="color:#22c55e">constant-memory cache</strong> — the first method where the cache size is
+              bounded forever regardless of how many tokens are generated. Keeps only the first
+              <code>stream_n_sink</code> token positions (frozen attention sinks) and the most recent
+              <code>stream_window_size</code> tokens (rolling FIFO). All other positions are permanently
+              evicted. Zero calibration, zero scoring — purely structural and positional.
+              <br><br>
+              <strong style="color:var(--text)">① Freeze sinks</strong> — first <code>stream_n_sink</code> positions kept forever (attention sinks always receive high weight)<br>
+              <strong style="color:var(--text)">② Enqueue</strong> — every subsequent token enters the rolling FIFO queue<br>
+              <strong style="color:var(--text)">③ Trim</strong> — when FIFO exceeds <code>stream_window_size</code>, oldest token is evicted from the front<br>
+              <strong style="color:var(--text)">④ Return</strong> — concat <code>[sink_rows || recent_rows]</code> to the model; total positions ≤ <code>stream_n_sink + stream_window_size</code><br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Language models consistently attend to the initial "sink" tokens regardless of content, and attention outside the sinks is locally recency-biased. Retaining the sinks plus a recency window captures both effects at constant cost — unlike score-based eviction, which requires computing attention proxies.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">structural positional eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">none — position only</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Cache size</span>
+                <span class="value" style="color:#22c55e">constant (n_sink + window)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Works on</span>
+                <span class="value">prefill + decode (all steps)</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Calibration</span>
@@ -2856,7 +2906,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.19.0 — SnapKV-adapted token eviction shipped';
+      const text = 'v0.20.0 — StreamingLLM-adapted constant-memory cache shipped';
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         badge.textContent = text;
         return;

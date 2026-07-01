@@ -11,7 +11,7 @@
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.19.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.20.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
@@ -21,7 +21,7 @@
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.19.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.20.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -366,6 +366,26 @@ caches = KVCacheBuilder.for_model(model, config)
 **Evidence (`tests/cache/test_gear_cache.py` (10) + `tests/quantizers/test_gear.py` (13), all passing):** GEAR reconstruction MSE strictly below base-quant-alone on low-rank+outlier data; low-rank-alone and sparse-alone each help; `rank=0, sparse=0` collapses exactly to base group quant; a rank-`r` residual recovered to `< eps`; sparse selection picks true top-magnitude entries; byte-accounting ordering `base_only ≤ compressed ≤ fp16` at realistic head dim; `error_recovery_ratio` in `(0,1]`; values-off path keeps values fp16; build via both `create` and `for_model`. Offline harness reports 11–22% MSE improvement on synthetic low-rank data — **synthetic, not model-level.**
 
 **Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_gear.py` is an offline-synthetic harness (loads no model) and has not been run on hardware for committed numbers. Known limitation: the *stored* cache shrinks but reconstruction is fp16 for SDPA, so attend-time working set is not reduced; the low-rank/sparse factors are overhead, so keep the rank low relative to the head dim.
+
+## StreamingLLM-adapted — sink + recency-window constant-memory eviction — new in 0.20.0
+
+`method="streaming_llm"` is the repo's **first constant-memory cache** and first **structural positional eviction** method. *Inspired by, **not a faithful port of***, [StreamingLLM (Xiao et al., ICLR 2024, arXiv:2309.17453)](https://arxiv.org/abs/2309.17453): keep only the first `stream_n_sink` token positions (frozen attention sinks) and the most recent `stream_window_size` tokens (rolling FIFO). All other positions are permanently evicted. The cache never grows beyond `stream_n_sink + stream_window_size` positions regardless of generation length — **constant decode memory**.
+
+```python
+config = KVCacheConfig(
+    method="streaming_llm",
+    head_dim=128,
+    stream_n_sink=4,           # initial positions frozen as attention sinks
+    stream_window_size=512,    # FIFO capacity for recent tokens
+)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**Evidence:** 17 quantizer tests + 15 cache tests — all 32 passing. Constant-memory guarantee verified (30-step decode stress test). FIFO trimming and sink-first ordering verified. Deterministic.
+
+**Honest limitation:** no attention mask adjustment (model sees all returned K/V positions); no RoPE position-ID remapping. No model-level benchmark run yet — cite only after `results_streaming_llm.json` is committed from a hardware run.
+
+*Inspired by StreamingLLM (arXiv:2309.17453, ICLR 2024, Xiao et al.) — not a faithful port.*
 
 ## SnapKV-adapted — prefill observation-window token eviction — new in 0.19.0
 
@@ -826,6 +846,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [GEAR (arXiv:2403.05527)](https://arxiv.org/abs/2403.05527) — Kang et al., "GEAR: An Efficient KV Cache Compression Recipe for Near-Lossless Generative Inference of LLM" — error feedback: low-rank residual + sparse outlier correction over a base quantizer
 - [ZipCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14256) — He et al., "ZipCache: Accurate and Efficient KV Cache Quantization with Salient Token Identification" — per-token mixed bit-width via saliency-adaptive allocation (adapted: key-norm proxy for the attention-score saliency signal)
 - [SnapKV (ICLR 2025)](https://arxiv.org/abs/2404.14469) — Yuan et al., "SnapKV: LLM Knows What You are Looking for Before Generation" — token eviction via prefill observation-window attention scoring (adapted: key-as-query proxy for the prompt query vectors)
+- [StreamingLLM (ICLR 2024)](https://arxiv.org/abs/2309.17453) — Xiao et al., "Efficient Streaming Language Models with Attention Sinks" — structural positional eviction: first N sinks + rolling recency window; constant-memory streaming (adapted: no attention mask adjustment, no RoPE position-ID remapping)
 
 </details>
 

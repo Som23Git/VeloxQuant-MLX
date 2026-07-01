@@ -7,6 +7,46 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.20.0] — 2026-07-01
+
+### Added — StreamingLLM: sink + recency-window structural eviction (`method="streaming_llm"`)
+
+- **`veloxquant_mlx.cache.streaming_llm_cache.StreamingLLMKVCache`** — the repo's
+  first **constant-memory** cache and first **structural positional eviction** method.
+  *Inspired by, not a faithful port of,* "Efficient Streaming Language Models with
+  Attention Sinks" (Xiao et al., ICLR 2024, arXiv:2309.17453). Keeps only the first
+  `stream_n_sink` token positions (frozen as attention sinks) and the most recent
+  `stream_window_size` positions (rolling FIFO). All other positions are permanently
+  evicted. Both prefill (`S > 1`) and decode (`S == 1`) tokens are processed
+  identically through the same sink+window logic — the cache **never** grows beyond
+  `stream_n_sink + stream_window_size` positions regardless of how many tokens are
+  generated. The `streaming_ratio` and `tokens_in_window` properties report storage
+  accounting.
+- **Orthogonal to SnapKV-adapted**: SnapKV evicts by importance score at prefill and
+  then grows during decode; StreamingLLM-adapted evicts continuously by position and
+  stays constant-memory throughout generation.
+- **Adaptation limitations (documented, not hidden):**
+  - No attention mask adjustment — the model attends to all returned K/V positions; only
+    the number of K/V rows is bounded.
+  - No RoPE position-ID remapping — original token positions preserved in returned rows;
+    remapping requires model-level patching.
+  - Fixed `stream_n_sink` count — not adaptive.
+- Primitives in `veloxquant_mlx/quantizers/streaming_llm.py`: `StreamingWindow`,
+  `init_streaming_window`, `stream_update`, `stream_get_kv`, `stream_fp16_bytes`,
+  `full_stream_fp16_bytes`.
+- Config: `stream_n_sink` (int, default 4), `stream_window_size` (int, default 512).
+  Single-layer (no coordinator); `KVCacheBuilder.for_model()` propagates all `stream_*`
+  fields via `dataclasses.replace`.
+- **Tests** — `tests/quantizers/test_streaming_llm.py` (17 tests) +
+  `tests/cache/test_streaming_llm_cache.py` (15 tests): init shapes, sink absorption,
+  FIFO trimming, constant-memory guarantee (30-step stress), stream_get_kv shape/dtype/
+  sink-first ordering, byte accounting, streaming_ratio, large-prefill trim, n_sink=0
+  edge, determinism, for_model config propagation. **32/32 passing.**
+- Offline-synthetic harness in `benchmark_scripts/benchmark_streaming_llm.py` sweeping
+  `(seq_len, window_size)` on synthetic data. Not yet run on Apple Silicon hardware.
+
+---
+
 ## [0.19.0] — 2026-07-01
 
 ### Added — SnapKV: prefill observation-window token eviction (`method="snapkv"`)
