@@ -11,7 +11,24 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.18.0 — Latest
+## v0.19.0 — Latest
+
+### New
+- **SnapKV-adapted** (`method="snapkv"`) — the repo's first **token eviction** method and the first where the paper's actual signal (observation-window attention scores) is computable at the cache level without model interception. During prefill, the last `snap_obs_window` key rows act as proxy queries; their softmax attention over all prefix positions scores each token. Only the top-`snap_budget` positions (plus `snap_n_sink` always-kept sink positions) are retained as fp16. Decode tokens are never evicted. SnapKV-adapted (arXiv:2404.14469, ICLR 2025, Yuan et al.) — key-as-query proxy and no max-pool smoothing; documented as "SnapKV-adapted (VeloxQuant-MLX implementation)."
+  - `SnapKVKVCache` (`veloxquant_mlx/cache/snapkv_cache.py`); primitives in `veloxquant_mlx/quantizers/snapkv.py`: `obs_window_attention_scores`, `snap_select_indices`, `snapkv_compress`, `snapkv_fp16_bytes`, `full_fp16_bytes`.
+  - Config: `snap_budget`, `snap_obs_window`, `snap_n_sink`. Single-layer; `KVCacheBuilder.for_model()` propagates all `snap_*` fields via `dataclasses.replace`.
+  - 18 quantizer tests + 12 cache tests; `benchmark_scripts/benchmark_snapkv.py` (offline-synthetic, not run).
+  - Single-layer (no coordinator); eviction is per-head, uniform budget.
+
+### Honest scope
+- The key-as-query proxy is weaker than true query vectors from the prompt (not observable at `update_and_fetch`). Still stronger than key-norm-only methods (computes the actual attention distribution from K).
+- No max-pool smoothing (paper's `kernel_size > 1`).
+- Uniform `snap_budget` across all heads.
+- No model-level benchmark run yet; eviction ratio and attention-coverage lift verified on synthetic data.
+
+---
+
+## v0.18.0
 
 ### New
 - **ZipCache-adapted** (`method="zipcache"`) — the repo's first **per-token mixed bit-width** cache. The top `hi_fraction` of tokens by key L2-norm (the saliency proxy) are quantized at `hi_bits`; the rest at `lo_bits`. Both groups remain quantized — not fp16. ZipCache-adapted (arXiv:2405.14256, NeurIPS 2024, He et al.): the paper's true signal is normalized attention scores, which are not observable by a cache wrapper; key L2-norm is the proxy (same as KIVI-Sink and AdaKV-proxy, but here the decision is bit-width routing rather than fp16 protection or head budgeting).

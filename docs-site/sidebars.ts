@@ -42,6 +42,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/minicache',
         'algorithms/gear',
         'algorithms/zipcache',
+        'algorithms/snapkv',
       ],
     },
   ],
