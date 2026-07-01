@@ -11,6 +11,7 @@ from veloxquant_mlx.cache.sliding_window_cache import SlidingWindowKVCache
 from veloxquant_mlx.cache.turboquant_cache import TurboQuantKVCache
 from veloxquant_mlx.cache.zipcache_cache import ZipCacheKVCache
 from veloxquant_mlx.cache.snapkv_cache import SnapKVKVCache
+from veloxquant_mlx.cache.streaming_llm_cache import StreamingLLMKVCache
 
 __all__ = [
     "KVCacheBuilder",
@@ -26,4 +27,5 @@ __all__ = [
     "TurboQuantKVCache",
     "ZipCacheKVCache",
     "SnapKVKVCache",
+    "StreamingLLMKVCache",
 ]
