@@ -11,7 +11,7 @@
 </p>
 
 <p>
-  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.18.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/VeloxQuant-MLX/"><img src="https://img.shields.io/badge/pypi-0.19.0-0078d4?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"/></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
@@ -21,7 +21,7 @@
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.18.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.19.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -366,6 +366,33 @@ caches = KVCacheBuilder.for_model(model, config)
 **Evidence (`tests/cache/test_gear_cache.py` (10) + `tests/quantizers/test_gear.py` (13), all passing):** GEAR reconstruction MSE strictly below base-quant-alone on low-rank+outlier data; low-rank-alone and sparse-alone each help; `rank=0, sparse=0` collapses exactly to base group quant; a rank-`r` residual recovered to `< eps`; sparse selection picks true top-magnitude entries; byte-accounting ordering `base_only ≤ compressed ≤ fp16` at realistic head dim; `error_recovery_ratio` in `(0,1]`; values-off path keeps values fp16; build via both `create` and `for_model`. Offline harness reports 11–22% MSE improvement on synthetic low-rank data — **synthetic, not model-level.**
 
 **Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_gear.py` is an offline-synthetic harness (loads no model) and has not been run on hardware for committed numbers. Known limitation: the *stored* cache shrinks but reconstruction is fp16 for SDPA, so attend-time working set is not reduced; the low-rank/sparse factors are overhead, so keep the rank low relative to the head dim.
+
+## SnapKV-adapted — prefill observation-window token eviction — new in 0.19.0
+
+`method="snapkv"` is the repo's **first token eviction** cache and the first where
+the paper's actual signal (attention scores) is computable at the cache level without
+model interception. *Inspired by, **not a faithful port of***, [SnapKV (Yuan et al.,
+ICLR 2025, arXiv:2404.14469)](https://arxiv.org/abs/2404.14469): during prefill the
+last `snap_obs_window` key rows attend to all prefix positions via softmax; the pooled
+scores select the top-`snap_budget` tokens to keep. All others are dropped. Decode
+tokens are never evicted.
+
+```python
+config = KVCacheConfig(
+    method="snapkv",
+    head_dim=128,
+    snap_budget=512,        # hard cap on prefill tokens retained
+    snap_obs_window=32,     # trailing key rows as proxy queries
+    snap_n_sink=4,          # always-keep initial sink positions
+)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**Evidence:** 18 quantizer tests + 13 cache tests all pass. Eviction ratio > 1 (always smaller than full fp16). Decode accumulation correct. Deterministic.
+
+**Honest limitation:** the paper uses actual prompt query vectors for the observation window; we substitute key vectors (key-as-query proxy). No max-pool smoothing. No model-level benchmark run yet — cite only after `results_snapkv.json` is committed from a hardware run.
+
+*Inspired by SnapKV (arXiv:2404.14469, ICLR 2025, Yuan et al.) — not a faithful port.*
 
 ## ZipCache-adapted — saliency-adaptive per-token mixed precision — new in 0.18.0
 
@@ -798,6 +825,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [MiniCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14366) — Liu et al., "MiniCache: KV Cache Compression in Depth Dimension for Large Language Models" — cross-layer SLERP merge of adjacent layers' KV directions
 - [GEAR (arXiv:2403.05527)](https://arxiv.org/abs/2403.05527) — Kang et al., "GEAR: An Efficient KV Cache Compression Recipe for Near-Lossless Generative Inference of LLM" — error feedback: low-rank residual + sparse outlier correction over a base quantizer
 - [ZipCache (NeurIPS 2024)](https://arxiv.org/abs/2405.14256) — He et al., "ZipCache: Accurate and Efficient KV Cache Quantization with Salient Token Identification" — per-token mixed bit-width via saliency-adaptive allocation (adapted: key-norm proxy for the attention-score saliency signal)
+- [SnapKV (ICLR 2025)](https://arxiv.org/abs/2404.14469) — Yuan et al., "SnapKV: LLM Knows What You are Looking for Before Generation" — token eviction via prefill observation-window attention scoring (adapted: key-as-query proxy for the prompt query vectors)
 
 </details>
 

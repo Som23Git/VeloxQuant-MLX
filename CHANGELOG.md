@@ -7,6 +7,47 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.19.0] — 2026-07-01
+
+### Added — SnapKV: prefill observation-window token eviction (`method="snapkv"`)
+
+- **`veloxquant_mlx.cache.snapkv_cache.SnapKVKVCache`** — the repo's first
+  **token eviction** cache and the first where the paper's actual attention
+  signal is computable at cache level without model surgery. *Inspired by, not
+  a faithful port of,* "SnapKV: LLM Knows What You are Looking for Before
+  Generation" (Yuan et al., ICLR 2025, arXiv:2404.14469). During prefill
+  (`S > 1`), the last `snap_obs_window` key rows act as proxy queries; scaled
+  dot-product softmax over all `S` prefix key positions gives per-token
+  importance scores. The top-`snap_budget` tokens (plus `snap_n_sink`
+  always-kept sink positions) are retained as fp16. All evicted positions are
+  permanently dropped. Decode tokens (`S == 1`) are always appended — never
+  evicted. The `eviction_ratio` and `keep_rate` properties report the storage
+  accounting.
+- **Adaptation:** the paper uses the final prompt *query* vectors for the
+  observation window (not visible to a cache wrapper). We substitute the last
+  `snap_obs_window` *key* vectors as proxy queries — stronger than key-norm
+  alone (computes the actual attention distribution from K) but still an
+  approximation. No max-pool smoothing (paper's `kernel_size > 1`). Uniform
+  budget across all heads. Documented as "SnapKV-adapted (key-as-query proxy)"
+  throughout; never claimed as a faithful port.
+- Primitives in `veloxquant_mlx/quantizers/snapkv.py`: `obs_window_attention_scores`,
+  `snap_select_indices`, `snapkv_compress`, `snapkv_fp16_bytes`, `full_fp16_bytes`
+  (+ `SnapKVState`).
+- Config: `snap_budget` (int, default 512), `snap_obs_window` (int, default 32),
+  `snap_n_sink` (int, default 4). Single-layer (no coordinator); `KVCacheBuilder.for_model()`
+  propagates all `snap_*` fields via `dataclasses.replace`.
+- **Tests** — `tests/quantizers/test_snapkv.py` (18 tests) +
+  `tests/cache/test_snapkv_cache.py` (13 tests): obs-window scores shape, dtype,
+  value range; `obs_window` clamp; `snap_select_indices` exact count, sorted order,
+  sink guarantee, high-score preference; `snapkv_compress` output shape/dtype;
+  budget≥S no-eviction edge case; byte accounting; eviction ratio > 1; keep rate
+  in range; decode accumulation; decode-only no-eviction; determinism;
+  `for_model` propagation.
+- **Benchmark** — `benchmark_scripts/benchmark_snapkv.py` (offline-synthetic,
+  loads no model). **Not yet run** on hardware for committed numbers.
+- **Honest scope:** key-as-query proxy; no max-pool smoothing; no per-head budget;
+  no model-level benchmark yet.
+
 ## [0.18.0] — 2026-06-30
 
 ### Added — ZipCache: saliency-adaptive per-token mixed-precision (`method="zipcache"`)
