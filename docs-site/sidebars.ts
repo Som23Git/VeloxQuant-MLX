@@ -43,6 +43,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/gear',
         'algorithms/zipcache',
         'algorithms/snapkv',
+        'algorithms/streaming_llm',
       ],
     },
   ],

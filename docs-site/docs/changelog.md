@@ -11,7 +11,23 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.19.0 — Latest
+## v0.20.0 — Latest
+
+### New
+- **StreamingLLM-adapted** (`method="streaming_llm"`) — the repo's first **constant-memory** cache and first **structural positional eviction** method. Keeps only the first `stream_n_sink` token positions (frozen attention sinks) and the most recent `stream_window_size` positions (rolling FIFO). All other positions are permanently evicted. Both prefill and decode tokens go through the same logic — the cache never exceeds `stream_n_sink + stream_window_size` positions regardless of generation length. StreamingLLM-adapted (arXiv:2309.17453, ICLR 2024, Xiao et al.) — positional eviction (no scoring, no calibration); documented as "StreamingLLM-adapted (VeloxQuant-MLX implementation)."
+  - `StreamingLLMKVCache` (`veloxquant_mlx/cache/streaming_llm_cache.py`); primitives in `veloxquant_mlx/quantizers/streaming_llm.py`: `StreamingWindow`, `init_streaming_window`, `stream_update`, `stream_get_kv`, `stream_fp16_bytes`, `full_stream_fp16_bytes`.
+  - Config: `stream_n_sink` (default 4), `stream_window_size` (default 512). Single-layer; `KVCacheBuilder.for_model()` propagates all `stream_*` fields via `dataclasses.replace`.
+  - 17 quantizer tests + 15 cache tests; `benchmark_scripts/benchmark_streaming_llm.py` (offline-synthetic, not run).
+
+### Honest scope
+- No attention mask adjustment: the model attends to all returned K/V positions; only the number of K/V rows is bounded.
+- No RoPE position-ID remapping: original token positions are preserved in returned rows.
+- Fixed `stream_n_sink` count — not adaptive.
+- No model-level benchmark run yet; streaming_ratio and constant-memory property verified on synthetic data (32/32 tests passing).
+
+---
+
+## v0.19.0
 
 ### New
 - **SnapKV-adapted** (`method="snapkv"`) — the repo's first **token eviction** method and the first where the paper's actual signal (observation-window attention scores) is computable at the cache level without model interception. During prefill, the last `snap_obs_window` key rows act as proxy queries; their softmax attention over all prefix positions scores each token. Only the top-`snap_budget` positions (plus `snap_n_sink` always-kept sink positions) are retained as fp16. Decode tokens are never evicted. SnapKV-adapted (arXiv:2404.14469, ICLR 2025, Yuan et al.) — key-as-query proxy and no max-pool smoothing; documented as "SnapKV-adapted (VeloxQuant-MLX implementation)."
