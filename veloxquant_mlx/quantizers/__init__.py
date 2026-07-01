@@ -22,6 +22,14 @@ from veloxquant_mlx.quantizers.zipcache import (
     base_only_bytes,
     zipcache_quant_dequant,
 )
+from veloxquant_mlx.quantizers.snapkv import (
+    SnapKVState,
+    obs_window_attention_scores,
+    snap_select_indices,
+    snapkv_compress,
+    snapkv_fp16_bytes,
+    full_fp16_bytes,
+)
 
 __all__ = [
     "QuantizerFactory",
@@ -44,4 +52,10 @@ __all__ = [
     "zipcache_bytes",
     "base_only_bytes",
     "zipcache_quant_dequant",
+    "SnapKVState",
+    "obs_window_attention_scores",
+    "snap_select_indices",
+    "snapkv_compress",
+    "snapkv_fp16_bytes",
+    "full_fp16_bytes",
 ]
