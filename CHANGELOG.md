@@ -7,6 +7,57 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.23.0] — 2026-07-02
+
+### Added — PyramidKV: layer-adaptive budget attention-mass eviction (`method="pyramidkv"`)
+
+- **`veloxquant_mlx.cache.pyramidkv_cache.PyramidKVCache`** — the library's first
+  **layer-adaptive budget** eviction method. *Inspired by, not a faithful port of,*
+  "PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling"
+  (Cai et al., 2024, arXiv:2406.02069). PyramidKV is H2O's cumulative-attention-mass
+  eviction with a **per-layer budget** instead of a single global one: early layers
+  (broad attention) get a large budget, deep layers (concentrated attention) get a
+  small one, holding the *average* budget fixed so total memory matches a uniform
+  baseline. When the pyramid is flat (`pyramid_beta=1.0`) it reduces exactly to
+  H2O-adapted.
+- **The allocator — `pyramid_budgets(n_layers, avg_budget, n_sink, beta)`** — returns
+  the per-layer budget schedule (monotonically decreasing, mean ≈ `avg_budget`,
+  floored at `n_sink + 1`). Resolved once at `KVCacheBuilder.for_model()` build time
+  and baked into each layer's config as `pyramid_resolved_budget`. **No runtime
+  coordinator** is needed (unlike XQuant / MiniCache) — layers never exchange data
+  during generation; the only cross-layer signal is each layer's index, consumed at
+  build time.
+- **Fifth distinct eviction configuration in VeloxQuant-MLX:**
+  - SnapKV-adapted — score-based, once at prefill end.
+  - StreamingLLM-adapted — positional (recency + sink), constant-memory.
+  - H2O-adapted — cumulative attention mass, **uniform** budget, every step.
+  - TOVA-adapted — current-step attention weight (memoryless), every step.
+  - PyramidKV-adapted — H2O scoring with a **per-layer pyramid** budget.
+- **Adaptation limitations (documented, not hidden):**
+  - Key-as-query proxy (same as H2O-adapted / SnapKV-adapted).
+  - Fixed monotone (linear) budget schedule rather than the paper's
+    prefill-entropy-derived allocation — funneling shape preserved, exact per-layer
+    values not data-driven.
+  - No RoPE position-ID remapping after eviction.
+  - Uniform budget across heads within a layer (the pyramid is across layers).
+- Primitives in `veloxquant_mlx/quantizers/pyramidkv.py`: `pyramid_budgets`,
+  `PyramidState`, `init_pyramid_state`, `pyramid_update`, `pyramid_get_kv`,
+  `pyramid_fp16_bytes`, `full_pyramid_fp16_bytes`.
+- Config: `pyramid_budget` (int, default 512, the average/fallback), `pyramid_n_sink`
+  (int, default 4), `pyramid_beta` (float, default 2.0 — pyramid steepness; 1.0 = flat).
+  Single-cache `KVCacheFactory.create` (no layer context) falls back to
+  `pyramid_budget` and behaves as one uniform-budget H2O layer.
+- **Tests** — `tests/quantizers/test_pyramidkv.py` (24 tests) +
+  `tests/cache/test_pyramidkv_cache.py` (19 tests): allocator shape/monotonicity/
+  mean-preservation/flat==uniform/sink-floor/edge-cases, budget enforcement, sink
+  protection, byte accounting, determinism, and `for_model` producing a decreasing
+  pyramid of per-layer budgets (early layers keep more tokens than deep layers).
+- Offline-synthetic harness in `benchmark_scripts/benchmark_pyramidkv.py` sweeping
+  `(n_layers, seq_len, avg_budget, beta)` on synthetic fp16 data, reporting the
+  budget schedule, per-layer kept tokens, and compression ratio.
+
+---
+
 ## [0.22.0] — 2026-07-01
 
 ### Added — TOVA: current-step attention-weight eviction, memoryless (`method="tova"`)

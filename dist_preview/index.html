@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, H2O, TOVA — all in MLX. New in 0.22.0: TOVA memoryless current-step attention eviction — the reactive counterpart to H2O's cumulative scoring. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, H2O, TOVA, PyramidKV — all in MLX. New in 0.23.0: PyramidKV layer-adaptive budget eviction — H2O scoring with a per-layer pyramid budget that funnels memory to where attention spreads. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1587,6 +1587,51 @@
         </div>
       </div>
 
+      <!-- PyramidKV — full-width eviction card -->
+      <div class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.23.0 — LAYER-ADAPTIVE EVICTION</div>
+            <div class="algo-title" style="font-size:1.25rem">PyramidKV — Layer-Adaptive Budget Attention-Mass Eviction</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Inspired by <a href="https://arxiv.org/abs/2406.02069" target="_blank" rel="noopener" style="color:#a78bfa">PyramidKV (Cai et al., 2024, arXiv:2406.02069)</a>. The library's <strong style="color:var(--text)">fifth eviction configuration</strong> — and the first with a <strong style="color:var(--text)">per-layer budget</strong>. It is H2O's cumulative-attention-mass eviction wearing a <em>pyramid</em> of budgets.
+              <br><br>
+              Early layers (broad attention) get a large budget; deep layers (concentrated attention) get a small one; the <strong style="color:var(--text)">average is held fixed</strong> so total memory matches uniform H2O. The schedule (e.g. 12 layers @ 512 → <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">[1019, 927, …, 97, 5]</code>) is baked in at <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">for_model</code> build time — no runtime coordinator. Flat pyramid (<code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">pyramid_beta=1.0</code>) reduces exactly to H2O.
+              <br><br>
+              <strong style="color:#c084fc">Why a pyramid:</strong> attention funnels from broad (early) to concentrated (deep). A uniform budget starves early layers and over-provisions deep ones; the pyramid puts the same total memory where attention spreads.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Eviction signal</span>
+                <span class="value">Cumulative mass + pyramid budget</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Budget shape</span>
+                <span class="value" style="color:#c084fc">Per-layer (large → small)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Coordinator</span>
+                <span class="value">None (build-time schedule)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Flat pyramid</span>
+                <span class="value">== H2O (beta=1.0)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">43 / 43</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Config key</span>
+                <span class="value">method="pyramidkv"</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -1621,7 +1666,7 @@
       <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
         <div class="picker-goal">Integration cost</div>
         <div class="picker-method purple">Zero API change</div>
-        <div class="picker-detail">Auto-detected. Opt out with <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">use_metal_kernels=False</code> for parity testing. 7 dedicated parity tests; all 212 tests pass.</div>
+        <div class="picker-detail">Auto-detected. Opt out with <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">use_metal_kernels=False</code> for parity testing. 7 dedicated parity tests; 662 tests passing.</div>
       </div>
     </div>
 
@@ -1970,6 +2015,11 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
         <div class="picker-method" style="color:#2dd4bf">TOVA</div>
         <div class="picker-detail">Budget-bounded at every step · memoryless current-step attention weight · evicts the token no longer attended to right now · the reactive counterpart to H2O when context shifts within a long sequence.</div>
       </div>
+      <div class="picker-card" style="border-color:rgba(192,132,252,0.35);">
+        <div class="picker-goal">Importance eviction with depth-adaptive budget</div>
+        <div class="picker-method" style="color:#c084fc">PyramidKV</div>
+        <div class="picker-detail">H2O cumulative-mass eviction with a per-layer pyramid budget · large in early layers, small in deep layers, same average · funnels memory to where attention spreads · flat pyramid reduces to H2O.</div>
+      </div>
     </div>
   </section>
 
@@ -2014,8 +2064,8 @@ pip install -e ".[dev]"</span></pre>
           <li>NumPy ≥ 1.26</li>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
-          <li>10 production models validated</li>
-          <li>212 tests, all passing (incl. 7 Metal parity tests)</li>
+          <li>12 production models validated</li>
+          <li>662 tests passing (incl. 7 Metal parity tests)</li>
         </ul>
       </div>
     </div>
@@ -2074,7 +2124,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.6.0 — SpectralQuant shipped';
+      const text = 'v0.23.0 — PyramidKV layer-adaptive budget eviction shipped';
       let i = 0;
       badge.innerHTML = '';
       const cursor = document.createElement('span');

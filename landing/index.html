@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted — all in MLX. New in 0.20.0: StreamingLLM-adapted is the first constant-memory cache — keeps only the first N sink tokens plus the most recent W tokens, bounding the cache size forever. Zero calibration. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted — all in MLX. New in 0.23.0: PyramidKV-adapted layer-adaptive budget eviction — H2O scoring with a per-layer pyramid budget (large early, small deep, fixed average) that funnels memory to where attention spreads. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -315,6 +315,63 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       line-height: 1.7;
+    }
+
+    /* ── WHAT'S NEW (section-level collapsible changelog) ── */
+    .whats-new {
+      margin: 0 0 2rem;
+      max-width: 760px;
+    }
+    .whats-new summary {
+      cursor: pointer;
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .whats-new summary::-webkit-details-marker { display: none; }
+    .whats-new summary::before { content: '▸'; font-size: 0.7rem; color: var(--accent); }
+    .whats-new[open] summary::before { content: '▾'; }
+    .whats-new summary:hover { border-color: var(--accent); color: var(--accent); }
+    .whats-new[open] summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .whats-new-list {
+      list-style: none;
+      margin: 0;
+      padding: 0.4rem 0.9rem 0.6rem;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      background: rgba(255,255,255,0.015);
+    }
+    .whats-new-list li {
+      display: grid;
+      grid-template-columns: 5.5rem 1fr;
+      gap: 0.75rem;
+      padding: 0.55rem 0;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: var(--muted);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .whats-new-list li:last-child { border-bottom: none; }
+    .whats-new-list .wn-ver {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .whats-new-list .wn-body strong { color: var(--text); }
+    .whats-new-list code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; }
+    @media (max-width: 640px) {
+      .whats-new-list li { grid-template-columns: 1fr; gap: 0.15rem; }
     }
 
     /* ── HERO TERTIARY LINKS ── */
@@ -1530,14 +1587,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">22 algorithms</span>
+        <span class="hero-pill">26 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 22 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM
+        <summary>See all 26 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1666,12 +1723,27 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Twenty-two compression strategies</h2>
-    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. New in 0.20.0: StreamingLLM-adapted is the repo's first constant-memory cache — keeps only the first <code>stream_n_sink</code> sink tokens and the most recent <code>stream_window_size</code> tokens, so the cache never grows beyond a fixed bound regardless of generation length. New in 0.19.0: SnapKV-adapted is the repo's first token eviction method — it retains only the top-<code>snap_budget</code> tokens from prefill by observation-window attention scoring, dropping the rest entirely. New in 0.18.0: ZipCache-adapted is the first saliency-adaptive cache — a key-norm proxy ranks tokens, routing a small top fraction to a higher bit-width while the rest stay at a low base rate (<code>hi_bits</code> for salient tokens, <code>lo_bits</code> for the rest). New in 0.17.0: GEAR is the first error-feedback cache — it reconstructs the quantization error with a low-rank residual plus a sparse outlier correction (<code>X ≈ Quant_b(X) + L·R + S</code>), recovering quality the base bit-width loses. New in 0.16.0: CacheGen is the first entropy-coded cache — it delta-codes the quantized codes and compresses the low-entropy stream toward its Shannon entropy (a storage win on correlated KV, capped to never exceed packing); MiniCache merges adjacent middle-to-deep layers' KV into one shared SLERP direction so a pair of layers costs one. New in 0.15.0: PALU is the first true low-rank latent cache — it stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element. All zero-calibration. Mix and match per layer with RateQuant.</p>
+    <h2 class="section-title">Twenty-six compression strategies</h2>
+    <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
+
+    <details class="whats-new">
+      <summary>What's new — recent releases</summary>
+      <ul class="whats-new-list">
+        <li><span class="wn-ver">0.23.0</span><span class="wn-body"><strong>PyramidKV-adapted</strong> — first layer-adaptive budget cache. H2O-style eviction with a pyramid of per-layer budgets (large early, small deep, fixed average), funneling memory to where attention spreads. Flat pyramid == H2O.</span></li>
+        <li><span class="wn-ver">0.22.0</span><span class="wn-body"><strong>TOVA-adapted</strong> — first memoryless eviction cache. Scores tokens by the attention weight at the current step only (no accumulation), evicting the token no longer attended to. The reactive counterpart to H2O.</span></li>
+        <li><span class="wn-ver">0.21.0</span><span class="wn-body"><strong>H2O-adapted</strong> — evicts by cumulative attention mass. A small set of "heavy hitter" tokens receive most attention across the sequence; scoring by running mass keeps them at constant memory.</span></li>
+        <li><span class="wn-ver">0.20.0</span><span class="wn-body"><strong>StreamingLLM-adapted</strong> — first constant-memory cache. Keeps the first <code>stream_n_sink</code> sink tokens and the most recent <code>stream_window_size</code> tokens; the cache never grows beyond a fixed bound.</span></li>
+        <li><span class="wn-ver">0.19.0</span><span class="wn-body"><strong>SnapKV-adapted</strong> — first token eviction method. Retains only the top-<code>snap_budget</code> tokens from prefill by observation-window attention scoring, dropping the rest.</span></li>
+        <li><span class="wn-ver">0.18.0</span><span class="wn-body"><strong>ZipCache-adapted</strong> — first saliency-adaptive cache. A key-norm proxy ranks tokens, routing a small top fraction to <code>hi_bits</code> while the rest stay at <code>lo_bits</code>.</span></li>
+        <li><span class="wn-ver">0.17.0</span><span class="wn-body"><strong>GEAR</strong> — first error-feedback cache. Reconstructs the quantization error with a low-rank residual plus sparse outlier correction (<code>X ≈ Quant_b(X) + L·R + S</code>).</span></li>
+        <li><span class="wn-ver">0.16.0</span><span class="wn-body"><strong>CacheGen</strong> — first entropy-coded cache (delta-codes then compresses toward Shannon entropy). <strong>MiniCache</strong> merges adjacent middle-to-deep layers' KV into one shared SLERP direction.</span></li>
+        <li><span class="wn-ver">0.15.0</span><span class="wn-body"><strong>PALU</strong> — first true low-rank latent cache. Stores keys and values as latent <code>[S, r]</code> codes instead of full fp16, for a full-KV rate below 1 bit/element.</span></li>
+      </ul>
+    </details>
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (22)</button>
+      <button class="filter-btn active" data-filter="all">All (24)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -1711,6 +1783,21 @@
           <div class="picker-goal">RoPE-compatible exact VQ</div>
           <div class="picker-method">CommVQ</div>
           <div class="picker-detail">64× key compression · ICML 2025 → see details ↓</div>
+        </a>
+        <a href="#algo-h2o" class="picker-card picker-card-link" style="border-color:rgba(251,146,60,0.35);">
+          <div class="picker-goal">Importance-based eviction (inertial)</div>
+          <div class="picker-method" style="color:#fb923c">H2O</div>
+          <div class="picker-detail">Constant memory · cumulative attention mass → see details ↓</div>
+        </a>
+        <a href="#algo-tova" class="picker-card picker-card-link" style="border-color:rgba(45,212,191,0.35);">
+          <div class="picker-goal">Importance-based eviction (reactive)</div>
+          <div class="picker-method" style="color:#2dd4bf">TOVA</div>
+          <div class="picker-detail">Constant memory · memoryless current-step weight → see details ↓</div>
+        </a>
+        <a href="#algo-pyramidkv" class="picker-card picker-card-link" style="border-color:rgba(192,132,252,0.35);">
+          <div class="picker-goal">Importance eviction, depth-adaptive budget</div>
+          <div class="picker-method" style="color:#c084fc">PyramidKV</div>
+          <div class="picker-detail">H2O eviction + per-layer pyramid budget · large early, small deep → see details ↓</div>
         </a>
       </div>
     </div>
@@ -2037,6 +2124,167 @@
               <div class="algo-stat-row">
                 <span class="label">Works on</span>
                 <span class="value">prefill + decode (all steps)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- H2O — full-width eviction card -->
+      <div id="algo-h2o" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.21.0 — HEAVY-HITTER EVICTION</div>
+            <div class="algo-title" style="font-size:1.25rem">H2O-adapted — Cumulative Attention-Mass Heavy-Hitter Eviction</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.). The library's
+              <strong style="color:#22c55e">third eviction axis</strong> — the first based on
+              <strong style="color:var(--text)">cumulative attention mass</strong> accumulated token-by-token
+              during generation. On every step, each incoming key vector acts as a proxy query and attends
+              softmax over all stored keys; the weights are accumulated into a per-token importance score.
+              When the cache exceeds <code>h2o_budget</code>, the lowest-score non-sink token is permanently
+              evicted — the cache stays at most <code>h2o_budget</code> positions throughout generation.
+              <br><br>
+              <strong style="color:var(--text)">① Score</strong> — new key attends softmax over stored keys (key-as-query proxy)<br>
+              <strong style="color:var(--text)">② Accumulate</strong> — weights add into each token's running importance score<br>
+              <strong style="color:var(--text)">③ Evict</strong> — over budget → drop lowest-score non-sink token (first <code>h2o_n_sink</code> protected)<br>
+              <strong style="color:var(--text)">④ Bound</strong> — cache never exceeds <code>h2o_budget</code> positions<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> A small set of "heavy hitter" tokens receive a disproportionate share of attention across the whole sequence. Scoring by cumulative mass keeps those tokens and drops the rest, improving over recency-only eviction (StreamingLLM) at the same constant memory cost.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">cumulative attention-mass eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">cumulative softmax mass (inertial)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Cache size</span>
+                <span class="value" style="color:#22c55e">constant (≤ h2o_budget)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Works on</span>
+                <span class="value">prefill + decode (all steps)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">33 / 33</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOVA — full-width eviction card -->
+      <div id="algo-tova" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.22.0 — MEMORYLESS EVICTION</div>
+            <div class="algo-title" style="font-size:1.25rem">TOVA-adapted — Current-Step Attention-Weight Eviction (Memoryless)</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from TOVA (arXiv:2401.06104, Oren et al., 2024). The library's
+              <strong style="color:#fb923c">fourth eviction axis</strong> — and the first
+              <strong style="color:var(--text)">memoryless</strong> one: it scores tokens by the attention
+              weight received at the <strong style="color:var(--text)">current step only</strong>, carrying no
+              history. On every step the incoming key attends softmax over the post-append cache; when over
+              <code>tova_budget</code>, the lowest current-step-weight non-sink token is evicted — and the
+              weights are then discarded. The cache stays at most <code>tova_budget</code> positions.
+              <br><br>
+              <strong style="color:var(--text)">① Append</strong> — new token joins the cache<br>
+              <strong style="color:var(--text)">② Score now</strong> — new key attends softmax over the whole cache (current step only)<br>
+              <strong style="color:var(--text)">③ Evict</strong> — over budget → drop lowest current-step-weight non-sink token (first <code>tova_n_sink</code> protected)<br>
+              <strong style="color:var(--text)">④ Forget</strong> — weights discarded; nothing carries to the next step<br>
+              <br>
+              <strong style="color:#fb923c">H2O vs TOVA:</strong> H2O accumulates mass, so a past heavy hitter resists eviction (inertial). TOVA scores by the present step alone, so a token that stops being attended to is dropped even if it dominated earlier (reactive). Neither dominates — that is exactly why both are provided.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#fb923c">current-step attention eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">current-step softmax weight (memoryless)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Cache size</span>
+                <span class="value" style="color:#fb923c">constant (≤ tova_budget)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Works on</span>
+                <span class="value">prefill + decode (all steps)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">34 / 34</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PyramidKV — full-width eviction card -->
+      <div id="algo-pyramidkv" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
+        <div class="vecinfer-inner">
+          <div>
+            <div class="algo-badge new-badge">NEW IN 0.23.0 — LAYER-ADAPTIVE EVICTION</div>
+            <div class="algo-title" style="font-size:1.25rem">PyramidKV-adapted — Layer-Adaptive Budget Attention-Mass Eviction</div>
+            <div class="algo-desc" style="margin-top:0.6rem">
+              Adapted from PyramidKV (arXiv:2406.02069, Cai et al., 2024). The library's
+              <strong style="color:#c084fc">fifth eviction configuration</strong> — and the first with a
+              <strong style="color:var(--text)">per-layer budget</strong>. It is H2O's cumulative-attention-mass
+              eviction wearing a <em>pyramid</em> of budgets: early layers (broad attention) get a large budget,
+              deep layers (concentrated attention) get a small one, and the <strong style="color:var(--text)">average
+              is held fixed</strong> so total memory matches uniform H2O. Flat pyramid (<code>pyramid_beta=1.0</code>)
+              reduces exactly to H2O.
+              <br><br>
+              <strong style="color:var(--text)">① Allocate</strong> — <code>pyramid_budgets(n_layers, avg, β)</code> gives a decreasing schedule, e.g. 12 layers @ 512 → <code>[1019, 927, …, 97, 5]</code> (mean 512)<br>
+              <strong style="color:var(--text)">② Inject</strong> — each layer's budget is baked in at <code>for_model</code> build time; no runtime coordinator<br>
+              <strong style="color:var(--text)">③ Evict</strong> — within each layer, H2O cumulative-mass scoring bounded by <em>that layer's</em> budget<br>
+              <br>
+              <strong style="color:#c084fc">Why a pyramid — information funneling:</strong> attention is broad in early layers and concentrates in deep ones. A uniform budget starves early layers and over-provisions deep ones; the pyramid puts the same total memory where attention actually spreads.
+            </div>
+          </div>
+          <div>
+            <div class="algo-stats">
+              <div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#c084fc">layer-adaptive budget eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">cumulative mass + pyramid budget</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Budget shape</span>
+                <span class="value" style="color:#c084fc">per-layer (large → small)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Coordinator</span>
+                <span class="value">none (build-time schedule)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">43 / 43</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Calibration</span>
@@ -2483,7 +2731,7 @@
       <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
         <div class="picker-goal">Integration cost</div>
         <div class="picker-method purple">Zero API change</div>
-        <div class="picker-detail">Auto-detected. Opt out with <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">use_metal_kernels=False</code> for parity testing. 7 dedicated parity tests; all 212 tests pass.</div>
+        <div class="picker-detail">Auto-detected. Opt out with <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">use_metal_kernels=False</code> for parity testing. 7 dedicated parity tests; 662 tests passing.</div>
       </div>
     </div>
 
@@ -2846,7 +3094,7 @@ pip install -e ".[dev]"</span></pre>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
           <li>12 production models validated</li>
-          <li>212 tests, all passing (incl. 7 Metal parity tests)</li>
+          <li>662 tests passing (incl. 7 Metal parity tests)</li>
         </ul>
       </div>
     </div>
@@ -2906,7 +3154,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.20.0 — StreamingLLM-adapted constant-memory cache shipped';
+      const text = 'v0.23.0 — PyramidKV layer-adaptive budget eviction shipped';
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         badge.textContent = text;
         return;

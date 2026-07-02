@@ -54,6 +54,15 @@ from veloxquant_mlx.quantizers.tova import (
     tova_fp16_bytes,
     full_tova_fp16_bytes,
 )
+from veloxquant_mlx.quantizers.pyramidkv import (
+    pyramid_budgets,
+    PyramidState,
+    init_pyramid_state,
+    pyramid_update,
+    pyramid_get_kv,
+    pyramid_fp16_bytes,
+    full_pyramid_fp16_bytes,
+)
 
 __all__ = [
     "QuantizerFactory",
@@ -100,4 +109,11 @@ __all__ = [
     "tova_get_kv",
     "tova_fp16_bytes",
     "full_tova_fp16_bytes",
+    "pyramid_budgets",
+    "PyramidState",
+    "init_pyramid_state",
+    "pyramid_update",
+    "pyramid_get_kv",
+    "pyramid_fp16_bytes",
+    "full_pyramid_fp16_bytes",
 ]

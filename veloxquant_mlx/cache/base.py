@@ -36,7 +36,7 @@ class KVCacheConfig:
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
-        "streaming_llm", "h2o", "tova",
+        "streaming_llm", "h2o", "tova", "pyramidkv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -137,6 +137,11 @@ class KVCacheConfig:
     # --- TOVA-adapted configuration (current-step attention-weight eviction, memoryless) ---
     tova_budget: int = 512               # max tokens kept at any time (sinks + non-sinks)
     tova_n_sink: int = 4                 # initial positions protected from eviction (attention sinks)
+    # --- PyramidKV-adapted configuration (layer-adaptive budget attention-mass eviction) ---
+    pyramid_budget: int = 512            # AVERAGE per-layer budget (uniform-H2O baseline)
+    pyramid_n_sink: int = 4              # initial positions protected from eviction (attention sinks)
+    pyramid_beta: float = 2.0            # pyramid steepness: 1.0 = flat (== H2O), larger = steeper taper
+    pyramid_resolved_budget: Optional[int] = None  # per-layer budget injected by for_model (None → uniform)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -201,6 +206,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.streaming_llm_cache import StreamingLLMKVCache
         from veloxquant_mlx.cache.h2o_cache import H2OKVCache
         from veloxquant_mlx.cache.tova_cache import TOVAKVCache
+        from veloxquant_mlx.cache.pyramidkv_cache import PyramidKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -276,13 +282,15 @@ class KVCacheFactory:
             cache = H2OKVCache(config)
         elif config.method == "tova":
             cache = TOVAKVCache(config)
+        elif config.method == "pyramidkv":
+            cache = PyramidKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova."
+                f"streaming_llm, h2o, tova, pyramidkv."
             )
 
         if config.sliding_window is not None:
@@ -540,6 +548,10 @@ class KVCacheBuilder:
         if config.method == "minicache":
             return KVCacheBuilder._build_minicache(layers, args, config, _FallbackCache)
 
+        # --- PyramidKV: per-layer budget schedule injected at build time -------
+        if config.method == "pyramidkv":
+            return KVCacheBuilder._build_pyramidkv(layers, args, config, _FallbackCache)
+
         caches = []
         attn_idx = 0  # index into b_spec, advances only for attention layers
         for i, layer in enumerate(layers):
@@ -678,6 +690,56 @@ class KVCacheBuilder:
             )
             caches.append(MiniCacheKVCache(layer_cfg, role=role, group_id=group_id,
                                            coordinator=coordinator))
+        return caches
+
+    @staticmethod
+    def _build_pyramidkv(layers, args, config: "KVCacheConfig", fallback_cls) -> list:
+        """Build per-layer PyramidKV caches with a pyramid budget schedule.
+
+        The pyramid budget is allocated over *attention-bearing* layers only
+        (large budget early, small budget deep, mean == ``pyramid_budget``).
+        Each attention layer receives its own resolved budget via
+        ``pyramid_resolved_budget``; no runtime coordinator is needed.
+        """
+        from veloxquant_mlx.cache.pyramidkv_cache import PyramidKVCache
+        from veloxquant_mlx.quantizers.pyramidkv import pyramid_budgets
+
+        def _head_dim(layer):
+            attn = getattr(layer, "self_attn", None) or getattr(layer, "attn", None)
+            if attn is None:
+                return None
+            hd = getattr(attn, "head_dim", None)
+            if hd is None and args is not None:
+                hd = getattr(args, "head_dim", None) or (
+                    args.hidden_size // args.num_attention_heads
+                )
+            return hd
+
+        attn_layer_idx = [i for i, L in enumerate(layers) if _head_dim(L) is not None]
+        schedule = pyramid_budgets(
+            n_layers=len(attn_layer_idx),
+            avg_budget=config.pyramid_budget,
+            n_sink=config.pyramid_n_sink,
+            beta=config.pyramid_beta,
+        )
+        budget_by_layer: dict[int, int] = {
+            attn_layer_idx[k]: schedule[k] for k in range(len(attn_layer_idx))
+        }
+
+        caches = []
+        for i, layer in enumerate(layers):
+            hd = _head_dim(layer)
+            if hd is None:
+                caches.append(fallback_cls())
+                continue
+            layer_cfg = dataclasses_replace(
+                config,
+                head_dim=hd,
+                seed=config.seed + i,
+                store=config.store,
+                pyramid_resolved_budget=budget_by_layer[i],
+            )
+            caches.append(PyramidKVCache(layer_cfg))
         return caches
 
     def __repr__(self) -> str:

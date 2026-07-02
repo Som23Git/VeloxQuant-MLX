@@ -406,6 +406,39 @@ offline-synthetic harness.
 
 *Inspired by H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.) — not a faithful port.*
 
+## PyramidKV-adapted — layer-adaptive budget attention-mass eviction — new in 0.23.0
+
+`method="pyramidkv"` is the library's **fifth eviction configuration** and the first with a **per-layer budget**. *Inspired by, **not a faithful port of***, [PyramidKV (Cai et al., 2024, arXiv:2406.02069)](https://arxiv.org/abs/2406.02069): it is H2O-adapted's cumulative-attention-mass eviction wearing a *pyramid* of budgets instead of a single global one. Early layers (broad attention) get a large budget; deep layers (concentrated attention) get a small one; the **average is held fixed** so total memory matches uniform H2O. When the pyramid is flat (`pyramid_beta=1.0`) it reduces exactly to H2O.
+
+**Why a pyramid — pyramidal information funneling:** attention in early layers is broad and near-uniform, while deep layers concentrate on a few tokens. A uniform budget starves early layers and over-provisions deep ones; redistributing the same total into a pyramid puts memory where attention actually spreads.
+
+| Eviction axis | Score signal | Budget |
+|---|---|---|
+| SnapKV-adapted | Key-as-query attention proxy | Uniform |
+| StreamingLLM-adapted | Position (recency + sink) | Uniform |
+| H2O-adapted | Cumulative attention mass | Uniform |
+| TOVA-adapted | Current-step attention weight | Uniform |
+| **PyramidKV-adapted** | Cumulative attention mass | **Per-layer pyramid** |
+
+```python
+config = KVCacheConfig(
+    method="pyramidkv",
+    head_dim=128,
+    pyramid_budget=512,   # AVERAGE budget across layers (uniform-H2O baseline)
+    pyramid_n_sink=4,     # initial positions never evicted (attention sinks)
+    pyramid_beta=1.5,     # pyramid steepness: 1.0 = flat (== H2O), larger = steeper
+)
+caches = KVCacheBuilder.for_model(model, config)   # the pyramid needs layer context
+```
+
+The schedule for 12 layers, `avg_budget=512`, `beta=2.0` is `[1019, 927, …, 97, 5]` — mean exactly 512. The pyramid takes effect only via `for_model` (which knows each layer's index); single-cache construction falls back to the average budget and behaves as one uniform H2O layer. **No runtime coordinator** — layers never exchange data during generation (unlike XQuant/MiniCache).
+
+**Evidence:** 24 quantizer tests + 19 cache tests — all 43 passing. Allocator verified: monotonically decreasing, mean within 5% of average, `beta=1.0` == uniform, budgets floored at `n_sink+1`. `for_model` verified to produce a decreasing pyramid where early-layer caches retain more tokens than deep-layer caches on the same sequence. Budget-never-exceeded across a 30-step stress test. Deterministic.
+
+**Honest limitation:** fixed monotone (linear) budget schedule rather than the paper's prefill-entropy-derived allocation — funneling shape preserved, exact per-layer values not data-driven; key-as-query proxy for eviction (same as H2O); no RoPE remapping; uniform budget across heads within a layer. No model-level benchmark run — `benchmark_scripts/benchmark_pyramidkv.py` is an offline-synthetic harness.
+
+*Inspired by PyramidKV (arXiv:2406.02069, Cai et al., 2024) — not a faithful port.*
+
 ## TOVA-adapted — current-step attention-weight eviction (memoryless) — new in 0.22.0
 
 `method="tova"` is the library's **fourth eviction axis** and the first **memoryless** one.
@@ -934,6 +967,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [StreamingLLM (ICLR 2024)](https://arxiv.org/abs/2309.17453) — Xiao et al., "Efficient Streaming Language Models with Attention Sinks" — structural positional eviction: first N sinks + rolling recency window; constant-memory streaming (adapted: no attention mask adjustment, no RoPE position-ID remapping)
 - [H2O (ICLR 2024)](https://arxiv.org/abs/2306.14048) — Zhang et al., "H2O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models" — cumulative attention-mass token eviction with sink protection; budget-bounded constant-memory cache (adapted: key-as-query proxy for attention weights, no RoPE remapping)
 - [TOVA (arXiv:2401.06104)](https://arxiv.org/abs/2401.06104) — Oren et al., "Transformers are Multi-State RNNs" — memoryless current-step attention-weight token eviction; budget-bounded constant-memory cache, reactive counterpart to H2O's inertial cumulative scoring (adapted: key-as-query proxy for attention weights, no RoPE remapping)
+- [PyramidKV (arXiv:2406.02069)](https://arxiv.org/abs/2406.02069) — Cai et al., "PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling" — layer-adaptive KV budget (large early, small deep, fixed average) over H2O-style cumulative attention-mass eviction; funnels memory to where attention spreads (adapted: fixed linear budget schedule instead of prefill-entropy allocation, key-as-query proxy, no RoPE remapping)
 
 </details>
 

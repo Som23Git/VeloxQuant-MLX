@@ -46,6 +46,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/streaming_llm',
         'algorithms/h2o',
         'algorithms/tova',
+        'algorithms/pyramidkv',
       ],
     },
   ],
