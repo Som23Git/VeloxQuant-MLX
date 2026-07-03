@@ -7,6 +7,14 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.23.1] — 2026-07-03
+
+### Changed
+
+- **License** — extended the copyright notice to `2025-2026` to reflect ongoing
+  active development. No code or API changes; this is a metadata-only release so
+  the corrected copyright year is rendered on the PyPI project page.
+
 ## [0.23.0] — 2026-07-02
 
 ### Added — PyramidKV: layer-adaptive budget attention-mass eviction (`method="pyramidkv"`)
@@ -53,8 +61,12 @@ All notable changes to **VeloxQuant-MLX** are documented here.
   protection, byte accounting, determinism, and `for_model` producing a decreasing
   pyramid of per-layer budgets (early layers keep more tokens than deep layers).
 - Offline-synthetic harness in `benchmark_scripts/benchmark_pyramidkv.py` sweeping
-  `(n_layers, seq_len, avg_budget, beta)` on synthetic fp16 data, reporting the
-  budget schedule, per-layer kept tokens, and compression ratio.
+  `(n_layers, seq_len, avg_budget, beta)` on synthetic fp16 data — **run on Apple
+  Silicon**; results committed in `benchmark_scripts/pyramidkv_benchmark_results.json`
+  (24 configs). They confirm the design end-to-end: `beta=1.0` gives a flat schedule
+  (== uniform H2O), `beta>1.0` gives strictly decreasing budgets with early layers
+  retaining more tokens than deep layers, and schedule mean == `avg_budget`
+  everywhere. No model-level perplexity/throughput figures are claimed.
 
 ---
 
