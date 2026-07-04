@@ -771,25 +771,6 @@
     }
 
     /* ── PREREQUISITES BAR ── */
-    .prereq-bar {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      padding: 0.65rem 1rem;
-      background: rgba(0,212,255,0.05);
-      border: 1px solid rgba(0,212,255,0.2);
-      border-radius: 8px;
-      font-size: 0.84rem;
-      color: var(--muted);
-      margin-bottom: 1.25rem;
-    }
-
-    .prereq-bar .prereq-label { color: var(--accent); font-weight: 600; }
-    .prereq-bar code { font-family: 'JetBrains Mono', monospace; color: var(--code-text); font-size: 0.82rem; }
-    .prereq-bar .prereq-sep { opacity: 0.35; }
-    .prereq-bar a { color: var(--accent); text-decoration: none; }
-    .prereq-bar a:hover { text-decoration: underline; }
 
     /* ── CODE BLOCKS ── */
     .code-section { padding: 5rem 1.5rem; max-width: 1100px; margin: 0 auto; }
@@ -819,6 +800,15 @@
     .tab-btn.active { background: rgba(0,212,255,0.1); border-color: var(--accent); color: var(--accent); }
     .tab-btn.active-purple { background: rgba(124,58,237,0.1); border-color: var(--purple); color: #a78bfa; }
     .tab-btn.active-green { background: rgba(34,197,94,0.1); border-color: #22c55e; color: #22c55e; }
+    .tab-btn.active-teal { background: rgba(45,212,191,0.1); border-color: #2dd4bf; color: #2dd4bf; }
+
+    .quickstart-hint {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+    .quickstart-hint a { color: var(--accent); text-decoration: none; }
+    .quickstart-hint a:hover { text-decoration: underline; }
 
     .code-panel { display: none; }
     .code-panel.active { display: block; }
@@ -3035,7 +3025,7 @@
       <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
         <div class="picker-goal">Integration cost</div>
         <div class="picker-method purple">Zero API change</div>
-        <div class="picker-detail">Auto-detected. Opt out with <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">use_metal_kernels=False</code> for parity testing. 7 dedicated parity tests; 662 tests passing.</div>
+        <div class="picker-detail">Auto-detected. Opt out with <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">use_metal_kernels=False</code> for parity testing. dedicated parity tests; 750 tests passing.</div>
       </div>
     </div>
 
@@ -3083,22 +3073,14 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <h2 class="section-title">Plug into <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em;color:#a78bfa">mlx_lm</code> in 3 lines</h2>
     <p class="section-desc" style="margin-bottom:1.5rem">Same <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">mlx_lm.generate</code> API — just pass a compressed cache.</p>
 
-    <div class="prereq-bar fade-in">
-      <span class="prereq-label">Prerequisites:</span>
-      <code>pip install VeloxQuant-MLX mlx-lm</code>
-      <span class="prereq-sep">·</span>
-      Python 3.11+
-      <span class="prereq-sep">·</span>
-      Apple Silicon M1+
-      <span class="prereq-sep">·</span>
-      <a href="#install">Full install guide →</a>
-    </div>
+    <p class="quickstart-hint fade-in">New here? See the <a href="#install">Installation guide →</a></p>
 
     <div class="code-tabs">
-      <button class="tab-btn active" data-tab="rvq">RVQ-1bit (recommended)</button>
-      <button class="tab-btn" data-tab="vecinfer" style="border-color:rgba(124,58,237,0.4);color:#a78bfa">VecInfer-1bit (16×)</button>
-      <button class="tab-btn" data-tab="ratequant">RateQuant (mixed-precision)</button>
-      <button class="tab-btn" data-tab="spectral" style="border-color:rgba(34,197,94,0.4);color:#22c55e">SpectralQuant (new 0.6.0)</button>
+      <button class="tab-btn active" data-tab="rvq">RVQ-1bit · recommended</button>
+      <button class="tab-btn" data-tab="vecinfer" style="border-color:rgba(124,58,237,0.4);color:#a78bfa">VecInfer-1bit · 16×</button>
+      <button class="tab-btn" data-tab="ratequant">RateQuant · mixed-precision</button>
+      <button class="tab-btn" data-tab="spectral" style="border-color:rgba(34,197,94,0.4);color:#22c55e">SpectralQuant</button>
+      <button class="tab-btn" data-tab="squeeze" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">SqueezeAttention · eviction</button>
     </div>
 
     <!-- RVQ tab -->
@@ -3194,7 +3176,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <div class="code-panel" id="tab-spectral">
       <div class="code-wrap fade-in">
         <div class="code-header">
-          <span class="code-lang">python — SpectralQuant · 5.95× compression · best quality-per-bit · new 0.6.0</span>
+          <span class="code-lang">python — SpectralQuant · 5.95× compression · best quality-per-bit</span>
           <button class="code-copy" data-target="code-sq">Copy</button>
         </div>
         <pre id="code-sq"><span class="kw">import</span> <span class="id">mlx_lm</span>
@@ -3224,6 +3206,38 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
 <span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
     <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
     <span class="at">prompt</span><span class="op">=</span><span class="st">"Explain quantum entanglement in simple terms."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- SqueezeAttention tab -->
+    <div class="code-panel" id="tab-squeeze">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — SqueezeAttention · 2D layer×token eviction · data-driven budget</span>
+          <button class="code-copy" data-target="code-sqz">Copy</button>
+        </div>
+        <pre id="code-sqz"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Constant-memory eviction — a shared coordinator measures each layer's</span>
+<span class="cm"># attention concentration at prefill and re-budgets a fixed total. No calibration.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"squeeze"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">squeeze_budget</span><span class="op">=</span><span class="nu">512</span><span class="op">,</span>     <span class="cm"># AVERAGE tokens/layer (uniform-H2O baseline)</span>
+    <span class="at">squeeze_n_sink</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>       <span class="cm"># initial sink positions, never evicted</span>
+    <span class="at">squeeze_strength</span><span class="op">=</span><span class="nu">1.0</span><span class="op">,</span>   <span class="cm"># 0.0 = uniform (== H2O), 1.0 = full reallocation</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>   <span class="cm"># shared coordinator re-budgets after prefill</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
     <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
     <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
 <span class="op">)</span></pre>
@@ -3398,7 +3412,7 @@ pip install -e ".[dev]"</span></pre>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
           <li>12 production models validated</li>
-          <li>662 tests passing (incl. 7 Metal parity tests)</li>
+          <li>750 tests passing (756 total, incl. Metal parity tests)</li>
         </ul>
       </div>
     </div>
@@ -3448,9 +3462,9 @@ pip install -e ".[dev]"</span></pre>
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
-        tabBtns.forEach(b => b.classList.remove('active', 'active-purple'));
+        tabBtns.forEach(b => b.classList.remove('active', 'active-purple', 'active-green', 'active-teal'));
         tabPanels.forEach(p => p.classList.remove('active'));
-        btn.classList.add(tab === 'vecinfer' ? 'active-purple' : tab === 'spectral' ? 'active-green' : 'active');
+        btn.classList.add(tab === 'vecinfer' ? 'active-purple' : tab === 'spectral' ? 'active-green' : tab === 'squeeze' ? 'active-teal' : 'active');
         document.getElementById('tab-' + tab).classList.add('active');
       });
     });
