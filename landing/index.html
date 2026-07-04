@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted — all in MLX. New in 0.23.0: PyramidKV-adapted layer-adaptive budget eviction — H2O scoring with a per-layer pyramid budget (large early, small deep, fixed average) that funnels memory to where attention spreads. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted — all in MLX. New in 0.24.0: SqueezeAttention-adapted 2D layer×token data-driven budget eviction — measures each layer's attention concentration at prefill and reallocates a fixed total budget via a one-shot coordinator re-budget. The data-driven sibling of PyramidKV. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -458,6 +458,15 @@
       margin-bottom: 3rem;
     }
 
+    /* Centered section heading block (label + title + desc) */
+    .section-head-center {
+      text-align: center;
+    }
+    .section-head-center .section-desc {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
     /* ── STAT CARDS ── */
     .stat-hero-row {
       display: grid;
@@ -608,6 +617,158 @@
 
     .algo-stat-row .label { color: var(--muted); }
     .algo-stat-row .value { color: #a78bfa; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+    /* ══ METHOD LIBRARY (redesigned algorithm cards) ══ */
+    .algo-library { display: flex; flex-direction: column; gap: 2.75rem; }
+
+    .cat-group.hidden-by-filter { display: none; }
+
+    .cat-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .cat-header::before {
+      content: "";
+      width: 3px; height: 1.1rem;
+      border-radius: 3px;
+      background: var(--chip, var(--purple));
+      align-self: center;
+    }
+    .cat-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin: 0;
+    }
+    .cat-blurb { font-size: 0.82rem; color: var(--muted); flex: 1; }
+    .cat-count {
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--chip, var(--purple));
+      background: color-mix(in srgb, var(--chip, var(--purple)) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--chip, var(--purple)) 30%, transparent);
+      border-radius: 999px;
+      padding: 0.1rem 0.6rem;
+    }
+
+    /* Uniform responsive card grid — no more full-width special cases */
+    .cat-group .algo-grid {
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      align-items: start;
+    }
+
+    /* Card overrides for the library layout */
+    .cat-group .algo-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      padding: 1.4rem 1.4rem 1.1rem;
+    }
+    .cat-group .algo-card.hidden-by-filter { display: none; }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.15rem;
+    }
+    .cat-chip {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--chip, var(--purple));
+      background: color-mix(in srgb, var(--chip, var(--purple)) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--chip, var(--purple)) 28%, transparent);
+      border-radius: 6px;
+      padding: 0.16rem 0.55rem;
+      text-transform: uppercase;
+    }
+    .new-pill {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: rgba(0,212,255,0.12);
+      border: 1px solid rgba(0,212,255,0.35);
+      border-radius: 999px;
+      padding: 0.12rem 0.5rem;
+      text-transform: uppercase;
+      animation: newpulse 2.4s ease-in-out infinite;
+    }
+    @keyframes newpulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(0,212,255,0); }
+      50%     { box-shadow: 0 0 10px 0 rgba(0,212,255,0.25); }
+    }
+
+    .cat-group .algo-title { font-size: 1.05rem; margin-bottom: 0.1rem; }
+    .card-subtitle { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+    .card-summary { font-size: 0.84rem; margin: 0.15rem 0 0.3rem; }
+
+    .card-headline { margin-top: auto; padding-top: 0.35rem; }
+    .headline-stat {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #a78bfa;
+      background: rgba(124,58,237,0.1);
+      border: 1px solid rgba(124,58,237,0.22);
+      border-radius: 7px;
+      padding: 0.3rem 0.6rem;
+    }
+
+    /* Progressive-disclosure expander (native <details>) */
+    .card-details { margin-top: 0.15rem; }
+    .card-details > summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      padding: 0.25rem 0;
+      user-select: none;
+      transition: color 0.2s;
+    }
+    .card-details > summary::-webkit-details-marker { display: none; }
+    .card-details > summary::after {
+      content: " ▾";
+      font-size: 0.7rem;
+      opacity: 0.8;
+    }
+    .card-details[open] > summary::after { content: " ▴"; }
+    .card-details > summary:hover { color: var(--text); }
+    .card-details-body {
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--border);
+      margin-top: 0.35rem;
+      animation: cardReveal 0.25s ease;
+    }
+    @keyframes cardReveal { from { opacity: 0; } to { opacity: 1; } }
+    .card-full-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+    .card-details-body .algo-stats { margin-top: 1rem; }
+
+    /* Quiet footer metadata (version · venue · arXiv) */
+    .card-meta {
+      margin-top: 0.9rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.01em;
+      opacity: 0.75;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .new-pill { animation: none; }
+      .card-details-body { animation: none; }
+    }
 
     /* ── PREREQUISITES BAR ── */
     .prereq-bar {
@@ -1022,7 +1183,8 @@
 
     .footer-tagline {
       font-size: 0.75rem;
-      color: var(--border);
+      color: var(--muted);
+      opacity: 0.7;
       letter-spacing: 0.05em;
     }
 
@@ -1487,6 +1649,8 @@
 
     @media (max-width: 768px) {
       .algo-grid { grid-template-columns: 1fr; }
+      .cat-group .algo-grid { grid-template-columns: 1fr; }
+      .cat-header { flex-wrap: wrap; }
       .algo-card.vecinfer-card { grid-column: span 1; }
       .install-grid { grid-template-columns: 1fr; }
       .nav-links { gap: 1rem; }
@@ -1587,14 +1751,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">26 algorithms</span>
+        <span class="hero-pill">27 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 26 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV
+        <summary>See all 27 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1677,9 +1841,11 @@
 
   <!-- ── STATS ── -->
   <section id="why">
-    <p class="section-label">Why VeloxQuant-MLX</p>
-    <h2 class="section-title">Numbers that matter</h2>
-    <p class="section-desc">Measured on real Apple Silicon hardware across 10 production models. All numbers from end-to-end generation — not synthetic benchmarks.</p>
+    <div class="section-head-center">
+      <p class="section-label">Why VeloxQuant-MLX</p>
+      <h2 class="section-title">Numbers that matter</h2>
+      <p class="section-desc">Measured on real Apple Silicon hardware across 10 production models. All numbers from end-to-end generation — not synthetic benchmarks.</p>
+    </div>
     <div class="stat-hero-row">
       <div class="stat-card stat-hero purple fade-in">
         <div class="stat-number">16×</div>
@@ -1723,12 +1889,13 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Twenty-six compression strategies</h2>
+    <h2 class="section-title">Twenty-seven compression strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
 
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.24.0</span><span class="wn-body"><strong>SqueezeAttention-adapted</strong> — first 2D (layer × token) data-driven budget cache. Measures each layer's attention concentration at prefill and reallocates a fixed total budget toward broad layers via a one-shot coordinator re-budget. The data-driven sibling of PyramidKV; <code>strength=0</code> == H2O.</span></li>
         <li><span class="wn-ver">0.23.0</span><span class="wn-body"><strong>PyramidKV-adapted</strong> — first layer-adaptive budget cache. H2O-style eviction with a pyramid of per-layer budgets (large early, small deep, fixed average), funneling memory to where attention spreads. Flat pyramid == H2O.</span></li>
         <li><span class="wn-ver">0.22.0</span><span class="wn-body"><strong>TOVA-adapted</strong> — first memoryless eviction cache. Scores tokens by the attention weight at the current step only (no accumulation), evicting the token no longer attended to. The reactive counterpart to H2O.</span></li>
         <li><span class="wn-ver">0.21.0</span><span class="wn-body"><strong>H2O-adapted</strong> — evicts by cumulative attention mass. A small set of "heavy hitter" tokens receive most attention across the sequence; scoring by running mass keeps them at constant memory.</span></li>
@@ -1743,7 +1910,7 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (24)</button>
+      <button class="filter-btn active" data-filter="all">All (25)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -1799,457 +1966,89 @@
           <div class="picker-method" style="color:#c084fc">PyramidKV</div>
           <div class="picker-detail">H2O eviction + per-layer pyramid budget · large early, small deep → see details ↓</div>
         </a>
+        <a href="#algo-squeeze" class="picker-card picker-card-link" style="border-color:rgba(251,191,36,0.35);">
+          <div class="picker-goal">Importance eviction, data-driven depth budget</div>
+          <div class="picker-method" style="color:#fbbf24">SqueezeAttention</div>
+          <div class="picker-detail">H2O eviction + measured per-layer budget · concentration-driven, re-budget at prefill → see details ↓</div>
+        </a>
       </div>
     </div>
 
-    <div class="algo-grid">
+    <div class="algo-library">
 
-      <!-- VecInfer — full-width featured card -->
-      <div id="algo-vecinfer" class="algo-card vecinfer-card fade-in" data-tags="metal extreme">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">METAL-ACCELERATED IN 0.5.1</div>
-            <div class="algo-title" style="font-size:1.25rem">VecInfer — Product Vector Quantization</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              The most aggressive compression method in the library. VecInfer (Yao et al. 2025, <a href="https://arxiv.org/abs/2510.06175" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2510.06175</a>) applies a <strong style="color:var(--text)">dual transform</strong> to keys before product VQ encoding:
-              <br><br>
-              <strong style="color:var(--text)">① Smooth scaling</strong> — per-channel λ = √(max|K|) suppresses outlier magnitudes<br>
-              <strong style="color:var(--text)">② Walsh-Hadamard rotation</strong> — spreads energy uniformly across all dims<br>
-              <strong style="color:var(--text)">③ K-means product VQ</strong> — encode sub-vectors against calibrated codebook<br>
-              <br>
-              The inverse transform is absorbed into queries so <code style="font-family:'JetBrains Mono',monospace">q @ K.T</code> is preserved exactly. At 1 bit/elem, a 128-dim key becomes 16 bytes instead of 256 — <strong style="color:#a78bfa">16× compression</strong>.
-              <br><br>
-              <strong style="color:#a78bfa">New in 0.5.1:</strong> hand-written Metal compute kernel for <code style="font-family:'JetBrains Mono',monospace">quantize_vq</code> keeps argmin in thread-local registers — <strong style="color:var(--text)">13× faster, 98% less peak memory</strong>, no API change required.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Max compression</span>
-                <span class="value">16× (1-bit)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Metal kernel speedup</span>
-                <span class="value">6.9× – 14.7×</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Peak memory (Falcon3 shape)</span>
-                <span class="value">729 MB → 12 MB</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Qwen2.5-7B throughput</span>
-                <span class="value">21.5 tok/s vs 21.0 fp16</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration required</span>
-                <span class="value">Yes — one-time offline</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">head_dim constraint</span>
-                <span class="value">Power of 2 only</span>
-              </div>
-            </div>
-          </div>
+      <div class="cat-group" data-cat-group="evict">
+        <div class="cat-header" style="--chip:#2dd4bf">
+          <h3 class="cat-title">Token Eviction</h3>
+          <span class="cat-blurb">Constant-memory caches that drop low-value tokens</span>
+          <span class="cat-count">6</span>
         </div>
-      </div>
-
-      <!-- RVQ -->
-      <div id="algo-rvq" class="algo-card fade-in" data-tags="zero-cal">
-        <div class="algo-badge">RVQ</div>
-        <div class="algo-title">TurboQuant RVQ</div>
-        <div class="algo-desc">Two-pass scalar residual vector quantization. 1-bit sign quantizer + Laplacian residual stage. Achieves <strong style="color:var(--text)">7.5× compression</strong> with cosine similarity 0.92, within 5% of fp16 throughput on most 7–8B models. No calibration required.</div>
-      </div>
-
-      <!-- RateQuant -->
-      <div id="algo-ratequant" class="algo-card fade-in" data-tags="">
-        <div class="algo-badge">RATE</div>
-        <div class="algo-title">RateQuant</div>
-        <div class="algo-desc">Per-layer bit allocation via reverse-waterfilling (arxiv:2605.06675). 1.6s real-activation calibration measures sensitivity per layer and allocates more bits where it matters. <strong style="color:var(--text)">Equal quality at lower average bit-width</strong>.</div>
-      </div>
-
-      <!-- PolarQuant -->
-      <div id="algo-polarquant" class="algo-card fade-in" data-tags="zero-cal">
-        <div class="algo-badge">POLAR</div>
-        <div class="algo-title">PolarQuant</div>
-        <div class="algo-desc">Recursive polar coordinate decomposition for clustered key distributions. Lossless angular encoding preserves inner-product structure critical to attention score accuracy.</div>
-      </div>
-
-      <!-- QJL -->
-      <div id="algo-qjl" class="algo-card fade-in" data-tags="zero-cal extreme">
-        <div class="algo-badge">1-BIT</div>
-        <div class="algo-title">QJL</div>
-        <div class="algo-desc">Johnson-Lindenstrauss 1-bit sign sketch. An inner-product-preserving random projection for extreme compression scenarios. Minimal memory footprint with provable approximation guarantees.</div>
-      </div>
-
-      <!-- KIVI -->
-      <div id="algo-kivi" class="algo-card fade-in" data-tags="zero-cal">
-        <div class="algo-badge">KIVI</div>
-        <div class="algo-title">KIVI — asymmetric baseline</div>
-        <div class="algo-desc">Re-implementation of KIVI (Liu, Yuan et al., ICML 2024, <a href="https://arxiv.org/abs/2402.02750" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2402.02750</a>) — the field's most-cited KV-cache baseline. <strong style="color:var(--text)">Per-channel keys, per-token values</strong>, fp16 residual window, fully deterministic (no calibration). Measured <strong style="color:var(--text)">5.8× key / ~4× full-KV at 100–106% of fp16 throughput</strong> on Llama-3.2-3B, Qwen2.5-7B, Mistral-7B (M4). Included so every other method has a recognized comparison point.</div>
-      </div>
-
-      <!-- SpectralQuant — full-width featured card -->
-      <div id="algo-spectral" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.6.0</div>
-            <div class="algo-title" style="font-size:1.25rem">SpectralQuant — Eigenvector Rotation Quantization</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              The newest method in the library. SpectralQuant exploits a universal property of transformer KV caches: <strong style="color:var(--text)">~96% of key vector variance concentrates in just 3–4% of dimensions</strong> across all architectures. By rotating into the eigenvector basis before quantization, every bit lands on signal — not noise.
-              <br><br>
-              <strong style="color:var(--text)">① Calibration</strong> — one-time SVD over 512 tokens (~5–30s) computes per-layer rotation matrices<br>
-              <strong style="color:var(--text)">② PCA rotation</strong> — keys are projected into their principal component basis<br>
-              <strong style="color:var(--text)">③ Signal/noise codebooks</strong> — separate quantizers for high-eigenvalue signal dims and low-eigenvalue noise dims<br>
-              <strong style="color:var(--text)">④ No QJL on noise dims</strong> — paper finding: QJL correction adds variance without reducing bias on noise dims<br>
-              <br>
-              <strong style="color:#a78bfa">New in 0.6.0:</strong> <code style="font-family:'JetBrains Mono',monospace">calibrate_spectral_rotation(model, tokens)</code> auto-detects architecture (including Gemma 4 multimodal), wraps sliding-window caches, and caches rotations to disk. Works with all mlx-community models.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Compression ratio</span>
-                <span class="value">5.95× (b=3)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">vs TurboQuant 3-bit</span>
-                <span class="value">+7–10pp cosine sim</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Qwen2.5-0.5B cosim</span>
-                <span class="value">0.907 vs TQ 0.833</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Gemma 4 4B cosim</span>
-                <span class="value">0.863 vs TQ 0.758</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration time</span>
-                <span class="value">~5–30s, one-time</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Architecture support</span>
-                <span class="value">All mlx-community models</span>
-              </div>
-            </div>
-          </div>
+        <div class="algo-grid">
+      <div id="algo-squeeze" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
         </div>
-      </div>
-
-      <!-- CommVQ -->
-      <div id="algo-commvq" class="algo-card fade-in" data-tags="extreme">
-        <div class="algo-badge new-badge">ICML 2025</div>
-        <div class="algo-title">CommVQ — RoPE-Commutative VQ</div>
-        <div class="algo-desc">
-          Based on Apple ML Research (arXiv:2506.18879). Standard product VQ breaks with RoPE because <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">quantize(rotate(x)) ≠ rotate(quantize(x))</code>. CommVQ trains codebooks on pre-RoPE keys and projects each centroid onto the RoPE-commuting subspace (symmetrising paired dims), so RoPE can be applied exactly at decode time.
-          <br><br>
-          Result: <strong style="color:var(--text)">64× key compression</strong> (4 uint8 indices for D=128) with exact RoPE compatibility — no attention distortion from positional encoding mismatch.
-        </div>
-      </div>
-
-      <!-- RaBitQ — full-width featured card -->
-      <div id="algo-rabitq" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv metal extreme zero-cal">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.7.0 — FULL KV</div>
-            <div class="algo-badge new-badge" style="margin-top:0.4rem">KIVI-SINK NEW IN 0.9.0</div>
-            <div class="algo-title" style="font-size:1.25rem">RaBitQ — 1-bit Randomised Hadamard Quantization</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Based on RaBitQ (SIGMOD 2024) and Ascend-RaBitQ (arXiv:2605.16007). The first method in VeloxQuant-MLX to compress <strong style="color:var(--text)">both keys and values</strong>, achieving <strong style="color:#22c55e">6× total KV compression</strong> on Falcon3-7B.
+        <div class="algo-title">SqueezeAttention-adapted</div>
+        <div class="card-subtitle">2D layer×token data-driven budget</div>
+        <div class="algo-desc card-summary">Measures each layer's attention concentration and reallocates a fixed total budget.</div>
+        <div class="card-headline"><span class="headline-stat">2D · data-driven · 47/47 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from SqueezeAttention (arXiv:2404.04793, Wang et al., 2024). The library's
+              <strong style="color:#fbbf24">sixth eviction configuration</strong> — the first
+              <strong style="color:var(--text)">2D (layer × token)</strong> budget method and the first with a
+              <strong style="color:var(--text)">data-driven</strong> per-layer budget. It is H2O's
+              cumulative-attention-mass eviction with a per-layer budget that is <em>measured</em>, not assumed:
+              each layer's attention <strong style="color:var(--text)">concentration</strong> is read from the
+              prefill keys, and a fixed total budget is reallocated toward broad layers and away from concentrated
+              ones. Set <code>squeeze_strength=0.0</code> and it reduces exactly to uniform H2O.
               <br><br>
-              <strong style="color:var(--text)">① IVF clustering</strong> — K-Means partitions the key space into nList clusters<br>
-              <strong style="color:var(--text)">② Randomised Hadamard rotation</strong> — reuses existing <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">mx.hadamard_transform</code>, O(D log D)<br>
-              <strong style="color:var(--text)">③ 1-bit sign quantization</strong> — sign(residual) packed into D/8 uint8 bytes per key<br>
-              <strong style="color:var(--text)">④ Metal Hamming kernel</strong> — XOR + popcount scoring via custom <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">rabitq_hamming_score</code><br>
-              <strong style="color:var(--text)">⑤ MSE-b4 value quantization</strong> — scalar TurboQuantMSE at 4 bits for values (4× compression)<br>
+              <strong style="color:var(--text)">① Measure</strong> — <code>concentration_score(K)</code> = mean pairwise cosine dispersion (attention-free entropy proxy)<br>
+              <strong style="color:var(--text)">② Re-budget</strong> — a shared coordinator reallocates the total by inverse-concentration <em>once at the prefill boundary</em><br>
+              <strong style="color:var(--text)">③ Evict</strong> — within each layer, H2O cumulative-mass scoring bounded by <em>that layer's resolved</em> budget<br>
               <br>
-              <strong style="color:#22c55e">Context capacity:</strong> at an 8 GB memory budget, fp16 fits ~17k tokens while RaBitQ+MSE fits <strong style="color:#22c55e">~103k tokens</strong> — 6× more context in the same RAM. Memory grows linearly with context length at a 6× lower slope.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Key compression (signs only)</span>
-                <span class="value">11.6× vs fp16</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Value compression (MSE-b4)</span>
-                <span class="value">4× vs fp16</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Full KV compression</span>
-                <span class="value" style="color:#22c55e">6× on Falcon3-7B</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">KV memory @ 1024 tokens</span>
-                <span class="value">117 MB → 19.7 MB</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Context @ 8 GB budget</span>
-                <span class="value" style="color:#22c55e">17k → 103k tokens</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Metal kernel</span>
-                <span class="value">rabitq_hamming_score</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MiniCache — full-width featured card -->
-      <div id="algo-minicache" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.16.0 — CROSS-LAYER DEPTH MERGE</div>
-            <div class="algo-title" style="font-size:1.25rem">MiniCache — Cross-Layer Depth-Dimension Merging</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from MiniCache (arXiv:2405.14366, NeurIPS 2024). Compresses the cache <strong style="color:#22c55e">across network depth</strong>: adjacent middle-to-deep layers have nearly identical KV directions, so a pair is merged into <strong style="color:#22c55e">one shared SLERP direction</strong> plus each layer's own per-token magnitude — a pair of layers costs roughly one. A different route to inter-layer redundancy than XQuant: XQuant reuses <em>codes</em>, MiniCache merges the <em>tensors</em>. Zero calibration.
-              <br><br>
-              <strong style="color:var(--text)">① Magnitude / direction split</strong> — each KV vector decomposed into length + unit direction<br>
-              <strong style="color:var(--text)">② SLERP merge</strong> — the two layers' directions spherically interpolated into one shared unit vector, stored once<br>
-              <strong style="color:var(--text)">③ Per-layer magnitudes</strong> — each layer keeps its own per-token scalar, so reconstruction is <code>magnitude × shared_direction</code><br>
-              <strong style="color:var(--text)">④ Token retention</strong> — high-divergence token pairs (low direction cosine) are kept unmerged, capping worst-case error<br>
-              <br>
-              <strong style="color:#22c55e">Why it works:</strong> In the middle-to-deep portion of an LLM, adjacent layers' KV directions are nearly collinear — the representation evolves slowly with depth. Merging the shared direction and keeping only per-layer magnitudes recovers both layers from one stored vector.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Cross-layer mechanism</span>
-                <span class="value" style="color:#22c55e">SLERP tensor merge</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Merged-layer cost</span>
-                <span class="value" style="color:#22c55e">~1 layer per pair</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Unmergeable tokens</span>
-                <span class="value">retained (cosine threshold)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">vs XQuant</span>
-                <span class="value">merges tensors, not codes</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CacheGen — full-width featured card -->
-      <div id="algo-cachegen" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.16.0 — ENTROPY-CODED CACHE</div>
-            <div class="algo-title" style="font-size:1.25rem">CacheGen — Entropy-Coded KV Cache via Token Locality</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from CacheGen (arXiv:2310.07240, SIGCOMM 2024). The first method in the suite to <strong style="color:#22c55e">entropy-code the codes themselves</strong> rather than just pick a bit-width. Exploits token-wise locality — adjacent tokens' KV are similar — by delta-coding the quantized codes and compressing the low-entropy residual toward its Shannon entropy. Reconstruction is <strong style="color:#22c55e">identical to group quant</strong>; the win is storage. Zero calibration.
-              <br><br>
-              <strong style="color:var(--text)">① Group quantize</strong> — asymmetric min/max codes, same as KIVI<br>
-              <strong style="color:var(--text)">② Token-delta transform</strong> — consecutive tokens' codes subtracted; the deltas concentrate near zero<br>
-              <strong style="color:var(--text)">③ Entropy model</strong> — compressed size measured from the delta stream's Shannon entropy<br>
-              <strong style="color:var(--text)">④ Never-worse cap</strong> — bounded at fixed-width packing, so incompressible data costs 0% extra, never negative<br>
-              <br>
-              <strong style="color:#22c55e">Why it works:</strong> In long coherent contexts adjacent tokens' KV move slowly, so the per-token code deltas are low-entropy. An entropy coder spends far fewer than <code>bits</code> per symbol on that stream — a lossless storage win on top of the lossy quantization.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
+              <strong style="color:#fbbf24">Data-driven sibling of PyramidKV:</strong> same H2O scorer, same per-layer-budget idea — but the split follows <em>this prompt's</em> measured attention geometry instead of a fixed positional taper. First eviction method with a runtime re-budgeting step.</div><div class="algo-stats"><div class="algo-stat-row">
                 <span class="label">Compression axis</span>
-                <span class="value" style="color:#22c55e">entropy coding (lossless)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Savings on correlated KV</span>
-                <span class="value" style="color:#22c55e">~10–17% over packing</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Reconstruction</span>
-                <span class="value">identical to group quant</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Incompressible data</span>
-                <span class="value">0% (never negative)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- StreamingLLM — full-width featured card -->
-      <div id="algo-streaming-llm" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.20.0 — CONSTANT-MEMORY CACHE</div>
-            <div class="algo-title" style="font-size:1.25rem">StreamingLLM-adapted — Sink + Recency-Window Structural Eviction</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from StreamingLLM (arXiv:2309.17453, ICLR 2024, Xiao et al.). The repo's first
-              <strong style="color:#22c55e">constant-memory cache</strong> — the first method where the cache size is
-              bounded forever regardless of how many tokens are generated. Keeps only the first
-              <code>stream_n_sink</code> token positions (frozen attention sinks) and the most recent
-              <code>stream_window_size</code> tokens (rolling FIFO). All other positions are permanently
-              evicted. Zero calibration, zero scoring — purely structural and positional.
-              <br><br>
-              <strong style="color:var(--text)">① Freeze sinks</strong> — first <code>stream_n_sink</code> positions kept forever (attention sinks always receive high weight)<br>
-              <strong style="color:var(--text)">② Enqueue</strong> — every subsequent token enters the rolling FIFO queue<br>
-              <strong style="color:var(--text)">③ Trim</strong> — when FIFO exceeds <code>stream_window_size</code>, oldest token is evicted from the front<br>
-              <strong style="color:var(--text)">④ Return</strong> — concat <code>[sink_rows || recent_rows]</code> to the model; total positions ≤ <code>stream_n_sink + stream_window_size</code><br>
-              <br>
-              <strong style="color:#22c55e">Why it works:</strong> Language models consistently attend to the initial "sink" tokens regardless of content, and attention outside the sinks is locally recency-biased. Retaining the sinks plus a recency window captures both effects at constant cost — unlike score-based eviction, which requires computing attention proxies.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Compression axis</span>
-                <span class="value" style="color:#22c55e">structural positional eviction</span>
+                <span class="value" style="color:#fbbf24">2D layer×token budget eviction</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Signal</span>
-                <span class="value">none — position only</span>
+                <span class="value">cumulative mass + measured concentration</span>
               </div>
               <div class="algo-stat-row">
-                <span class="label">Cache size</span>
-                <span class="value" style="color:#22c55e">constant (n_sink + window)</span>
+                <span class="label">Budget shape</span>
+                <span class="value" style="color:#fbbf24">per-layer (data-driven)</span>
               </div>
               <div class="algo-stat-row">
-                <span class="label">Works on</span>
-                <span class="value">prefill + decode (all steps)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- H2O — full-width eviction card -->
-      <div id="algo-h2o" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.21.0 — HEAVY-HITTER EVICTION</div>
-            <div class="algo-title" style="font-size:1.25rem">H2O-adapted — Cumulative Attention-Mass Heavy-Hitter Eviction</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.). The library's
-              <strong style="color:#22c55e">third eviction axis</strong> — the first based on
-              <strong style="color:var(--text)">cumulative attention mass</strong> accumulated token-by-token
-              during generation. On every step, each incoming key vector acts as a proxy query and attends
-              softmax over all stored keys; the weights are accumulated into a per-token importance score.
-              When the cache exceeds <code>h2o_budget</code>, the lowest-score non-sink token is permanently
-              evicted — the cache stays at most <code>h2o_budget</code> positions throughout generation.
-              <br><br>
-              <strong style="color:var(--text)">① Score</strong> — new key attends softmax over stored keys (key-as-query proxy)<br>
-              <strong style="color:var(--text)">② Accumulate</strong> — weights add into each token's running importance score<br>
-              <strong style="color:var(--text)">③ Evict</strong> — over budget → drop lowest-score non-sink token (first <code>h2o_n_sink</code> protected)<br>
-              <strong style="color:var(--text)">④ Bound</strong> — cache never exceeds <code>h2o_budget</code> positions<br>
-              <br>
-              <strong style="color:#22c55e">Why it works:</strong> A small set of "heavy hitter" tokens receive a disproportionate share of attention across the whole sequence. Scoring by cumulative mass keeps those tokens and drops the rest, improving over recency-only eviction (StreamingLLM) at the same constant memory cost.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Compression axis</span>
-                <span class="value" style="color:#22c55e">cumulative attention-mass eviction</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Signal</span>
-                <span class="value">cumulative softmax mass (inertial)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Cache size</span>
-                <span class="value" style="color:#22c55e">constant (≤ h2o_budget)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Works on</span>
-                <span class="value">prefill + decode (all steps)</span>
+                <span class="label">Coordinator</span>
+                <span class="value">one-shot re-budget at prefill</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Tests passing</span>
-                <span class="value">33 / 33</span>
+                <span class="value">47 / 47</span>
               </div>
               <div class="algo-stat-row">
                 <span class="label">Calibration</span>
                 <span class="value">None</span>
-              </div>
-            </div>
+              </div></div>
           </div>
-        </div>
+        </details>
+        <div class="card-meta">v0.24.0 · arXiv:2404.04793</div>
       </div>
-
-      <!-- TOVA — full-width eviction card -->
-      <div id="algo-tova" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.22.0 — MEMORYLESS EVICTION</div>
-            <div class="algo-title" style="font-size:1.25rem">TOVA-adapted — Current-Step Attention-Weight Eviction (Memoryless)</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from TOVA (arXiv:2401.06104, Oren et al., 2024). The library's
-              <strong style="color:#fb923c">fourth eviction axis</strong> — and the first
-              <strong style="color:var(--text)">memoryless</strong> one: it scores tokens by the attention
-              weight received at the <strong style="color:var(--text)">current step only</strong>, carrying no
-              history. On every step the incoming key attends softmax over the post-append cache; when over
-              <code>tova_budget</code>, the lowest current-step-weight non-sink token is evicted — and the
-              weights are then discarded. The cache stays at most <code>tova_budget</code> positions.
-              <br><br>
-              <strong style="color:var(--text)">① Append</strong> — new token joins the cache<br>
-              <strong style="color:var(--text)">② Score now</strong> — new key attends softmax over the whole cache (current step only)<br>
-              <strong style="color:var(--text)">③ Evict</strong> — over budget → drop lowest current-step-weight non-sink token (first <code>tova_n_sink</code> protected)<br>
-              <strong style="color:var(--text)">④ Forget</strong> — weights discarded; nothing carries to the next step<br>
-              <br>
-              <strong style="color:#fb923c">H2O vs TOVA:</strong> H2O accumulates mass, so a past heavy hitter resists eviction (inertial). TOVA scores by the present step alone, so a token that stops being attended to is dropped even if it dominated earlier (reactive). Neither dominates — that is exactly why both are provided.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Compression axis</span>
-                <span class="value" style="color:#fb923c">current-step attention eviction</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Signal</span>
-                <span class="value">current-step softmax weight (memoryless)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Cache size</span>
-                <span class="value" style="color:#fb923c">constant (≤ tova_budget)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Works on</span>
-                <span class="value">prefill + decode (all steps)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Tests passing</span>
-                <span class="value">34 / 34</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None</span>
-              </div>
-            </div>
-          </div>
+      <div id="algo-pyramidkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
         </div>
-      </div>
-
-      <!-- PyramidKV — full-width eviction card -->
-      <div id="algo-pyramidkv" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.23.0 — LAYER-ADAPTIVE EVICTION</div>
-            <div class="algo-title" style="font-size:1.25rem">PyramidKV-adapted — Layer-Adaptive Budget Attention-Mass Eviction</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from PyramidKV (arXiv:2406.02069, Cai et al., 2024). The library's
+        <div class="algo-title">PyramidKV-adapted</div>
+        <div class="card-subtitle">Layer-adaptive pyramid budget</div>
+        <div class="algo-desc card-summary">H2O eviction with a per-layer pyramid budget — large early, small deep.</div>
+        <div class="card-headline"><span class="headline-stat">per-layer pyramid · 43/43 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from PyramidKV (arXiv:2406.02069, Cai et al., 2024). The library's
               <strong style="color:#c084fc">fifth eviction configuration</strong> — and the first with a
               <strong style="color:var(--text)">per-layer budget</strong>. It is H2O's cumulative-attention-mass
               eviction wearing a <em>pyramid</em> of budgets: early layers (broad attention) get a large budget,
@@ -2261,12 +2060,7 @@
               <strong style="color:var(--text)">② Inject</strong> — each layer's budget is baked in at <code>for_model</code> build time; no runtime coordinator<br>
               <strong style="color:var(--text)">③ Evict</strong> — within each layer, H2O cumulative-mass scoring bounded by <em>that layer's</em> budget<br>
               <br>
-              <strong style="color:#c084fc">Why a pyramid — information funneling:</strong> attention is broad in early layers and concentrates in deep ones. A uniform budget starves early layers and over-provisions deep ones; the pyramid puts the same total memory where attention actually spreads.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
+              <strong style="color:#c084fc">Why a pyramid — information funneling:</strong> attention is broad in early layers and concentrates in deep ones. A uniform budget starves early layers and over-provisions deep ones; the pyramid puts the same total memory where attention actually spreads.</div><div class="algo-stats"><div class="algo-stat-row">
                 <span class="label">Compression axis</span>
                 <span class="value" style="color:#c084fc">layer-adaptive budget eviction</span>
               </div>
@@ -2289,20 +2083,178 @@
               <div class="algo-stat-row">
                 <span class="label">Calibration</span>
                 <span class="value">None</span>
-              </div>
-            </div>
+              </div></div>
           </div>
-        </div>
+        </details>
+        <div class="card-meta">v0.23.0 · arXiv:2406.02069</div>
       </div>
-
-      <!-- SnapKV — full-width featured card -->
-      <div id="algo-snapkv" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.19.0 — TOKEN EVICTION CACHE</div>
-            <div class="algo-title" style="font-size:1.25rem">SnapKV-adapted — Prefill Observation-Window Token Eviction</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from SnapKV (arXiv:2404.14469, ICLR 2025, Yuan et al.). The repo's first
+      <div id="algo-tova" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">TOVA-adapted</div>
+        <div class="card-subtitle">Memoryless current-step eviction</div>
+        <div class="algo-desc card-summary">Drops the token no longer attended to right now. Reactive counterpart to H2O.</div>
+        <div class="card-headline"><span class="headline-stat">memoryless · reactive</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from TOVA (arXiv:2401.06104, Oren et al., 2024). The library's
+              <strong style="color:#fb923c">fourth eviction axis</strong> — and the first
+              <strong style="color:var(--text)">memoryless</strong> one: it scores tokens by the attention
+              weight received at the <strong style="color:var(--text)">current step only</strong>, carrying no
+              history. On every step the incoming key attends softmax over the post-append cache; when over
+              <code>tova_budget</code>, the lowest current-step-weight non-sink token is evicted — and the
+              weights are then discarded. The cache stays at most <code>tova_budget</code> positions.
+              <br><br>
+              <strong style="color:var(--text)">① Append</strong> — new token joins the cache<br>
+              <strong style="color:var(--text)">② Score now</strong> — new key attends softmax over the whole cache (current step only)<br>
+              <strong style="color:var(--text)">③ Evict</strong> — over budget → drop lowest current-step-weight non-sink token (first <code>tova_n_sink</code> protected)<br>
+              <strong style="color:var(--text)">④ Forget</strong> — weights discarded; nothing carries to the next step<br>
+              <br>
+              <strong style="color:#fb923c">H2O vs TOVA:</strong> H2O accumulates mass, so a past heavy hitter resists eviction (inertial). TOVA scores by the present step alone, so a token that stops being attended to is dropped even if it dominated earlier (reactive). Neither dominates — that is exactly why both are provided.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#fb923c">current-step attention eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">current-step softmax weight (memoryless)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Cache size</span>
+                <span class="value" style="color:#fb923c">constant (≤ tova_budget)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Works on</span>
+                <span class="value">prefill + decode (all steps)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">34 / 34</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.22.0 · arXiv:2401.06104</div>
+      </div>
+      <div id="algo-h2o" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          
+        </div>
+        <div class="algo-title">H2O-adapted</div>
+        <div class="card-subtitle">Heavy-hitter cumulative-mass eviction</div>
+        <div class="algo-desc card-summary">Evicts the lowest cumulative-attention-mass non-sink token when over budget.</div>
+        <div class="card-headline"><span class="headline-stat">heavy-hitter · budget-bounded</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.). The library's
+              <strong style="color:#22c55e">third eviction axis</strong> — the first based on
+              <strong style="color:var(--text)">cumulative attention mass</strong> accumulated token-by-token
+              during generation. On every step, each incoming key vector acts as a proxy query and attends
+              softmax over all stored keys; the weights are accumulated into a per-token importance score.
+              When the cache exceeds <code>h2o_budget</code>, the lowest-score non-sink token is permanently
+              evicted — the cache stays at most <code>h2o_budget</code> positions throughout generation.
+              <br><br>
+              <strong style="color:var(--text)">① Score</strong> — new key attends softmax over stored keys (key-as-query proxy)<br>
+              <strong style="color:var(--text)">② Accumulate</strong> — weights add into each token's running importance score<br>
+              <strong style="color:var(--text)">③ Evict</strong> — over budget → drop lowest-score non-sink token (first <code>h2o_n_sink</code> protected)<br>
+              <strong style="color:var(--text)">④ Bound</strong> — cache never exceeds <code>h2o_budget</code> positions<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> A small set of "heavy hitter" tokens receive a disproportionate share of attention across the whole sequence. Scoring by cumulative mass keeps those tokens and drops the rest, improving over recency-only eviction (StreamingLLM) at the same constant memory cost.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">cumulative attention-mass eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">cumulative softmax mass (inertial)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Cache size</span>
+                <span class="value" style="color:#22c55e">constant (≤ h2o_budget)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Works on</span>
+                <span class="value">prefill + decode (all steps)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">33 / 33</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.21.0 · arXiv:2306.14048</div>
+      </div>
+      <div id="algo-streaming-llm" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          
+        </div>
+        <div class="algo-title">StreamingLLM-adapted</div>
+        <div class="card-subtitle">Sink + recency-window eviction</div>
+        <div class="algo-desc card-summary">Keeps first-N sinks + last-W recent tokens. Constant memory, any length.</div>
+        <div class="card-headline"><span class="headline-stat">constant memory</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from StreamingLLM (arXiv:2309.17453, ICLR 2024, Xiao et al.). The repo's first
+              <strong style="color:#22c55e">constant-memory cache</strong> — the first method where the cache size is
+              bounded forever regardless of how many tokens are generated. Keeps only the first
+              <code>stream_n_sink</code> token positions (frozen attention sinks) and the most recent
+              <code>stream_window_size</code> tokens (rolling FIFO). All other positions are permanently
+              evicted. Zero calibration, zero scoring — purely structural and positional.
+              <br><br>
+              <strong style="color:var(--text)">① Freeze sinks</strong> — first <code>stream_n_sink</code> positions kept forever (attention sinks always receive high weight)<br>
+              <strong style="color:var(--text)">② Enqueue</strong> — every subsequent token enters the rolling FIFO queue<br>
+              <strong style="color:var(--text)">③ Trim</strong> — when FIFO exceeds <code>stream_window_size</code>, oldest token is evicted from the front<br>
+              <strong style="color:var(--text)">④ Return</strong> — concat <code>[sink_rows || recent_rows]</code> to the model; total positions ≤ <code>stream_n_sink + stream_window_size</code><br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Language models consistently attend to the initial "sink" tokens regardless of content, and attention outside the sinks is locally recency-biased. Retaining the sinks plus a recency window captures both effects at constant cost — unlike score-based eviction, which requires computing attention proxies.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">structural positional eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">none — position only</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Cache size</span>
+                <span class="value" style="color:#22c55e">constant (n_sink + window)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Works on</span>
+                <span class="value">prefill + decode (all steps)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.20.0</div>
+      </div>
+      <div id="algo-snapkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          
+        </div>
+        <div class="algo-title">SnapKV-adapted</div>
+        <div class="card-subtitle">Prefill observation-window eviction</div>
+        <div class="algo-desc card-summary">Keeps only the most-attended prefill positions; drops the rest entirely.</div>
+        <div class="card-headline"><span class="headline-stat">prefill token eviction</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from SnapKV (arXiv:2404.14469, ICLR 2025, Yuan et al.). The repo's first
               <strong style="color:#22c55e">token eviction</strong> method — and the first where
               the paper's actual signal (attention scores) is computable at the cache level without
               model interception. Instead of compressing all tokens to fewer bits, SnapKV-adapted
@@ -2314,12 +2266,7 @@
               <strong style="color:var(--text)">③ Select</strong> — keep the top-<code>snap_budget</code> tokens (plus <code>snap_n_sink</code> always-keep sinks)<br>
               <strong style="color:var(--text)">④ Evict</strong> — drop all others permanently; retained tokens stay fp16<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> Attention weight concentrates on a small fraction of prefix tokens at any generation step. Dropping the rest entirely is cheaper than quantizing them, and the observation window captures this structure from the K matrix alone — no model-forward needed.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
+              <strong style="color:#22c55e">Why it works:</strong> Attention weight concentrates on a small fraction of prefix tokens at any generation step. Dropping the rest entirely is cheaper than quantizing them, and the observation window captures this structure from the K matrix alone — no model-forward needed.</div><div class="algo-stats"><div class="algo-stat-row">
                 <span class="label">Compression axis</span>
                 <span class="value" style="color:#22c55e">token eviction</span>
               </div>
@@ -2338,164 +2285,203 @@
               <div class="algo-stat-row">
                 <span class="label">Calibration</span>
                 <span class="value">None</span>
-              </div>
-            </div>
+              </div></div>
           </div>
+        </details>
+        <div class="card-meta">v0.19.0 · arXiv:2404.14469</div>
+      </div>
         </div>
       </div>
 
-      <!-- ZipCache — full-width featured card -->
-      <div id="algo-zipcache" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.18.0 — SALIENCY-ADAPTIVE CACHE</div>
-            <div class="algo-title" style="font-size:1.25rem">ZipCache-adapted — Saliency-Adaptive Per-Token Mixed Precision</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from ZipCache (arXiv:2405.14256, NeurIPS 2024, He et al.). The first method in the suite on the <strong style="color:#22c55e">per-token saliency axis</strong> — instead of one bit-width for every token, a small top fraction gets a higher bit-width and the rest stay at a low base rate. The paper ranks tokens by attention score; since a cache wrapper cannot observe attention scores, this implementation substitutes a <strong style="color:#22c55e">key-norm proxy</strong> (the same proxy family as KIVI-Sink and AdaKV-proxy). Zero calibration.
+      <div class="cat-group" data-cat-group="quant">
+        <div class="cat-header" style="--chip:#7c3aed">
+          <h3 class="cat-title">Quantization</h3>
+          <span class="cat-blurb">Scalar, vector & codebook cache quantization</span>
+          <span class="cat-count">14</span>
+        </div>
+        <div class="algo-grid">
+      <div id="algo-rabitq" class="algo-card fade-in" data-tags="full-kv metal extreme zero-cal" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">RaBitQ</div>
+        <div class="card-subtitle">1-bit Randomised Hadamard Quantization</div>
+        <div class="algo-desc card-summary">First full-KV method — compresses both keys and values.</div>
+        <div class="card-headline"><span class="headline-stat">6× full-KV · Metal</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Based on RaBitQ (SIGMOD 2024) and Ascend-RaBitQ (arXiv:2605.16007). The first method in VeloxQuant-MLX to compress <strong style="color:var(--text)">both keys and values</strong>, achieving <strong style="color:#22c55e">6× total KV compression</strong> on Falcon3-7B.
               <br><br>
-              <strong style="color:var(--text)">① Score tokens</strong> — per-token key-norm proxy stands in for the paper's attention-score saliency signal<br>
-              <strong style="color:var(--text)">② Split by saliency</strong> — top <code>hi_fraction</code> of tokens flagged salient, the rest are not<br>
-              <strong style="color:var(--text)">③ Mixed-bit quantize</strong> — salient tokens quantized at <code>hi_bits</code>, the rest at <code>lo_bits</code>, both per-channel group quant<br>
-              <strong style="color:var(--text)">④ Reconstruct</strong> — dequantize each token at its assigned bit-width back to fp16 for SDPA<br>
+              <strong style="color:var(--text)">① IVF clustering</strong> — K-Means partitions the key space into nList clusters<br>
+              <strong style="color:var(--text)">② Randomised Hadamard rotation</strong> — reuses existing <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">mx.hadamard_transform</code>, O(D log D)<br>
+              <strong style="color:var(--text)">③ 1-bit sign quantization</strong> — sign(residual) packed into D/8 uint8 bytes per key<br>
+              <strong style="color:var(--text)">④ Metal Hamming kernel</strong> — XOR + popcount scoring via custom <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">rabitq_hamming_score</code><br>
+              <strong style="color:var(--text)">⑤ MSE-b4 value quantization</strong> — scalar TurboQuantMSE at 4 bits for values (4× compression)<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> Attention weight concentrates on a small set of tokens at any given step; preserving precision there while compressing the rest harder captures most of the achievable quality at a much lower average bit-width than a uniform scheme.
-            </div>
+              <strong style="color:#22c55e">Context capacity:</strong> at an 8 GB memory budget, fp16 fits ~17k tokens while RaBitQ+MSE fits <strong style="color:#22c55e">~103k tokens</strong> — 6× more context in the same RAM. Memory grows linearly with context length at a 6× lower slope.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Key compression (signs only)</span>
+                <span class="value">11.6× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression (MSE-b4)</span>
+                <span class="value">4× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Full KV compression</span>
+                <span class="value" style="color:#22c55e">6× on Falcon3-7B</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">KV memory @ 1024 tokens</span>
+                <span class="value">117 MB → 19.7 MB</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Context @ 8 GB budget</span>
+                <span class="value" style="color:#22c55e">17k → 103k tokens</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Metal kernel</span>
+                <span class="value">rabitq_hamming_score</span>
+              </div></div>
           </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Compression axis</span>
-                <span class="value" style="color:#22c55e">per-token saliency</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Saliency signal</span>
-                <span class="value">key-norm proxy (adapted)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Bit-width</span>
-                <span class="value">hi_bits salient, lo_bits rest</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Default split</span>
-                <span class="value">4-bit / 2-bit, 20% salient</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </details>
+        <div class="card-meta">v0.7.0 · SIGMOD 2024 · arXiv:2605.16007</div>
       </div>
-
-      <!-- GEAR — full-width featured card -->
-      <div id="algo-gear" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal full-kv">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.17.0 — ERROR-FEEDBACK CACHE</div>
-            <div class="algo-title" style="font-size:1.25rem">GEAR — Error-Feedback KV Cache (Residual Low-Rank + Sparse Outliers)</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from GEAR (arXiv:2403.05527, Kang et al.). The first method in the suite on the <strong style="color:#22c55e">error-feedback axis</strong> — instead of just picking a bit-width, it reconstructs what an ultra-low-bit base quantizer threw away: <code>X ≈ Quant_b(X) + L·R + S</code>. Unlike CacheGen (reconstruction identical to group quant), GEAR's reconstruction genuinely <strong style="color:#22c55e">recovers quality</strong> the base bit-width loses. Zero calibration.
+      <div id="algo-commvq" class="algo-card fade-in" data-tags="extreme" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">CommVQ</div>
+        <div class="card-subtitle">RoPE-Commutative VQ</div>
+        <div class="algo-desc card-summary">Codebooks on pre-RoPE keys projected onto the RoPE-commuting subspace.</div>
+        <div class="card-headline"><span class="headline-stat">64× key · exact RoPE</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Based on Apple ML Research (arXiv:2506.18879). Standard product VQ breaks with RoPE because <code style="font-family:'JetBrains Mono',monospace;font-size:0.85em">quantize(rotate(x)) ≠ rotate(quantize(x))</code>. CommVQ trains codebooks on pre-RoPE keys and projects each centroid onto the RoPE-commuting subspace (symmetrising paired dims), so RoPE can be applied exactly at decode time.
+          <br><br>
+          Result: <strong style="color:var(--text)">64× key compression</strong> (4 uint8 indices for D=128) with exact RoPE compatibility — no attention distortion from positional encoding mismatch.</div>
+          </div>
+        </details>
+        <div class="card-meta">ICML 2025 · arXiv:2506.18879</div>
+      </div>
+      <div id="algo-spectral" class="algo-card fade-in" data-tags="" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">SpectralQuant</div>
+        <div class="card-subtitle">Eigenvector Rotation Quantization</div>
+        <div class="algo-desc card-summary">Rotates into the eigenvector basis so every bit lands on signal.</div>
+        <div class="card-headline"><span class="headline-stat">~96% variance in 3–4% dims</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">The newest method in the library. SpectralQuant exploits a universal property of transformer KV caches: <strong style="color:var(--text)">~96% of key vector variance concentrates in just 3–4% of dimensions</strong> across all architectures. By rotating into the eigenvector basis before quantization, every bit lands on signal — not noise.
               <br><br>
-              <strong style="color:var(--text)">① Base quantize</strong> — ultra-low-bit group quant, borrowed from the shared quantizer<br>
-              <strong style="color:var(--text)">② Residual low-rank</strong> — truncated SVD of the quantization error <code>E = X − dequant(Quant_b(X))</code> gives <code>L·R</code><br>
-              <strong style="color:var(--text)">③ Sparse outliers</strong> — the top-magnitude entries the low-rank term cannot absorb are kept exact<br>
-              <strong style="color:var(--text)">④ Reconstruct</strong> — <code>base + L·R + S</code> to fp16 for SDPA<br>
+              <strong style="color:var(--text)">① Calibration</strong> — one-time SVD over 512 tokens (~5–30s) computes per-layer rotation matrices<br>
+              <strong style="color:var(--text)">② PCA rotation</strong> — keys are projected into their principal component basis<br>
+              <strong style="color:var(--text)">③ Signal/noise codebooks</strong> — separate quantizers for high-eigenvalue signal dims and low-eigenvalue noise dims<br>
+              <strong style="color:var(--text)">④ No QJL on noise dims</strong> — paper finding: QJL correction adds variance without reducing bias on noise dims<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> The residual of a coherent KV matrix is itself low-rank, so a small rank recovers most of the lost signal cheaply; a handful of sparse corrections mop up the outliers. Composes over any base quantizer to push the bit-width lower without the usual quality cliff.
-            </div>
+              <strong style="color:#a78bfa">New in 0.6.0:</strong> <code style="font-family:'JetBrains Mono',monospace">calibrate_spectral_rotation(model, tokens)</code> auto-detects architecture (including Gemma 4 multimodal), wraps sliding-window caches, and caches rotations to disk. Works with all mlx-community models.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression ratio</span>
+                <span class="value">5.95× (b=3)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs TurboQuant 3-bit</span>
+                <span class="value">+7–10pp cosine sim</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Qwen2.5-0.5B cosim</span>
+                <span class="value">0.907 vs TQ 0.833</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Gemma 4 4B cosim</span>
+                <span class="value">0.863 vs TQ 0.758</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration time</span>
+                <span class="value">~5–30s, one-time</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Architecture support</span>
+                <span class="value">All mlx-community models</span>
+              </div></div>
           </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Compression axis</span>
-                <span class="value" style="color:#22c55e">error feedback</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Recovers</span>
-                <span class="value" style="color:#22c55e">quality at low bits</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Decomposition</span>
-                <span class="value">base + low-rank + sparse</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Reconstruction</span>
-                <span class="value">improved vs base quant</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </details>
+        <div class="card-meta">v0.6.0</div>
       </div>
-
-      <!-- PALU — full-width featured card -->
-      <div id="algo-palu" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv zero-cal extreme">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.15.0 — TRUE LOW-RANK LATENT CACHE</div>
-            <div class="algo-title" style="font-size:1.25rem">PALU — True Low-Rank Latent Storage for Keys <em>and</em> Values</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from PALU (arXiv:2407.21118, ICLR 2025). The first method where the cache <strong style="color:#22c55e">itself stays low-rank</strong> — it stores the projected latent codes <code>[S, r]</code> directly and reconstructs full keys/values to fp16 only at attend time. Unlike SVDq (keys-only, reconstructs full fp16 so the win is bandwidth accounting), PALU bypasses the parent fp16 buffer entirely and compresses <strong style="color:#22c55e">both keys and values</strong> — a full-KV effective rate <strong style="color:#22c55e">below 1 bit/element</strong> on low-rank data. Zero calibration.
+      <div id="algo-vecinfer" class="algo-card fade-in" data-tags="metal extreme" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">VecInfer</div>
+        <div class="card-subtitle">Product Vector Quantization</div>
+        <div class="algo-desc card-summary">Dual-transform keys → product VQ. The library's most aggressive method.</div>
+        <div class="card-headline"><span class="headline-stat">16× · 1-bit</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">The most aggressive compression method in the library. VecInfer (Yao et al. 2025, <a href="https://arxiv.org/abs/2510.06175" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2510.06175</a>) applies a <strong style="color:var(--text)">dual transform</strong> to keys before product VQ encoding:
               <br><br>
-              <strong style="color:var(--text)">① Group-head SVD</strong> — heads are partitioned into groups; each group fits one shared projection from the prefill batch (PALU's G-LRD)<br>
-              <strong style="color:var(--text)">② True latent storage</strong> — the cache holds <code>[S, r]</code>, never full <code>[S, D]</code> fp16; the parent ring buffer is never populated<br>
-              <strong style="color:var(--text)">③ Mixed-bit latents</strong> — top-25% of channels by singular value at 4-bit, the rest at 2-bit, on both K and V<br>
-              <strong style="color:var(--text)">④ Reconstruct on attend</strong> — <code>L @ Vᵀ + μ</code> rebuilds fp16 K/V for SDPA; storage stays compact<br>
+              <strong style="color:var(--text)">① Smooth scaling</strong> — per-channel λ = √(max|K|) suppresses outlier magnitudes<br>
+              <strong style="color:var(--text)">② Walsh-Hadamard rotation</strong> — spreads energy uniformly across all dims<br>
+              <strong style="color:var(--text)">③ K-means product VQ</strong> — encode sub-vectors against calibrated codebook<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> Within a head group, keys and values share a dominant low-rank subspace — a few singular directions carry most of the attention-relevant variance. Storing the compact latent and quantizing where channel importance is already ordered by singular value beats uniform quantization in the original space, on both tensors.
-            </div>
+              The inverse transform is absorbed into queries so <code style="font-family:'JetBrains Mono',monospace">q @ K.T</code> is preserved exactly. At 1 bit/elem, a 128-dim key becomes 16 bytes instead of 256 — <strong style="color:#a78bfa">16× compression</strong>.
+              <br><br>
+              <strong style="color:#a78bfa">New in 0.5.1:</strong> hand-written Metal compute kernel for <code style="font-family:'JetBrains Mono',monospace">quantize_vq</code> keeps argmin in thread-local registers — <strong style="color:var(--text)">13× faster, 98% less peak memory</strong>, no API change required.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Max compression</span>
+                <span class="value">16× (1-bit)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Metal kernel speedup</span>
+                <span class="value">6.9× – 14.7×</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Peak memory (Falcon3 shape)</span>
+                <span class="value">729 MB → 12 MB</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Qwen2.5-7B throughput</span>
+                <span class="value">21.5 tok/s vs 21.0 fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration required</span>
+                <span class="value">Yes — one-time offline</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">head_dim constraint</span>
+                <span class="value">Power of 2 only</span>
+              </div></div>
           </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Effective bit-width (K and V)</span>
-                <span class="value" style="color:#22c55e">~0.6 bits (low-rank + mixed)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">What the cache stores</span>
-                <span class="value" style="color:#22c55e">latent [S, r], not fp16</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Value compression</span>
-                <span class="value">Yes — low-rank both tensors</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None — SVD from prefill</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Prefill overhead</span>
-                <span class="value">Group-head SVD once</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </details>
+        <div class="card-meta">v0.5.1 · Metal · arXiv:2510.06175</div>
       </div>
-
-      <!-- KVQuant-NUQ — full-width featured card -->
-      <div id="algo-kvquant" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv zero-cal">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.14.0 — NON-UNIFORM DATATYPE</div>
-            <div class="algo-title" style="font-size:1.25rem">KVQuant-NUQ — Non-Uniform Quantization + Outlier Isolation</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from KVQuant (arXiv:2401.18079, NeurIPS 2024). The first method in the suite to place quantization levels <strong style="color:#22c55e">where the data actually is</strong> instead of uniformly. Fits non-uniform signpost levels online via Lloyd-Max and carves the few extreme outliers out to fp16 — <strong style="color:#22c55e">~73% lower reconstruction error</strong> than uniform at 3-bit on heavy-tailed K/V. Both keys and values compressed. Zero calibration.
+      <div id="algo-kvquant" class="algo-card fade-in" data-tags="full-kv zero-cal" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">KVQuant-NUQ</div>
+        <div class="card-subtitle">Non-uniform datatype + outlier isolation</div>
+        <div class="algo-desc card-summary">NUQ levels fit per-channel with top-magnitude outliers kept fp16.</div>
+        <div class="card-headline"><span class="headline-stat">non-uniform · outlier-aware</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from KVQuant (arXiv:2401.18079, NeurIPS 2024). The first method in the suite to place quantization levels <strong style="color:#22c55e">where the data actually is</strong> instead of uniformly. Fits non-uniform signpost levels online via Lloyd-Max and carves the few extreme outliers out to fp16 — <strong style="color:#22c55e">~73% lower reconstruction error</strong> than uniform at 3-bit on heavy-tailed K/V. Both keys and values compressed. Zero calibration.
               <br><br>
               <strong style="color:var(--text)">① Lloyd-Max level fit</strong> — 2^bits signpost levels fit to the observed distribution; distortion monotone non-increasing across sweeps<br>
               <strong style="color:var(--text)">② Dense/sparse isolation</strong> — top-magnitude outliers stored separately in fp16, excluded from the level fit so they cannot stretch the range<br>
               <strong style="color:var(--text)">③ Per-channel keys, per-token values</strong> — key levels frozen after prefill; value levels fit per token<br>
               <strong style="color:var(--text)">④ Table lookup dequant</strong> — quantize to nearest signpost index, reconstruct by gathering the level table<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> LLM key/value distributions are bell-shaped and heavy-tailed. Uniform levels waste most of their range on the sparse tails; non-uniform levels concentrate precision in the dense center where the mass is, strictly reducing error at the same bit-width.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
+              <strong style="color:#22c55e">Why it works:</strong> LLM key/value distributions are bell-shaped and heavy-tailed. Uniform levels waste most of their range on the sparse tails; non-uniform levels concentrate precision in the dense center where the mass is, strictly reducing error at the same bit-width.</div><div class="algo-stats"><div class="algo-stat-row">
                 <span class="label">Effective key bit-width</span>
                 <span class="value" style="color:#22c55e">2–4 bits (non-uniform)</span>
               </div>
@@ -2514,76 +2500,31 @@
               <div class="algo-stat-row">
                 <span class="label">Prefill overhead</span>
                 <span class="value">Lloyd-Max level fit (vectorized)</span>
-              </div>
-            </div>
+              </div></div>
           </div>
-        </div>
+        </details>
+        <div class="card-meta">v0.14.0</div>
       </div>
-
-      <!-- XQuant — full-width featured card -->
-      <div id="algo-xquant" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="full-kv zero-cal extreme">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge">CROSS-LAYER REUSE</div>
-            <div class="algo-title" style="font-size:1.25rem">XQuant — Cross-Layer KV Cache Reuse</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Adapted from XQuant (arXiv:2510.11236, EMNLP 2025). The first method to exploit <strong style="color:#22c55e">inter-layer redundancy</strong> — adjacent layers are paired, the anchor publishes its quantized codes, and reuse layers store only their own scale/zero. Drives effective key precision <strong style="color:#22c55e">below 1.4 bits/element</strong> on correlated models. Both keys and values compressed. Zero calibration.
-              <br><br>
-              <strong style="color:var(--text)">① Anchor/reuse pairing</strong> — attention layers chunked into groups; first layer anchors, the rest reuse (group_size=2 → pairs, =3 → 1 anchor feeds 2)<br>
-              <strong style="color:var(--text)">② Shared coordinator</strong> — anchors publish integer codes through one cross-layer object injected at build time; mlx_lm.generate stays untouched<br>
-              <strong style="color:var(--text)">③ Per-layer params</strong> — reuse layers fit their own scale/zero to the shared codes, correcting cross-layer drift, storing no code tensor<br>
-              <strong style="color:var(--text)">④ Optional residual</strong> — a low-bit correction recovers quality when layers are less correlated<br>
-              <br>
-              <strong style="color:#22c55e">Why it works:</strong> Adjacent transformer layers produce highly similar K/V — their representations evolve gradually with depth. XQuant reuses the anchor's code assignment and pays only a fresh scale/zero per reuse layer, an axis orthogonal to every per-layer quantizer in the suite.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
-                <span class="label">Effective key bit-width</span>
-                <span class="value" style="color:#22c55e">~1.0–1.4 bits/element (group)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Key bandwidth reduction</span>
-                <span class="value" style="color:#22c55e">11×–16× vs fp16</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Value compression</span>
-                <span class="value">Yes (cross-layer)</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Calibration</span>
-                <span class="value">None — zero-shot</span>
-              </div>
-              <div class="algo-stat-row">
-                <span class="label">Decode overhead</span>
-                <span class="value">O(1) coordinator fetch + param fit per token</span>
-              </div>
-            </div>
-          </div>
+      <div id="algo-adakv" class="algo-card fade-in" data-tags="zero-cal" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
         </div>
-      </div>
-
-      <!-- AdaKV-proxy — full-width featured card -->
-      <div id="algo-adakv" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge">PER-HEAD ADAPTIVE BITS</div>
-            <div class="algo-title" style="font-size:1.25rem">AdaKV-proxy — Per-Head Adaptive Bit Allocation</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              A proxy adaptation of Ada-KV (arXiv:2407.11550), layered on KIVI-style group quantization. Allocates KV-cache bits <strong style="color:#22c55e">per attention head</strong> so the average bits/element hits a configured target — high-importance heads get more bits, low-importance heads fewer. Zero calibration. Values left at fp16.
+        <div class="algo-title">AdaKV-proxy</div>
+        <div class="card-subtitle">Per-head adaptive bit allocation</div>
+        <div class="algo-desc card-summary">Distributes a bit budget across heads by measured importance.</div>
+        <div class="card-headline"><span class="headline-stat">per-head adaptive</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">A proxy adaptation of Ada-KV (arXiv:2407.11550), layered on KIVI-style group quantization. Allocates KV-cache bits <strong style="color:#22c55e">per attention head</strong> so the average bits/element hits a configured target — high-importance heads get more bits, low-importance heads fewer. Zero calibration. Values left at fp16.
               <br><br>
               <strong style="color:var(--text)">① Per-head importance</strong> — inter-token key-norm variance Var(‖k_t‖₂), an attention-free proxy for head importance, accumulated online<br>
               <strong style="color:var(--text)">② Budget allocation</strong> — importances normalised and scaled to n_heads × target_avg_bits, then snapped to the allowed set {2, 3, 4}<br>
               <strong style="color:var(--text)">③ Greedy round-trip correction</strong> — heads nearest a rounding boundary nudged up/down until the integer total matches the budget<br>
               <strong style="color:var(--text)">④ Per-head group quantization</strong> — each head's keys quantized at its assigned bit-width, reconstructed to fp16<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> Attention heads differ widely in quant sensitivity. Spending the same average budget as uniform KIVI but concentrating bits on the heads whose key magnitudes spread most across tokens recovers quality where it matters — complementary to Kitty's per-channel axis.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
+              <strong style="color:#22c55e">Why it works:</strong> Attention heads differ widely in quant sensitivity. Spending the same average budget as uniform KIVI but concentrating bits on the heads whose key magnitudes spread most across tokens recovers quality where it matters — complementary to Kitty's per-channel axis.</div><div class="algo-stats"><div class="algo-stat-row">
                 <span class="label">Effective key bit-width</span>
                 <span class="value" style="color:#22c55e">target (2.0–3.0), adaptive</span>
               </div>
@@ -2602,32 +2543,31 @@
               <div class="algo-stat-row">
                 <span class="label">Decode overhead</span>
                 <span class="value">O(H) accumulator + allocation per token</span>
-              </div>
-            </div>
+              </div></div>
           </div>
-        </div>
+        </details>
+        <div class="card-meta">v0.12.0 · arXiv:2407.11550</div>
       </div>
-
-      <!-- Kitty — full-width featured card -->
-      <div id="algo-kitty" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="zero-cal">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge">ADAPTIVE MIXED-PRECISION</div>
-            <div class="algo-title" style="font-size:1.25rem">Kitty — Dynamic Channel-wise Mixed-Precision Keys</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Inspired by Kitty (arXiv:2511.18643). Compresses keys to <strong style="color:#22c55e">~2.5 bits/element</strong> — a 6.4× memory bandwidth reduction vs fp16 — by ranking key channels online via per-channel variance and assigning 4-bit to high-variance channels, 2-bit to the rest. Zero calibration — no SVD, no codebook training. Values left at fp16.
+      <div id="algo-kitty" class="algo-card fade-in" data-tags="zero-cal" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">Kitty</div>
+        <div class="card-subtitle">Dynamic channel-wise mixed-precision</div>
+        <div class="algo-desc card-summary">High-variance channels get more bits; low-variance channels fewer.</div>
+        <div class="card-headline"><span class="headline-stat">channel mixed-precision</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Inspired by Kitty (arXiv:2511.18643). Compresses keys to <strong style="color:#22c55e">~2.5 bits/element</strong> — a 6.4× memory bandwidth reduction vs fp16 — by ranking key channels online via per-channel variance and assigning 4-bit to high-variance channels, 2-bit to the rest. Zero calibration — no SVD, no codebook training. Values left at fp16.
               <br><br>
               <strong style="color:var(--text)">① Online channel ranking</strong> — per-channel variance computed from the incoming key batch (prefill) or running accumulator (decode)<br>
               <strong style="color:var(--text)">② Split into hi/lo sets</strong> — top hi_fraction channels (default 25%) routed to 4-bit; remaining 75% to 2-bit<br>
               <strong style="color:var(--text)">③ Asymmetric group quantization</strong> — independent min/max per group along the sequence axis for each channel set<br>
               <strong style="color:var(--text)">④ Running accumulator update</strong> — decode steps update key_sum and key_sq_sum in O(D) to re-rank channels<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> Key channel variance is non-uniform — some channels encode far more discriminative attention patterns than others. Kitty exploits this online with no offline setup, outperforming uniform 2-bit on models with high inter-channel variance spread.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
+              <strong style="color:#22c55e">Why it works:</strong> Key channel variance is non-uniform — some channels encode far more discriminative attention patterns than others. Kitty exploits this online with no offline setup, outperforming uniform 2-bit on models with high inter-channel variance spread.</div><div class="algo-stats"><div class="algo-stat-row">
                 <span class="label">Effective key bit-width</span>
                 <span class="value" style="color:#22c55e">~2.5 bits/element</span>
               </div>
@@ -2646,32 +2586,255 @@
               <div class="algo-stat-row">
                 <span class="label">Decode overhead</span>
                 <span class="value">O(D) accumulator update per token</span>
-              </div>
-            </div>
+              </div></div>
           </div>
+        </details>
+        <div class="card-meta">v0.11.0</div>
+      </div>
+      <div id="algo-zipcache" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">ZipCache-adapted</div>
+        <div class="card-subtitle">Saliency-adaptive mixed-precision</div>
+        <div class="algo-desc card-summary">Per-token bit-width by saliency — salient tokens hi-bit, rest lo-bit.</div>
+        <div class="card-headline"><span class="headline-stat">saliency-adaptive</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from ZipCache (arXiv:2405.14256, NeurIPS 2024, He et al.). The first method in the suite on the <strong style="color:#22c55e">per-token saliency axis</strong> — instead of one bit-width for every token, a small top fraction gets a higher bit-width and the rest stay at a low base rate. The paper ranks tokens by attention score; since a cache wrapper cannot observe attention scores, this implementation substitutes a <strong style="color:#22c55e">key-norm proxy</strong> (the same proxy family as KIVI-Sink and AdaKV-proxy). Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Score tokens</strong> — per-token key-norm proxy stands in for the paper's attention-score saliency signal<br>
+              <strong style="color:var(--text)">② Split by saliency</strong> — top <code>hi_fraction</code> of tokens flagged salient, the rest are not<br>
+              <strong style="color:var(--text)">③ Mixed-bit quantize</strong> — salient tokens quantized at <code>hi_bits</code>, the rest at <code>lo_bits</code>, both per-channel group quant<br>
+              <strong style="color:var(--text)">④ Reconstruct</strong> — dequantize each token at its assigned bit-width back to fp16 for SDPA<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Attention weight concentrates on a small set of tokens at any given step; preserving precision there while compressing the rest harder captures most of the achievable quality at a much lower average bit-width than a uniform scheme.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">per-token saliency</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Saliency signal</span>
+                <span class="value">key-norm proxy (adapted)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Bit-width</span>
+                <span class="value">hi_bits salient, lo_bits rest</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Default split</span>
+                <span class="value">4-bit / 2-bit, 20% salient</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.18.0</div>
+      </div>
+      <div id="algo-cachegen" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">CacheGen</div>
+        <div class="card-subtitle">Entropy-coded byte model</div>
+        <div class="algo-desc card-summary">Entropy-codes group-quantized cache into a compact byte stream.</div>
+        <div class="card-headline"><span class="headline-stat">entropy-coded</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from CacheGen (arXiv:2310.07240, SIGCOMM 2024). The first method in the suite to <strong style="color:#22c55e">entropy-code the codes themselves</strong> rather than just pick a bit-width. Exploits token-wise locality — adjacent tokens' KV are similar — by delta-coding the quantized codes and compressing the low-entropy residual toward its Shannon entropy. Reconstruction is <strong style="color:#22c55e">identical to group quant</strong>; the win is storage. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Group quantize</strong> — asymmetric min/max codes, same as KIVI<br>
+              <strong style="color:var(--text)">② Token-delta transform</strong> — consecutive tokens' codes subtracted; the deltas concentrate near zero<br>
+              <strong style="color:var(--text)">③ Entropy model</strong> — compressed size measured from the delta stream's Shannon entropy<br>
+              <strong style="color:var(--text)">④ Never-worse cap</strong> — bounded at fixed-width packing, so incompressible data costs 0% extra, never negative<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> In long coherent contexts adjacent tokens' KV move slowly, so the per-token code deltas are low-entropy. An entropy coder spends far fewer than <code>bits</code> per symbol on that stream — a lossless storage win on top of the lossy quantization.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">entropy coding (lossless)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Savings on correlated KV</span>
+                <span class="value" style="color:#22c55e">~10–17% over packing</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Reconstruction</span>
+                <span class="value">identical to group quant</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Incompressible data</span>
+                <span class="value">0% (never negative)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.16.0</div>
+      </div>
+      <div id="algo-ratequant" class="algo-card fade-in" data-tags="" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">RateQuant</div>
+        <div class="card-subtitle">Per-layer bit allocation</div>
+        <div class="algo-desc card-summary">Reverse-waterfilling allocates bits where sensitivity is highest.</div>
+        <div class="card-headline"><span class="headline-stat">Equal quality, lower avg bits</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Per-layer bit allocation via reverse-waterfilling (arxiv:2605.06675). 1.6s real-activation calibration measures sensitivity per layer and allocates more bits where it matters. <strong style="color:var(--text)">Equal quality at lower average bit-width</strong>.</div>
+          </div>
+        </details>
+        <div class="card-meta">arXiv:2605.06675</div>
+      </div>
+      <div id="algo-kivi" class="algo-card fade-in" data-tags="zero-cal" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">KIVI</div>
+        <div class="card-subtitle">Asymmetric 2-bit baseline</div>
+        <div class="algo-desc card-summary">Per-channel keys, per-token values. The field's most-cited baseline.</div>
+        <div class="card-headline"><span class="headline-stat">5.8× key · ~4× full-KV</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Re-implementation of KIVI (Liu, Yuan et al., ICML 2024, <a href="https://arxiv.org/abs/2402.02750" target="_blank" rel="noopener" style="color:#a78bfa">arxiv:2402.02750</a>) — the field's most-cited KV-cache baseline. <strong style="color:var(--text)">Per-channel keys, per-token values</strong>, fp16 residual window, fully deterministic (no calibration). Measured <strong style="color:var(--text)">5.8× key / ~4× full-KV at 100–106% of fp16 throughput</strong> on Llama-3.2-3B, Qwen2.5-7B, Mistral-7B (M4). Included so every other method has a recognized comparison point.</div>
+          </div>
+        </details>
+        <div class="card-meta">ICML 2024 · arXiv:2402.02750</div>
+      </div>
+      <div id="algo-rvq" class="algo-card fade-in" data-tags="zero-cal" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">TurboQuant RVQ</div>
+        <div class="card-subtitle">TurboQuant RVQ</div>
+        <div class="algo-desc card-summary">Two-pass scalar residual VQ, sign + Laplacian residual. No calibration.</div>
+        <div class="card-headline"><span class="headline-stat">7.5× · zero-cal</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Two-pass scalar residual vector quantization. 1-bit sign quantizer + Laplacian residual stage. Achieves <strong style="color:var(--text)">7.5× compression</strong> with cosine similarity 0.92, within 5% of fp16 throughput on most 7–8B models. No calibration required.</div>
+          </div>
+        </details>
+        <div class="card-meta">arXiv · TurboQuant</div>
+      </div>
+      <div id="algo-polarquant" class="algo-card fade-in" data-tags="zero-cal" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">PolarQuant</div>
+        <div class="card-subtitle">Polar coordinate decomposition</div>
+        <div class="algo-desc card-summary">Lossless angular encoding for clustered key distributions.</div>
+        <div class="card-headline"><span class="headline-stat">inner-product preserving</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Recursive polar coordinate decomposition for clustered key distributions. Lossless angular encoding preserves inner-product structure critical to attention score accuracy.</div>
+          </div>
+        </details>
+        <div class="card-meta">zero-cal</div>
+      </div>
+      <div id="algo-qjl" class="algo-card fade-in" data-tags="zero-cal extreme" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          
+        </div>
+        <div class="algo-title">QJL</div>
+        <div class="card-subtitle">1-bit JL sign sketch</div>
+        <div class="algo-desc card-summary">Inner-product-preserving random projection for extreme compression.</div>
+        <div class="card-headline"><span class="headline-stat">1-bit · provable</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Johnson-Lindenstrauss 1-bit sign sketch. An inner-product-preserving random projection for extreme compression scenarios. Minimal memory footprint with provable approximation guarantees.</div>
+          </div>
+        </details>
+        <div class="card-meta">zero-cal</div>
+      </div>
         </div>
       </div>
 
-      <!-- SVDq — full-width featured card -->
-      <div id="algo-svdq" class="algo-card vecinfer-card fade-in" style="grid-column:1/-1;" data-tags="extreme">
-        <div class="vecinfer-inner">
-          <div>
-            <div class="algo-badge new-badge">NEW IN 0.10.0 — SUB-2-BIT KEYS</div>
-            <div class="algo-title" style="font-size:1.25rem">SVDq — Sub-2-bit Key Cache via Offline SVD</div>
-            <div class="algo-desc" style="margin-top:0.6rem">
-              Inspired by SVDq (arXiv:2502.15304). Compresses keys to <strong style="color:#22c55e">~1.25 bits/element</strong> — a 12.8× memory bandwidth reduction vs fp16 — via a one-time SVD computed from the prefill key matrix. Values are left at fp16.
+      <div class="cat-group" data-cat-group="lowrank">
+        <div class="cat-header" style="--chip:#fbbf24">
+          <h3 class="cat-title">Low-rank & Latent</h3>
+          <span class="cat-blurb">SVD / latent projection compression</span>
+          <span class="cat-count">3</span>
+        </div>
+        <div class="algo-grid">
+      <div id="algo-palu" class="algo-card fade-in" data-tags="full-kv zero-cal extreme" data-cat="lowrank">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#fbbf24">Low-rank & Latent</span>
+          
+        </div>
+        <div class="algo-title">PALU</div>
+        <div class="card-subtitle">True low-rank latent K & V</div>
+        <div class="algo-desc card-summary">Stores keys and values in a shared low-rank latent space.</div>
+        <div class="card-headline"><span class="headline-stat">true low-rank latent</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from PALU (arXiv:2407.21118, ICLR 2025). The first method where the cache <strong style="color:#22c55e">itself stays low-rank</strong> — it stores the projected latent codes <code>[S, r]</code> directly and reconstructs full keys/values to fp16 only at attend time. Unlike SVDq (keys-only, reconstructs full fp16 so the win is bandwidth accounting), PALU bypasses the parent fp16 buffer entirely and compresses <strong style="color:#22c55e">both keys and values</strong> — a full-KV effective rate <strong style="color:#22c55e">below 1 bit/element</strong> on low-rank data. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Group-head SVD</strong> — heads are partitioned into groups; each group fits one shared projection from the prefill batch (PALU's G-LRD)<br>
+              <strong style="color:var(--text)">② True latent storage</strong> — the cache holds <code>[S, r]</code>, never full <code>[S, D]</code> fp16; the parent ring buffer is never populated<br>
+              <strong style="color:var(--text)">③ Mixed-bit latents</strong> — top-25% of channels by singular value at 4-bit, the rest at 2-bit, on both K and V<br>
+              <strong style="color:var(--text)">④ Reconstruct on attend</strong> — <code>L @ Vᵀ + μ</code> rebuilds fp16 K/V for SDPA; storage stays compact<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Within a head group, keys and values share a dominant low-rank subspace — a few singular directions carry most of the attention-relevant variance. Storing the compact latent and quantizing where channel importance is already ordered by singular value beats uniform quantization in the original space, on both tensors.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Effective bit-width (K and V)</span>
+                <span class="value" style="color:#22c55e">~0.6 bits (low-rank + mixed)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">What the cache stores</span>
+                <span class="value" style="color:#22c55e">latent [S, r], not fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression</span>
+                <span class="value">Yes — low-rank both tensors</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — SVD from prefill</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Prefill overhead</span>
+                <span class="value">Group-head SVD once</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.15.0</div>
+      </div>
+      <div id="algo-svdq" class="algo-card fade-in" data-tags="extreme" data-cat="lowrank">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#fbbf24">Low-rank & Latent</span>
+          
+        </div>
+        <div class="algo-title">SVDq</div>
+        <div class="card-subtitle">Sub-2-bit keys via offline SVD</div>
+        <div class="algo-desc card-summary">Projects keys to a low-rank latent, then mixed-bit quantizes it.</div>
+        <div class="card-headline"><span class="headline-stat">sub-2-bit keys</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Inspired by SVDq (arXiv:2502.15304). Compresses keys to <strong style="color:#22c55e">~1.25 bits/element</strong> — a 12.8× memory bandwidth reduction vs fp16 — via a one-time SVD computed from the prefill key matrix. Values are left at fp16.
               <br><br>
               <strong style="color:var(--text)">① Offline SVD at prefill</strong> — truncated SVD of K ∈ R^{S×D}, rank selected by 95% energy threshold<br>
               <strong style="color:var(--text)">② Latent projection</strong> — all keys projected into [S, r] latent space via right singular vectors V<br>
               <strong style="color:var(--text)">③ Mixed-precision quantization</strong> — top-25% latent channels (by singular value) at 4-bit, rest at 2-bit<br>
               <strong style="color:var(--text)">④ Decode projection</strong> — each new decode key projected into the same V space, quantized, and reconstructed<br>
               <br>
-              <strong style="color:#22c55e">Why it works:</strong> Real LLM key caches are strongly low-rank — a few singular directions carry most attention-relevant variance. SVDq exploits this by quantizing in latent space where channel importance is explicitly ordered.
-            </div>
-          </div>
-          <div>
-            <div class="algo-stats">
-              <div class="algo-stat-row">
+              <strong style="color:#22c55e">Why it works:</strong> Real LLM key caches are strongly low-rank — a few singular directions carry most attention-relevant variance. SVDq exploits this by quantizing in latent space where channel importance is explicitly ordered.</div><div class="algo-stats"><div class="algo-stat-row">
                 <span class="label">Effective key bit-width</span>
                 <span class="value" style="color:#22c55e">~1.25 bits/element</span>
               </div>
@@ -2690,9 +2853,150 @@
               <div class="algo-stat-row">
                 <span class="label">Decode overhead</span>
                 <span class="value">O(r·D) projection per token</span>
-              </div>
-            </div>
+              </div></div>
           </div>
+        </details>
+        <div class="card-meta">v0.10.0</div>
+      </div>
+      <div id="algo-gear" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="lowrank">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#fbbf24">Low-rank & Latent</span>
+          
+        </div>
+        <div class="algo-title">GEAR</div>
+        <div class="card-subtitle">Error-feedback low-rank + sparse</div>
+        <div class="algo-desc card-summary">Ultra-low base quant + residual low-rank + sparse outliers.</div>
+        <div class="card-headline"><span class="headline-stat">error-feedback</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from GEAR (arXiv:2403.05527, Kang et al.). The first method in the suite on the <strong style="color:#22c55e">error-feedback axis</strong> — instead of just picking a bit-width, it reconstructs what an ultra-low-bit base quantizer threw away: <code>X ≈ Quant_b(X) + L·R + S</code>. Unlike CacheGen (reconstruction identical to group quant), GEAR's reconstruction genuinely <strong style="color:#22c55e">recovers quality</strong> the base bit-width loses. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Base quantize</strong> — ultra-low-bit group quant, borrowed from the shared quantizer<br>
+              <strong style="color:var(--text)">② Residual low-rank</strong> — truncated SVD of the quantization error <code>E = X − dequant(Quant_b(X))</code> gives <code>L·R</code><br>
+              <strong style="color:var(--text)">③ Sparse outliers</strong> — the top-magnitude entries the low-rank term cannot absorb are kept exact<br>
+              <strong style="color:var(--text)">④ Reconstruct</strong> — <code>base + L·R + S</code> to fp16 for SDPA<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> The residual of a coherent KV matrix is itself low-rank, so a small rank recovers most of the lost signal cheaply; a handful of sparse corrections mop up the outliers. Composes over any base quantizer to push the bit-width lower without the usual quality cliff.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">error feedback</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Recovers</span>
+                <span class="value" style="color:#22c55e">quality at low bits</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Decomposition</span>
+                <span class="value">base + low-rank + sparse</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Reconstruction</span>
+                <span class="value">improved vs base quant</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.17.0</div>
+      </div>
+        </div>
+      </div>
+
+      <div class="cat-group" data-cat-group="xlayer">
+        <div class="cat-header" style="--chip:#f472b6">
+          <h3 class="cat-title">Cross-layer</h3>
+          <span class="cat-blurb">Methods that share or merge state across layers</span>
+          <span class="cat-count">2</span>
+        </div>
+        <div class="algo-grid">
+      <div id="algo-minicache" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="xlayer">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#f472b6">Cross-layer</span>
+          
+        </div>
+        <div class="algo-title">MiniCache</div>
+        <div class="card-subtitle">Cross-layer depth-dimension SLERP merge</div>
+        <div class="algo-desc card-summary">Merges adjacent deep layers' KV along the depth dimension.</div>
+        <div class="card-headline"><span class="headline-stat">cross-layer merge</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from MiniCache (arXiv:2405.14366, NeurIPS 2024). Compresses the cache <strong style="color:#22c55e">across network depth</strong>: adjacent middle-to-deep layers have nearly identical KV directions, so a pair is merged into <strong style="color:#22c55e">one shared SLERP direction</strong> plus each layer's own per-token magnitude — a pair of layers costs roughly one. A different route to inter-layer redundancy than XQuant: XQuant reuses <em>codes</em>, MiniCache merges the <em>tensors</em>. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Magnitude / direction split</strong> — each KV vector decomposed into length + unit direction<br>
+              <strong style="color:var(--text)">② SLERP merge</strong> — the two layers' directions spherically interpolated into one shared unit vector, stored once<br>
+              <strong style="color:var(--text)">③ Per-layer magnitudes</strong> — each layer keeps its own per-token scalar, so reconstruction is <code>magnitude × shared_direction</code><br>
+              <strong style="color:var(--text)">④ Token retention</strong> — high-divergence token pairs (low direction cosine) are kept unmerged, capping worst-case error<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> In the middle-to-deep portion of an LLM, adjacent layers' KV directions are nearly collinear — the representation evolves slowly with depth. Merging the shared direction and keeping only per-layer magnitudes recovers both layers from one stored vector.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Cross-layer mechanism</span>
+                <span class="value" style="color:#22c55e">SLERP tensor merge</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Merged-layer cost</span>
+                <span class="value" style="color:#22c55e">~1 layer per pair</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Unmergeable tokens</span>
+                <span class="value">retained (cosine threshold)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs XQuant</span>
+                <span class="value">merges tensors, not codes</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.16.0</div>
+      </div>
+      <div id="algo-xquant" class="algo-card fade-in" data-tags="full-kv zero-cal extreme" data-cat="xlayer">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#f472b6">Cross-layer</span>
+          
+        </div>
+        <div class="algo-title">XQuant</div>
+        <div class="card-subtitle">Cross-layer KV reuse</div>
+        <div class="algo-desc card-summary">Reuse layers borrow a neighbouring anchor layer's quantized codes.</div>
+        <div class="card-headline"><span class="headline-stat">cross-layer reuse</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from XQuant (arXiv:2510.11236, EMNLP 2025). The first method to exploit <strong style="color:#22c55e">inter-layer redundancy</strong> — adjacent layers are paired, the anchor publishes its quantized codes, and reuse layers store only their own scale/zero. Drives effective key precision <strong style="color:#22c55e">below 1.4 bits/element</strong> on correlated models. Both keys and values compressed. Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Anchor/reuse pairing</strong> — attention layers chunked into groups; first layer anchors, the rest reuse (group_size=2 → pairs, =3 → 1 anchor feeds 2)<br>
+              <strong style="color:var(--text)">② Shared coordinator</strong> — anchors publish integer codes through one cross-layer object injected at build time; mlx_lm.generate stays untouched<br>
+              <strong style="color:var(--text)">③ Per-layer params</strong> — reuse layers fit their own scale/zero to the shared codes, correcting cross-layer drift, storing no code tensor<br>
+              <strong style="color:var(--text)">④ Optional residual</strong> — a low-bit correction recovers quality when layers are less correlated<br>
+              <br>
+              <strong style="color:#22c55e">Why it works:</strong> Adjacent transformer layers produce highly similar K/V — their representations evolve gradually with depth. XQuant reuses the anchor's code assignment and pays only a fresh scale/zero per reuse layer, an axis orthogonal to every per-layer quantizer in the suite.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Effective key bit-width</span>
+                <span class="value" style="color:#22c55e">~1.0–1.4 bits/element (group)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Key bandwidth reduction</span>
+                <span class="value" style="color:#22c55e">11×–16× vs fp16</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression</span>
+                <span class="value">Yes (cross-layer)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — zero-shot</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Decode overhead</span>
+                <span class="value">O(1) coordinator fetch + param fit per token</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.13.0</div>
+      </div>
         </div>
       </div>
 
@@ -3154,7 +3458,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.23.0 — PyramidKV layer-adaptive budget eviction shipped';
+      const text = 'v0.24.0 — SqueezeAttention 2D data-driven budget eviction shipped';
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         badge.textContent = text;
         return;
@@ -3353,6 +3657,7 @@ pip install -e ".[dev]"</span></pre>
     (function() {
       const filterBtns = document.querySelectorAll('.filter-btn[data-filter]');
       const algoCards  = document.querySelectorAll('.algo-grid .algo-card');
+      const catGroups  = document.querySelectorAll('.cat-group');
       const noResults  = document.getElementById('algo-no-results');
 
       filterBtns.forEach(btn => {
@@ -3371,6 +3676,11 @@ pip install -e ".[dev]"</span></pre>
               card.classList.toggle('hidden-by-filter', !match);
               if (match) visible++;
             }
+          });
+          // Hide a category group whose visible cards all got filtered out.
+          catGroups.forEach(group => {
+            const anyVisible = group.querySelector('.algo-card:not(.hidden-by-filter)');
+            group.classList.toggle('hidden-by-filter', !anyVisible);
           });
           if (noResults) noResults.style.display = visible === 0 ? 'block' : 'none';
         });
