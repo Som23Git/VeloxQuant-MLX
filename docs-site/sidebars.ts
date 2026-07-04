@@ -47,6 +47,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/h2o',
         'algorithms/tova',
         'algorithms/pyramidkv',
+        'algorithms/squeeze',
       ],
     },
   ],

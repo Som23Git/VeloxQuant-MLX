@@ -63,6 +63,16 @@ from veloxquant_mlx.quantizers.pyramidkv import (
     pyramid_fp16_bytes,
     full_pyramid_fp16_bytes,
 )
+from veloxquant_mlx.quantizers.squeeze import (
+    concentration_score,
+    squeeze_budgets,
+    SqueezeState,
+    init_squeeze_state,
+    squeeze_update,
+    squeeze_get_kv,
+    squeeze_fp16_bytes,
+    full_squeeze_fp16_bytes,
+)
 
 __all__ = [
     "QuantizerFactory",
@@ -116,4 +126,12 @@ __all__ = [
     "pyramid_get_kv",
     "pyramid_fp16_bytes",
     "full_pyramid_fp16_bytes",
+    "concentration_score",
+    "squeeze_budgets",
+    "SqueezeState",
+    "init_squeeze_state",
+    "squeeze_update",
+    "squeeze_get_kv",
+    "squeeze_fp16_bytes",
+    "full_squeeze_fp16_bytes",
 ]

@@ -7,6 +7,60 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.24.0] — 2026-07-03
+
+### Added — SqueezeAttention: 2D layer×token data-driven budget eviction (`method="squeeze"`)
+
+- **`veloxquant_mlx.cache.squeeze_cache.SqueezeAttentionCache`** — the library's
+  first **2D (layer × token)** budget eviction method and the first with a
+  **data-driven** per-layer budget. *Inspired by, not a faithful port of,*
+  "SqueezeAttention: 2D Management of KV-Cache in LLM Inference via Layer-wise
+  Optimal Budget" (Wang et al., 2024, arXiv:2404.04793). SqueezeAttention is
+  H2O's cumulative-attention-mass eviction with a per-layer budget that is
+  *measured*, not assumed: each layer reports its attention **concentration**
+  during prefill and a fixed total budget is reallocated toward broad
+  (low-concentration) layers and away from concentrated ones. When
+  `squeeze_strength=0.0` it reduces exactly to uniform H2O.
+- **`concentration_score(keys)`** — an attention-free concentration proxy: mean
+  pairwise cosine similarity of a layer's key set. High → keys cluster →
+  attention concentrated → the layer needs *less* budget.
+- **The allocator — `squeeze_budgets(concentrations, avg_budget, n_sink, strength)`** —
+  reallocates a fixed total by inverse-concentration (mean held ≈ `avg_budget`,
+  floored at `n_sink + 1`); `strength` interpolates linearly between uniform
+  (`0.0`) and the full split (`1.0`).
+- **`SqueezeCoordinator`** — the first eviction method with a **runtime
+  re-budgeting** step. A single shared coordinator (injected at
+  `KVCacheBuilder.for_model()` build time) collects per-layer concentration
+  during prefill, computes the schedule **once at the prefill boundary**, and
+  publishes each layer's resolved budget; over-budget layers are then trimmed by
+  H2O score. Unlike XQuant / MiniCache it exchanges only per-layer scalars and
+  runs its allocation exactly once — decode steps use the frozen schedule.
+- **Sixth distinct eviction configuration in VeloxQuant-MLX** — completing the
+  budget-axis matrix: SnapKV (prefill-only), StreamingLLM (positional), H2O
+  (uniform), TOVA (memoryless), PyramidKV (fixed per-layer pyramid),
+  SqueezeAttention (data-driven per-layer budget).
+- **Registered** as `method="squeeze"` in `KVCacheFactory`; new config fields
+  `squeeze_budget` (avg, default 512), `squeeze_n_sink` (4), `squeeze_strength`
+  (1.0), `squeeze_resolved_budget` (override, None).
+- **28 quantizer + 19 cache tests — all 47 passing.** A synthetic benchmark
+  (`benchmark_scripts/benchmark_squeeze.py`) sweeps
+  `(n_layers, seq_len, avg_budget, strength)` and was run on Apple Silicon;
+  results committed in `squeeze_benchmark_results.json`. Confirms the design:
+  `strength=0.0` gives uniform budgets (== H2O); `strength>0` reallocates so the
+  broad early layer keeps more than the concentrated deep layer; schedule mean
+  ≈ `avg_budget`.
+
+#### Adaptation limitations (documented, not a faithful port)
+
+- Key-as-query proxy for both concentration measurement and within-layer
+  eviction (same as H2O-adapted / PyramidKV-adapted).
+- Cosine-dispersion proxy for attention entropy (paper reads actual attention
+  maps, not visible at cache level).
+- One-shot re-budget at the prefill boundary, frozen for decode.
+- No RoPE position-ID remapping; uniform budget across heads within a layer.
+- Benchmark is synthetic (schedule / kept-token / compression only); no
+  model-level perplexity or throughput figure is claimed.
+
 ## [0.23.1] — 2026-07-03
 
 ### Changed

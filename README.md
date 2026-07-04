@@ -406,6 +406,40 @@ offline-synthetic harness.
 
 *Inspired by H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.) — not a faithful port.*
 
+## SqueezeAttention-adapted — 2D layer×token data-driven budget eviction — new in 0.24.0
+
+`method="squeeze"` is the library's **sixth eviction configuration**, the first **2D (layer × token)** budget method, and the first with a **data-driven** per-layer budget. *Inspired by, **not a faithful port of***, [SqueezeAttention (Wang et al., 2024, arXiv:2404.04793)](https://arxiv.org/abs/2404.04793): it is H2O-adapted's cumulative-attention-mass eviction with a per-layer budget that is **measured** rather than assumed. Where PyramidKV imposes a *fixed* positional taper, SqueezeAttention measures each layer's attention **concentration** during prefill and reallocates a fixed total budget toward broad layers and away from concentrated ones. When `squeeze_strength=0.0` it reduces exactly to uniform H2O.
+
+**Why measure instead of assume:** PyramidKV's pyramid is calibration-free but blind to the actual prompt. SqueezeAttention reads the geometry of each layer's key set (mean pairwise cosine dispersion, an attention-free entropy proxy) and puts budget where *this* prompt's attention actually spreads. It is the data-driven sibling of PyramidKV.
+
+| Eviction axis | Score signal | Budget |
+|---|---|---|
+| SnapKV-adapted | Key-as-query attention proxy | Uniform |
+| StreamingLLM-adapted | Position (recency + sink) | Uniform |
+| H2O-adapted | Cumulative attention mass | Uniform |
+| TOVA-adapted | Current-step attention weight | Uniform |
+| PyramidKV-adapted | Cumulative attention mass | Per-layer **fixed** pyramid |
+| **SqueezeAttention-adapted** | Cumulative attention mass | Per-layer **data-driven** (measured) |
+
+```python
+config = KVCacheConfig(
+    method="squeeze",
+    head_dim=128,
+    squeeze_budget=512,     # AVERAGE budget across layers (uniform-H2O baseline)
+    squeeze_n_sink=4,       # initial positions never evicted (attention sinks)
+    squeeze_strength=1.0,   # reallocation: 0.0 = uniform (== H2O), 1.0 = full inverse-concentration
+)
+caches = KVCacheBuilder.for_model(model, config)   # a shared coordinator re-budgets after prefill
+```
+
+**How the re-budget works:** a single shared `SqueezeCoordinator` (injected by `for_model`) collects each layer's concentration during prefill, computes the schedule **once at the prefill boundary** with `squeeze_budgets(...)`, and publishes each layer's resolved budget; over-budget layers are trimmed by H2O score. This is the first eviction method with a **runtime re-budgeting** step, but — unlike XQuant/MiniCache — it exchanges only per-layer scalars and runs its allocation exactly once. Single-cache construction (no coordinator) falls back to `squeeze_budget` and behaves as one uniform H2O layer.
+
+**Evidence:** 28 quantizer tests + 19 cache tests — all 47 passing. Concentration proxy verified (1.0 for identical keys, 0.0 for orthogonal, scale-invariant). Allocator verified: `strength=0` == uniform, mean within 5% of average, budgets monotone in concentration, floored at `n_sink+1`, `strength` bounds enforced. `for_model` verified to produce data-driven budgets where the broad early layer keeps more tokens than the concentrated deep layer on the same sequence. Coordinator finalises once-only and is idempotent per layer. Deterministic.
+
+**Honest limitation:** cosine-dispersion proxy for attention entropy (paper reads actual attention maps); key-as-query proxy for eviction (same as H2O); one-shot re-budget at prefill, frozen for decode; no RoPE remapping; uniform budget across heads within a layer. No model-level (perplexity/throughput) benchmark run — `benchmark_scripts/benchmark_squeeze.py` is an offline-synthetic harness; its results are committed in `benchmark_scripts/squeeze_benchmark_results.json` (Apple Silicon) and confirm `strength=0` == uniform, `strength>0` reallocates broad→more/concentrated→less, mean ≈ average.
+
+*Inspired by SqueezeAttention (arXiv:2404.04793, Wang et al., 2024) — not a faithful port.*
+
 ## PyramidKV-adapted — layer-adaptive budget attention-mass eviction — new in 0.23.0
 
 `method="pyramidkv"` is the library's **fifth eviction configuration** and the first with a **per-layer budget**. *Inspired by, **not a faithful port of***, [PyramidKV (Cai et al., 2024, arXiv:2406.02069)](https://arxiv.org/abs/2406.02069): it is H2O-adapted's cumulative-attention-mass eviction wearing a *pyramid* of budgets instead of a single global one. Early layers (broad attention) get a large budget; deep layers (concentrated attention) get a small one; the **average is held fixed** so total memory matches uniform H2O. When the pyramid is flat (`pyramid_beta=1.0`) it reduces exactly to H2O.
@@ -435,7 +469,7 @@ The schedule for 12 layers, `avg_budget=512`, `beta=2.0` is `[1019, 927, …, 97
 
 **Evidence:** 24 quantizer tests + 19 cache tests — all 43 passing. Allocator verified: monotonically decreasing, mean within 5% of average, `beta=1.0` == uniform, budgets floored at `n_sink+1`. `for_model` verified to produce a decreasing pyramid where early-layer caches retain more tokens than deep-layer caches on the same sequence. Budget-never-exceeded across a 30-step stress test. Deterministic.
 
-**Honest limitation:** fixed monotone (linear) budget schedule rather than the paper's prefill-entropy-derived allocation — funneling shape preserved, exact per-layer values not data-driven; key-as-query proxy for eviction (same as H2O); no RoPE remapping; uniform budget across heads within a layer. No model-level benchmark run — `benchmark_scripts/benchmark_pyramidkv.py` is an offline-synthetic harness.
+**Honest limitation:** fixed monotone (linear) budget schedule rather than the paper's prefill-entropy-derived allocation — funneling shape preserved, exact per-layer values not data-driven; key-as-query proxy for eviction (same as H2O); no RoPE remapping; uniform budget across heads within a layer. No model-level (perplexity/throughput) benchmark run — `benchmark_scripts/benchmark_pyramidkv.py` is an offline-synthetic harness; its results are committed in `benchmark_scripts/pyramidkv_benchmark_results.json` (24 configs on Apple Silicon) and confirm flat-beta == uniform, pyramid-beta strictly decreasing, mean == average.
 
 *Inspired by PyramidKV (arXiv:2406.02069, Cai et al., 2024) — not a faithful port.*
 
@@ -968,6 +1002,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [H2O (ICLR 2024)](https://arxiv.org/abs/2306.14048) — Zhang et al., "H2O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models" — cumulative attention-mass token eviction with sink protection; budget-bounded constant-memory cache (adapted: key-as-query proxy for attention weights, no RoPE remapping)
 - [TOVA (arXiv:2401.06104)](https://arxiv.org/abs/2401.06104) — Oren et al., "Transformers are Multi-State RNNs" — memoryless current-step attention-weight token eviction; budget-bounded constant-memory cache, reactive counterpart to H2O's inertial cumulative scoring (adapted: key-as-query proxy for attention weights, no RoPE remapping)
 - [PyramidKV (arXiv:2406.02069)](https://arxiv.org/abs/2406.02069) — Cai et al., "PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling" — layer-adaptive KV budget (large early, small deep, fixed average) over H2O-style cumulative attention-mass eviction; funnels memory to where attention spreads (adapted: fixed linear budget schedule instead of prefill-entropy allocation, key-as-query proxy, no RoPE remapping)
+- [SqueezeAttention (arXiv:2404.04793)](https://arxiv.org/abs/2404.04793) — Wang et al., "SqueezeAttention: 2D Management of KV-Cache in LLM Inference via Layer-wise Optimal Budget" — 2D (layer × token) budget: measures each layer's attention concentration and reallocates a fixed total budget over H2O-style cumulative attention-mass eviction; the data-driven sibling of PyramidKV (adapted: cosine-dispersion concentration proxy instead of observed attention maps, one-shot re-budget at prefill, key-as-query proxy, no RoPE remapping)
 
 </details>
 
@@ -985,6 +1020,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 **Token eviction & sparse attention:**
 - [SnapKV (2024)](https://arxiv.org/abs/2404.14469) — Li et al., "LLM Knows What You are Looking for Before Generation"
 - [PyramidKV (2024)](https://arxiv.org/abs/2406.02069) — Cai et al., "Dynamic KV Cache Compression based on Pyramidal Information Funneling"
+- [SqueezeAttention (2024)](https://arxiv.org/abs/2404.04793) — Wang et al., "2D Management of KV-Cache in LLM Inference via Layer-wise Optimal Budget"
 - [RocketKV (ICML 2025)](https://arxiv.org/abs/2502.14051) — Behnam et al., "Accelerating Long-Context LLM Inference via Two-Stage KV Cache Compression"
 - [MagicPIG (ICLR 2025 Spotlight)](https://arxiv.org/abs/2410.16179) — Chen et al., "LSH Sampling for Efficient LLM Generation"
 

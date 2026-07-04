@@ -36,7 +36,7 @@ class KVCacheConfig:
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
-        "streaming_llm", "h2o", "tova", "pyramidkv",
+        "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -142,6 +142,11 @@ class KVCacheConfig:
     pyramid_n_sink: int = 4              # initial positions protected from eviction (attention sinks)
     pyramid_beta: float = 2.0            # pyramid steepness: 1.0 = flat (== H2O), larger = steeper taper
     pyramid_resolved_budget: Optional[int] = None  # per-layer budget injected by for_model (None → uniform)
+    # --- SqueezeAttention-adapted configuration (2D layer×token data-driven budget eviction) ---
+    squeeze_budget: int = 512            # AVERAGE per-layer budget (uniform-H2O baseline)
+    squeeze_n_sink: int = 4              # initial positions protected from eviction (attention sinks)
+    squeeze_strength: float = 1.0        # reallocation strength: 0.0 = uniform (== H2O), 1.0 = full inverse-concentration
+    squeeze_resolved_budget: Optional[int] = None  # explicit per-layer budget override (None → coordinator supplies it)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -207,6 +212,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.h2o_cache import H2OKVCache
         from veloxquant_mlx.cache.tova_cache import TOVAKVCache
         from veloxquant_mlx.cache.pyramidkv_cache import PyramidKVCache
+        from veloxquant_mlx.cache.squeeze_cache import SqueezeAttentionCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -284,13 +290,19 @@ class KVCacheFactory:
             cache = TOVAKVCache(config)
         elif config.method == "pyramidkv":
             cache = PyramidKVCache(config)
+        elif config.method == "squeeze":
+            # Single-cache construction yields a coordinator-less layer that falls
+            # back to squeeze_budget (uniform H2O). The 2D data-driven reallocation
+            # requires KVCacheBuilder.for_model(), which builds the shared
+            # SqueezeCoordinator and re-budgets after prefill.
+            cache = SqueezeAttentionCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze."
             )
 
         if config.sliding_window is not None:
@@ -552,6 +564,10 @@ class KVCacheBuilder:
         if config.method == "pyramidkv":
             return KVCacheBuilder._build_pyramidkv(layers, args, config, _FallbackCache)
 
+        # --- SqueezeAttention: shared coordinator re-budgets after prefill -----
+        if config.method == "squeeze":
+            return KVCacheBuilder._build_squeeze(layers, args, config, _FallbackCache)
+
         caches = []
         attn_idx = 0  # index into b_spec, advances only for attention layers
         for i, layer in enumerate(layers):
@@ -740,6 +756,56 @@ class KVCacheBuilder:
                 pyramid_resolved_budget=budget_by_layer[i],
             )
             caches.append(PyramidKVCache(layer_cfg))
+        return caches
+
+    @staticmethod
+    def _build_squeeze(layers, args, config: "KVCacheConfig", fallback_cls) -> list:
+        """Build one shared SqueezeCoordinator and per-layer SqueezeAttention caches.
+
+        Every attention-bearing layer shares one coordinator. During prefill each
+        layer reports its measured concentration; once all have reported, the
+        coordinator computes the data-driven budget schedule (``squeeze_budgets``)
+        and each layer pulls its resolved budget. ``squeeze_strength=0.0`` yields a
+        uniform schedule (reduces to H2O). Non-attention layers get a plain
+        fallback cache and do not report.
+        """
+        from veloxquant_mlx.cache.squeeze_cache import SqueezeAttentionCache
+        from veloxquant_mlx.cache.squeeze_coordinator import SqueezeCoordinator
+
+        def _head_dim(layer):
+            attn = getattr(layer, "self_attn", None) or getattr(layer, "attn", None)
+            if attn is None:
+                return None
+            hd = getattr(attn, "head_dim", None)
+            if hd is None and args is not None:
+                hd = getattr(args, "head_dim", None) or (
+                    args.hidden_size // args.num_attention_heads
+                )
+            return hd
+
+        attn_layer_idx = [i for i, L in enumerate(layers) if _head_dim(L) is not None]
+        coordinator = SqueezeCoordinator(
+            n_layers=len(attn_layer_idx),
+            avg_budget=config.squeeze_budget,
+            n_sink=config.squeeze_n_sink,
+            strength=config.squeeze_strength,
+        )
+
+        caches = []
+        for i, layer in enumerate(layers):
+            hd = _head_dim(layer)
+            if hd is None:
+                caches.append(fallback_cls())
+                continue
+            layer_cfg = dataclasses_replace(
+                config,
+                head_dim=hd,
+                seed=config.seed + i,
+                store=config.store,
+            )
+            caches.append(
+                SqueezeAttentionCache(layer_cfg, layer_id=i, coordinator=coordinator)
+            )
         return caches
 
     def __repr__(self) -> str:
