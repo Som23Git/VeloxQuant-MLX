@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted — all in MLX. New in 0.25.0: ChunkKV-adapted chunk-level eviction — keeps whole contiguous chunks by pooled importance instead of the top individual tokens, preserving local coherence that token-level eviction shreds; chunk_size=1 reduces bit-for-bit to H2O. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted — all in MLX. New in 0.26.0: CaM-adapted cache merging — merges each evicted token into the surviving token it most resembles instead of dropping it, recovering a share of the lost mass at high compression; cam_merge=drop reduces bit-for-bit to H2O. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1741,14 +1741,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">28 algorithms</span>
+        <span class="hero-pill">29 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 28 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV
+        <summary>See all 29 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1879,12 +1879,13 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Twenty-eight compression strategies</h2>
+    <h2 class="section-title">Twenty-nine compression strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
 
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.26.0</span><span class="wn-body"><strong>CaM-adapted</strong> — first cache-<em>merging</em> cache. Makes the same eviction choice as H2O but <em>merges</em> the evicted token into the survivor it most resembles (cosine-weighted) instead of dropping it, recovering a share of the lost mass at high compression. No coordinator; <code>cam_merge=drop</code> reduces bit-for-bit to H2O.</span></li>
         <li><span class="wn-ver">0.25.0</span><span class="wn-body"><strong>ChunkKV-adapted</strong> — first chunk-level eviction cache. Partitions the sequence into contiguous chunks and keeps or drops each chunk <em>as a whole</em> by pooled importance, preserving local coherence that token-level eviction shreds. No coordinator; <code>chunk_size=1</code> reduces bit-for-bit to H2O.</span></li>
         <li><span class="wn-ver">0.24.0</span><span class="wn-body"><strong>SqueezeAttention-adapted</strong> — first 2D (layer × token) data-driven budget cache. Measures each layer's attention concentration at prefill and reallocates a fixed total budget toward broad layers via a one-shot coordinator re-budget. The data-driven sibling of PyramidKV; <code>strength=0</code> == H2O.</span></li>
         <li><span class="wn-ver">0.23.0</span><span class="wn-body"><strong>PyramidKV-adapted</strong> — first layer-adaptive budget cache. H2O-style eviction with a pyramid of per-layer budgets (large early, small deep, fixed average), funneling memory to where attention spreads. Flat pyramid == H2O.</span></li>
@@ -1967,6 +1968,11 @@
           <div class="picker-method" style="color:#22c55e">ChunkKV</div>
           <div class="picker-detail">Chunk-level eviction · keeps contiguous spans by pooled importance · chunk_size=1 == H2O → see details ↓</div>
         </a>
+        <a href="#algo-cam" class="picker-card picker-card-link" style="border-color:rgba(56,189,248,0.35);">
+          <div class="picker-goal">Aggressive eviction that recovers quality</div>
+          <div class="picker-method" style="color:#38bdf8">CaM</div>
+          <div class="picker-detail">Cache merging · merges evicted tokens into similar survivors instead of dropping · cam_merge=drop == H2O → see details ↓</div>
+        </a>
       </div>
     </div>
 
@@ -1975,10 +1981,62 @@
       <div class="cat-group" data-cat-group="evict">
         <div class="cat-header" style="--chip:#2dd4bf">
           <h3 class="cat-title">Token Eviction</h3>
-          <span class="cat-blurb">Constant-memory caches that drop low-value tokens</span>
-          <span class="cat-count">7</span>
+          <span class="cat-blurb">Constant-memory caches that drop (or merge) low-value tokens</span>
+          <span class="cat-count">8</span>
         </div>
         <div class="algo-grid">
+      <div id="algo-cam" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">CaM-adapted</div>
+        <div class="card-subtitle">cache merging — merge, don't drop</div>
+        <div class="algo-desc card-summary">Merges each evicted token into the survivor it most resembles instead of dropping it.</div>
+        <div class="card-headline"><span class="headline-stat">merge vs drop · cam_merge=drop == H2O · 32/32 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from CaM (Zhang et al., ICML 2024, PMLR 235). The library's
+              <strong style="color:#38bdf8">eighth eviction configuration</strong> and the first on the
+              <strong style="color:var(--text)">merge-vs-drop</strong> axis. Every other eviction method
+              permanently <em>drops</em> the tokens it evicts; CaM instead <strong style="color:var(--text)">merges</strong>
+              each evicted token into the surviving token it most resembles (a cosine-weighted blend of the value rows,
+              and optionally the keys), then removes only the redundant slot — so the information is folded into a
+              neighbour rather than lost. Set <code>cam_merge="drop"</code> and it reduces <strong style="color:#38bdf8">bit-for-bit</strong> to H2O.
+              <br><br>
+              <strong style="color:var(--text)">① Choose</strong> — same loser H2O would evict (lowest cumulative attention mass, sinks protected)<br>
+              <strong style="color:var(--text)">② Target</strong> — the surviving non-sink token whose key is most cosine-similar to the loser<br>
+              <strong style="color:var(--text)">③ Merge</strong> — <code>x_new = (1-w)·x_survivor + w·x_evicted</code>, <code>w = clip(cos, 0, 1)</code>; survivor inherits the mass, loser's slot removed<br>
+              <br>
+              <strong style="color:#38bdf8">Why merge:</strong> eviction always perturbs the output — the dropped token still carried mass. Folding it into a neighbour recovers a share of the lost signal exactly where dropping hurts most. Measured perturbation drops from 0.955 → 0.708 at 16× vs plain H2O.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#38bdf8">cache merging (merge evicted tokens)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">cumulative attention mass + key cosine</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Disposition</span>
+                <span class="value" style="color:#38bdf8">merge into survivor (drop == H2O)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Coordinator</span>
+                <span class="value">none (per-layer local)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">32 / 32</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.26.0 · ICML 2024 · PMLR 235</div>
+      </div>
       <div id="algo-chunkkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
         <div class="card-head">
           <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
@@ -3140,6 +3198,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="spectral" style="border-color:rgba(34,197,94,0.4);color:#22c55e">SpectralQuant</button>
       <button class="tab-btn" data-tab="squeeze" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">SqueezeAttention · eviction</button>
       <button class="tab-btn" data-tab="chunkkv" style="border-color:rgba(34,197,94,0.4);color:#22c55e">ChunkKV · eviction</button>
+      <button class="tab-btn" data-tab="cam" style="border-color:rgba(56,189,248,0.4);color:#38bdf8">CaM · merging</button>
     </div>
 
     <!-- RVQ tab -->
@@ -3324,6 +3383,39 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <span class="at">chunkkv_chunk_size</span><span class="op">=</span><span class="nu">8</span><span class="op">,</span>      <span class="cm"># eviction granularity C; 1 == H2O bit-for-bit</span>
     <span class="at">chunkkv_n_sink</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>          <span class="cm"># initial sink positions, never evicted</span>
     <span class="at">chunkkv_score</span><span class="op">=</span><span class="st">"attn_mass"</span><span class="op">,</span>  <span class="cm"># "attn_mass" (H2O scorer) | "key_norm"</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- CaM tab -->
+    <div class="code-panel" id="tab-cam">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — CaM · cache merging · merge evicted tokens instead of dropping</span>
+          <button class="code-copy" data-target="code-cam">Copy</button>
+        </div>
+        <pre id="code-cam"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Cache merging — merges each evicted token into the survivor it most</span>
+<span class="cm"># resembles instead of dropping it. No coordinator, no calibration.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"cam"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">cam_budget</span><span class="op">=</span><span class="nu">512</span><span class="op">,</span>            <span class="cm"># max tokens/layer (sinks included)</span>
+    <span class="at">cam_n_sink</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>             <span class="cm"># initial sink positions, never evicted</span>
+    <span class="at">cam_merge</span><span class="op">=</span><span class="st">"sim_weighted"</span><span class="op">,</span>  <span class="cm"># "sim_weighted" | "mean" | "drop" (drop == H2O)</span>
+    <span class="at">cam_merge_keys</span><span class="op">=</span><span class="kw">False</span><span class="op">,</span>       <span class="cm"># merge keys too (values are always merged)</span>
 <span class="op">)</span>
 <span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
 
@@ -3564,7 +3656,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.25.0 — ChunkKV-adapted chunk-level eviction shipped';
+      const text = 'v0.26.0 — CaM-adapted cache merging (merge, don\'t drop) shipped';
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         badge.textContent = text;
         return;

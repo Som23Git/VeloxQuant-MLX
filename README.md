@@ -16,13 +16,13 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11+-0078d4?style=flat-square&logo=python&logoColor=white" alt="Python"/></a>
   <img src="https://img.shields.io/badge/platform-Apple%20Silicon%20M1+-black?style=flat-square&logo=apple&logoColor=white" alt="Platform"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="License"/></a>
-  <img src="https://img.shields.io/badge/tests-750%2F756%20passing-22c55e?style=flat-square" alt="Tests"/>
+  <img src="https://img.shields.io/badge/tests-817%2F821%20passing-22c55e?style=flat-square" alt="Tests"/>
   <a href="https://doi.org/10.5281/zenodo.20647305"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20647305-1f6feb?style=flat-square" alt="DOI"/></a>
 </p>
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.25.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.26.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -31,7 +31,7 @@
 
 ---
 
-A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **twenty-eight compression strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B, through seven token-eviction caches (SnapKV, StreamingLLM, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV) — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **twenty-nine compression strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B, through seven token-eviction caches (SnapKV, StreamingLLM, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV) and a cache-**merging** cache (CaM) that folds evicted tokens into survivors instead of dropping them — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
@@ -59,20 +59,16 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 
 1. [Installation](#installation)
 2. [Quickstart](#quickstart)
-3. [RaBitQ — new in 0.7.0](#rabitq--new-in-070)
-4. [CommVQ — RoPE-commutative VQ](#commvq--rope-commutative-vq)
-5. [SpectralQuant — new in 0.6.0](#spectralquant--new-in-060)
-6. [RateQuant — per-layer mixed precision](#ratequant--per-layer-mixed-precision)
-7. [VecInfer — 16× product VQ](#vecinfer--16-product-vq)
-8. [Metal kernels](#metal-kernels--new-in-051)
-9. [Benchmark results](#benchmark-results)
-10. [Algorithm guide](#algorithm-guide)
-11. [What's inside](#whats-inside)
-12. [Architecture](#architecture)
-13. [CLI](#cli)
-14. [Development](#development)
-15. [Blog posts](#blog-posts)
-16. [References](#references)
+3. [Method library](#method-library) — all 29 methods at a glance
+4. [Metal kernels](#metal-kernels--new-in-051)
+5. [Benchmark results](#benchmark-results)
+6. [Algorithm guide](#algorithm-guide) — pick a quantizer by workload
+7. [What's inside](#whats-inside)
+8. [Architecture](#architecture)
+9. [CLI](#cli)
+10. [Development](#development)
+11. [Blog posts](#blog-posts)
+12. [References](#references)
 
 ---
 
@@ -171,530 +167,62 @@ caches = KVCacheBuilder.for_model(model, config)
 
 ---
 
-## RaBitQ — new in 0.7.0
+## Method library
 
-RaBitQ ([SIGMOD 2024](https://arxiv.org/abs/2402.02855), adapted from [Ascend-RaBitQ arXiv:2605.16007](https://arxiv.org/abs/2605.16007)) is the first method in VeloxQuant-MLX to compress **both keys and values**, achieving **6× full KV compression** on Falcon3-7B-Instruct-4bit.
+All 29 methods share the same 3-line integration (`method="<id>"` in `KVCacheConfig`).
+Each links to its full page — mechanism, config, evidence, and honest limitations — on
+the [documentation site](https://veloxquant-mlx.netlify.app/docs/algorithms/overview).
+A few representative methods have runnable examples in [Quickstart](#quickstart) above;
+the rest follow the identical pattern.
 
-**How it works:**
-1. **IVF clustering** — K-Means partitions keys into `nlist` clusters; only `nprobe` are searched per query
-2. **Randomised Hadamard rotation** — reuses `mx.hadamard_transform` + `make_hadamard_diagonal`, O(D log D)
-3. **1-bit sign quantization** — `sign(rotated_residual)` packed into `D/8` uint8 bytes per key (11.6× key compression at D=256)
-4. **Metal Hamming kernel** — `rabitq_hamming_score` computes XOR + popcount distance for all candidates in one GPU dispatch
-5. **TurboQuantMSE b=4 values** — scalar MSE-optimal codebook on values adds 4× value compression
+### Quantization — compress every token
 
-**Results on Falcon3-7B-Instruct-4bit** (28 layers, 4 KV heads, D=256):
-
-| Method | KV Memory @ 1024 tok | Compression | Context @ 8 GB |
+| Method | `method=` | What it does | New in |
 |---|---|---|---|
-| fp16 baseline | 117.4 MB | 1× | ~17k tokens |
-| RaBitQ keys + fp16 values | 63.8 MB | 1.8× | ~31k tokens |
-| **RaBitQ keys + MSE-b4 values** | **19.7 MB** | **6×** | **~103k tokens** |
+| [TurboQuant RVQ](https://veloxquant-mlx.netlify.app/docs/algorithms/rvq) | `turboquant_rvq` | Residual VQ, zero calibration — **the default** (7.5× @ 1-bit) | — |
+| [VecInfer](https://veloxquant-mlx.netlify.app/docs/algorithms/vecinfer) | `vecinfer` | Dual-transform product VQ, Metal-accelerated (16×) | 0.4.0 |
+| [SpectralQuant](https://veloxquant-mlx.netlify.app/docs/algorithms/spectral) | `spectral` | Rotate keys into eigenbasis — best quality-per-bit | 0.6.0 |
+| [RateQuant](https://veloxquant-mlx.netlify.app/docs/algorithms/ratequant) | *(allocator)* | Per-layer mixed precision via reverse-waterfilling | — |
+| [RaBitQ](https://veloxquant-mlx.netlify.app/docs/algorithms/rabitq) | `rabitq` | 1-bit keys + MSE-b4 values — **6× full KV** | 0.7.0 |
+| [QJL](https://veloxquant-mlx.netlify.app/docs/algorithms/qjl) | `qjl` | 1-bit JL sketch, simplest/fastest to set up | — |
+| [PolarQuant](https://veloxquant-mlx.netlify.app/docs/algorithms/polarquant) | `polar` | Polar-coordinate quant for geometric key distributions | — |
+| [CommVQ](https://veloxquant-mlx.netlify.app/docs/algorithms/commvq) | `comm_vq` | RoPE-commutative VQ, exact inner product (ICML 2025) | — |
+| [KIVI](https://veloxquant-mlx.netlify.app/docs/algorithms/kivi) | `kivi` | Tuning-free asymmetric 2-bit baseline | 0.8.0 |
+| [KIVI-Sink](https://veloxquant-mlx.netlify.app/docs/algorithms/kivi-sink) | `kivi_sink` | Sink-protected low-bit quantization | 0.9.0 |
+| [SVDq](https://veloxquant-mlx.netlify.app/docs/algorithms/svdq) | `svdq` | Sub-2-bit keys (~1.25 bit) via prefill SVD | 0.10.0 |
+| [Kitty](https://veloxquant-mlx.netlify.app/docs/algorithms/kitty) | `kitty` | Adaptive channel precision, zero calibration | 0.11.0 |
+| [KVQuant-NUQ](https://veloxquant-mlx.netlify.app/docs/algorithms/kvquant) | `kvquant` | Non-uniform datatype + outlier isolation | 0.14.0 |
+| [ZipCache-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/zipcache) | `zipcache` | Per-token mixed bit-width by key-norm saliency | 0.18.0 |
+| [GEAR](https://veloxquant-mlx.netlify.app/docs/algorithms/gear) | `gear` | Error-feedback: low-rank + sparse residual correction | 0.17.0 |
+| [CacheGen](https://veloxquant-mlx.netlify.app/docs/algorithms/cachegen) | `cachegen` | Entropy-coded cache — storage win on correlated KV | 0.16.0 |
 
-```python
-from veloxquant_mlx.quantizers.rabitq import RaBitQQuantizer
-from veloxquant_mlx.quantizers.turboquant_mse import TurboQuantMSE
-import mlx.core as mx, numpy as np
+### Low-rank & cross-layer — compress across dimensions or depth
 
-# Keys: RaBitQ 1-bit  (11.6× compression on key tensors)
-q_key = RaBitQQuantizer(d=256, nlist=64, nprobe=8, rerank=32, seed=42)
-q_key.fit(mx.array(calibration_keys))
-
-# Values: MSE-b4 scalar quantization (4× compression)
-q_val = TurboQuantMSE(d=256, b=4, use_hadamard=True)
-
-# Encode KV at each decode step
-ev_k = q_key.encode(keys)   # [N, D//8] uint8 sign bits + IVF meta
-ev_v = q_val.encode(values)  # [N, D//4] uint8 scalar indices
-
-# Decode for attention
-k_hat = q_key.decode(ev_k)  # [N, D] fp16 — approx reconstructed keys
-v_hat = q_val.decode(ev_v)  # [N, D] fp16 — approx reconstructed values
-```
-
-> **What grows with context:** both memory and decode latency scale linearly with T. The 6× compression slope means you can sustain 6× longer contexts before hitting any RAM limit. At 32k tokens fp16 needs 3.76 GB; RaBitQ+MSE4v needs only 631 MB.
-
-Benchmark figures: [`figures/RaBitQ/falcon/`](figures/RaBitQ/falcon/) · Metal kernel figures: [`figures/RaBitQ/kernel/`](figures/RaBitQ/kernel/)
-
----
-
-## CommVQ — RoPE-commutative VQ
-
-CommVQ ([arXiv:2506.18879](https://arxiv.org/abs/2506.18879), Apple ML Research, ICML 2025) solves the fundamental incompatibility between vector quantization and RoPE positional encodings:
-
-**The problem:** Standard VQ applied after RoPE fails because `quantize(rotate(x)) ≠ rotate(quantize(x))`. The positional encoding rotates the keys differently for each position, so a codebook trained at position 0 gives wrong reconstructions at position T.
-
-**The fix:** Train codebooks on pre-RoPE keys (at position 0). After each K-Means M-step, project every centroid onto the RoPE-commuting subspace — each pair of dimensions `(2i, 2i+1)` is symmetrised to `mean_val = (a+b)/2` for same-sign pairs. RoPE is then applied exactly at decode time using stored positions.
-
-```python
-from veloxquant_mlx.quantizers.comm_vq import CommVQQuantizer
-import mlx.core as mx, numpy as np
-
-q = CommVQQuantizer(d=128, b=8, n_codebooks=4, seed=42)
-q.fit(mx.array(pre_rope_keys))          # train on pre-RoPE keys
-
-# Encode: stores residual VQ indices + positions
-ev = q.encode(keys_pre_rope, positions=position_ids)
-
-# Decode: gathers centroids, applies RoPE in one step
-k_hat = q.decode(ev)                    # [N, D] fp16, post-RoPE
-
-# Approximate inner product (for attention scoring)
-scores = q.estimate_inner_product(query, ev)  # [N]
-```
-
-| Config | Compression | RoPE compatible |
-|---|---|---|
-| D=128, n_cb=4, b=8 | **64×** vs fp16 | ✓ exact |
-| D=128, n_cb=4, b=4 | **64×** vs fp16 | ✓ exact |
-
----
-
-## KIVI — tuning-free asymmetric 2-bit baseline
-
-KIVI is a re-implementation of ["KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache"](https://arxiv.org/abs/2402.02750) (Liu, Yuan et al., **ICML 2024**) — the most widely-cited KV-cache quantization baseline. It is included so every other method in this library can be measured against the field's reference point.
-
-**The asymmetry (KIVI's core idea):**
-1. **Keys are quantized per channel** (group-wise min/max along the token axis) — key distributions have a few high-variance channels, so per-channel scales keep them accurate.
-2. **Values are quantized per token** (group-wise along the channel axis).
-3. **The most recent `residual_length` tokens are kept in fp16** — newly generated tokens dominate attention and are cheap to keep exact; they are quantized only once they age out of the residual window.
-
-KIVI is **fully deterministic** (min/max group quantization, no codebook training, no RNG), so it adds no run-to-run variance.
-
-```python
-import mlx_lm
-from veloxquant_mlx import KVCacheConfig, KVCacheBuilder
-
-model, tokenizer = mlx_lm.load("mlx-community/Llama-3.2-3B-Instruct-4bit")
-
-config = KVCacheConfig(method="kivi", bit_width_inlier=2,
-                       kivi_group_size=32, residual_length=32)
-caches = KVCacheBuilder.for_model(model, config)
-model.make_cache = lambda *_a, **_k: caches
-
-response = mlx_lm.generate(model, tokenizer,
-    prompt="...", max_tokens=120)
-```
-
-**Measured results** (Apple M4, max_tokens≈120, residual_length=32; source: `figures/kivi/<model>/results.json`):
-
-| Model | KIVI-2bit key comp. | full-KV comp. (incl. fp16 residual) | throughput vs fp16 |
+| Method | `method=` | What it does | New in |
 |---|---|---|---|
-| Llama-3.2-3B-4bit | 5.79× | 3.98× | 16.3 vs 16.0 tok/s (102%) |
-| Qwen2.5-7B-4bit | 5.78× | 3.98× | 7.6 vs 7.6 tok/s (100%) |
-| Mistral-7B-4bit | 5.76× | 4.03× | 6.8 vs 6.4 tok/s (106%) |
+| [PALU](https://veloxquant-mlx.netlify.app/docs/algorithms/palu) | `palu` | True low-rank latent storage of both K and V | 0.15.0 |
+| [XQuant](https://veloxquant-mlx.netlify.app/docs/algorithms/xquant) | `xquant` | Cross-layer code reuse — adjacent layers share codes | 0.12.0 |
+| [MiniCache](https://veloxquant-mlx.netlify.app/docs/algorithms/minicache) | `minicache` | Cross-layer SLERP merge — deep layer pairs cost one | 0.16.0 |
+| [AdaKV-proxy](https://veloxquant-mlx.netlify.app/docs/algorithms/adakv) | `adakv` | Per-head adaptive bit budget, layered on KIVI | 0.13.0 |
 
-**Honest scope:**
-- KIVI's published *speedup* comes from a CUDA kernel that does not port to Metal. On Apple Silicon the win is **memory**; throughput here is at-or-near fp16 because the per-channel/per-token min/max arithmetic is cheap on a memory-bound decode path.
-- Compression only manifests **once context exceeds the residual window** — at short prompts the entire prefill stays fp16 and the realized ratio is 1.0× (this is correct behavior, not a bug). The numbers above use a long-context prompt.
-- **Peak runtime memory is not reduced** (often marginally higher): like every method here, keys are dequantized to fp16 before SDPA, so the compression is in *cache-storage accounting*, not the peak fp16 working set.
-- At 2 bits, raw-key reconstruction cosine on synthetic unit-norm Gaussian keys is ~0.93 — KIVI 2-bit is genuinely lossy, which is exactly why the fp16 residual window exists. VecInfer-2bit compresses harder (8× vs 5.8× keys); KIVI's value is being the recognized, calibration-free baseline. See `figures/kivi/fig4_vs_existing.png`.
+### Token eviction & merging — drop or merge low-value tokens
 
-## KVSink-adapted sink protection — new in 0.9.0
-
-`method="kivi_sink"` layers dynamic **attention-sink protection** on top of KIVI. *Inspired by, **not a faithful port of***, [KVSink (Su & Yuan, COLM 2025)](https://arxiv.org/abs/2508.04257): the paper detects sinks via hidden-state outlier channels at a model-specific emergence layer, which cache wrappers cannot see — this implementation uses the cache-observable proxy of **anomalously high key L2-norm** (running top-k of token positions, mean over KV heads). Selected tokens are kept fp16 and **excluded from quantization-parameter calibration** — the detail the paper insists on: without it, a high-magnitude sink inflates its group's min/max scale and ruins every neighbor even though the sink itself is restored (our tests reproduce that failure mode).
-
-```python
-config = KVCacheConfig(method="kivi_sink", bit_width_inlier=2,
-                       kivi_group_size=32, residual_length=32,
-                       n_sink_tokens=5)   # top-k high-key-norm tokens kept fp16
-```
-
-**Evidence (unit tests on synthetic planted-sink data — `tests/cache/test_sink_cache.py`, 9 passing):** planted sinks preserved bit-exact while neighbors quantize; sink-protected MSE **< plain KIVI** at equal bit-width; dynamic selection MSE **< Preserve-First-N at equal fp16 budget** when sinks are not all at the front (the paper's central claim, reproduced at cache level); `n_sink_tokens=0` reproduces plain KIVI bit-for-bit.
-
-**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_sink.py` is ready but has not been run — no throughput or compression figures are claimed for this method until its `results.json` is committed. Known v1 limitation: sink selection is prefill-dominant (tokens already quantized are not retroactively restored).
-
-## PALU — true low-rank latent storage — new in 0.15.0
-
-`method="palu"` is the first method where the KV cache *itself* stays low-rank. *Inspired by, **not a faithful port of***, [PALU (Chang et al., ICLR 2025)](https://arxiv.org/abs/2407.21118): at prefill it partitions the attention heads into groups, fits one shared projection per group via group-head SVD (PALU's G-LRD), and stores the projected latent codes `[S, r]` **directly** — full fp16 keys/values are reconstructed only at attend time. Both keys **and** values are compressed (unlike [SVDq](#svdq), which is keys-only and reconstructs full fp16 so its win is bandwidth accounting). The latents are mixed-bit quantized (top-25% of channels by singular value at 4-bit, the rest at 2-bit) for a full-KV effective rate **below 1 bit/element** on low-rank data. Zero calibration.
-
-```python
-config = KVCacheConfig(method="palu", head_dim=128,
-                       palu_energy_threshold=0.90,   # rank from singular-value energy
-                       palu_n_head_groups=4,         # heads share a projection
-                       palu_hi_bit=4, palu_lo_bit=2, # mixed-bit latents
-                       palu_quantize_values=True)    # False → low-rank-only (fp16 latents)
-```
-
-**Evidence (unit tests on synthetic low-rank data — `tests/cache/test_palu_cache.py` (13) + `tests/quantizers/test_palu.py` (9), all passing):** the cache stores `[S, r]` latents and the parent fp16 ring buffer is never populated (`cache.keys is None`); PALU reconstruction MSE **< naive 2-bit on both keys and values**; both tensors compress vs fp16; group-head SVD recovers a planted rank-r subspace; `assigned_avg_bits < 2.0`; deterministic. The offline harness in `benchmark_palu.py` reports key MSE 1.54 vs 2.37 and value MSE 1.54 vs 2.52 (naive 2-bit) at r=16/D=128 — **synthetic, not model-level**.
-
-**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_palu.py` is ready but has not been run — no throughput or compression figures are claimed until its `results.json` is committed. Known limitation: PALU's fused low-rank-reconstruction attention kernel is **not** ported (we reconstruct fp16 then call MLX SDPA), so peak memory *during attention* is not reduced — only the stored cache size.
-
-## CacheGen — entropy-coded KV cache — new in 0.16.0
-
-`method="cachegen"` is the first method in the suite to **entropy-code** the quantized KV. *Inspired by, **not a faithful port of***, [CacheGen (Liu et al., SIGCOMM 2024)](https://arxiv.org/abs/2310.07240): every other method packs codes at a fixed bit-width; CacheGen exploits **token-wise locality** (adjacent tokens' KV are similar) by applying a reversible token-delta transform to the codes and compressing the low-entropy residual toward its Shannon entropy. Reconstruction is **identical to plain group quant** (lossless over the codes) — the win is storage.
-
-```python
-config = KVCacheConfig(method="cachegen", head_dim=128,
-                       cachegen_bits=4, cachegen_group_size=32,
-                       cachegen_use_delta=True)
-```
-
-We do **not** ship a serial range codec (it would bottleneck MLX's parallel decode); the entropy-coded byte size is modelled from the measured symbol entropy and **capped at the fixed-width packed size**, so savings are never negative.
-
-**Evidence (`tests/cache/test_cachegen_cache.py` (12) + `tests/quantizers/test_cachegen.py` (9), all passing):** reconstruction byte-identical to `_group_quant_dequant`; token-delta reversible; delta entropy < raw entropy on correlated data; positive savings on correlated, exactly 0% (never negative) on iid; entropy primitives correct (0 for constants, 1 bit for 50/50). Offline harness: ~17% savings on correlated 3-bit, 0% on iid — **synthetic, not model-level.**
-
-**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_cachegen.py` is ready but has not been run. Known limitation: storage-only win (codes dequant to fp16 for SDPA) — does not reduce attend-time working set.
-
-## MiniCache — cross-layer depth merge — new in 0.16.0
-
-`method="minicache"` compresses across **network depth**. *Inspired by* [MiniCache (Liu et al., NeurIPS 2024)](https://arxiv.org/abs/2405.14366): adjacent middle-to-deep layers have nearly identical KV *directions*, so a pair is merged into one shared **SLERP**-interpolated direction plus each layer's own per-token magnitude (a pair costs ~one layer). High-divergence token pairs are kept unmerged (the retention set). A different route to inter-layer redundancy than [XQuant](#xquant--cross-layer-kv-cache-reuse): XQuant reuses *codes*, MiniCache merges the *tensors*.
-
-```python
-config = KVCacheConfig(method="minicache", head_dim=128,
-                       minicache_start_frac=0.5,           # only merge past mid-depth
-                       minicache_retention_threshold=0.9,  # keep divergent pairs
-                       minicache_slerp_t=0.5)
-caches = KVCacheBuilder.for_model(model, config)  # requires for_model (shared coordinator)
-```
-
-**Evidence (`tests/cache/test_minicache_cache.py` (11) + `tests/quantizers/test_minicache.py` (11), all passing):** role assignment (early all primary, deep has merge); SLERP unit-norm + endpoint correctness; similar layers (cosine 0.9995) merge MSE < 2e-4 with 0% retention; opposite directions 100% retained and reconstructed exactly; magnitude preserved through the shared direction; degenerate (no-coordinator) primary is a lossless passthrough. Offline harness confirms the merge-vs-retain split — **synthetic, not model-level.**
-
-**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_minicache.py` is ready but has not been run. Known limitation: MiniCache merges fp16 directions (no extra quantization) and the merge happens on reconstructed tensors, so attend-time working set is not reduced — the win is stored cache size.
-
-## GEAR — error-feedback KV cache — new in 0.17.0
-
-`method="gear"` is the first method in the suite on the **error-feedback** axis. *Inspired by, **not a faithful port of***, [GEAR (Kang et al., arXiv:2403.05527)](https://arxiv.org/abs/2403.05527): every other method picks a bit-width or a cache layout and lives with the quantization error; GEAR makes *any* ultra-low-bit base quantizer near-lossless by reconstructing what it threw away — `X ≈ Quant_b(X) + L·R + S`: an ultra-low-bit base quant, a **low-rank** approximation of the quantization *residual*, and a **sparse** matrix correcting the outlier entries the low-rank term cannot absorb. Unlike CacheGen (reconstruction identical to group quant), GEAR's reconstruction genuinely **recovers quality** the base bit-width loses.
-
-```python
-config = KVCacheConfig(method="gear", head_dim=128,
-                       gear_bits=2,                # ultra-low base bit-width
-                       gear_rank=8,                # residual low-rank (keep small)
-                       gear_sparse_fraction=0.005, # top-|residual| kept exact
-                       gear_quantize_values=True)
-caches = KVCacheBuilder.for_model(model, config)
-```
-
-**Evidence (`tests/cache/test_gear_cache.py` (10) + `tests/quantizers/test_gear.py` (13), all passing):** GEAR reconstruction MSE strictly below base-quant-alone on low-rank+outlier data; low-rank-alone and sparse-alone each help; `rank=0, sparse=0` collapses exactly to base group quant; a rank-`r` residual recovered to `< eps`; sparse selection picks true top-magnitude entries; byte-accounting ordering `base_only ≤ compressed ≤ fp16` at realistic head dim; `error_recovery_ratio` in `(0,1]`; values-off path keeps values fp16; build via both `create` and `for_model`. Offline harness reports 11–22% MSE improvement on synthetic low-rank data — **synthetic, not model-level.**
-
-**Not yet benchmarked end-to-end:** `benchmark_scripts/benchmark_gear.py` is an offline-synthetic harness (loads no model) and has not been run on hardware for committed numbers. Known limitation: the *stored* cache shrinks but reconstruction is fp16 for SDPA, so attend-time working set is not reduced; the low-rank/sparse factors are overhead, so keep the rank low relative to the head dim.
-
-## H2O-adapted — cumulative attention-mass heavy-hitter oracle eviction — new in 0.21.0
-
-`method="h2o"` is the library's **third eviction axis** and the first based on
-**cumulative per-token attention mass**. *Inspired by, **not a faithful port of***,
-[H2O (Zhang et al., ICLR 2024, arXiv:2306.14048)](https://arxiv.org/abs/2306.14048):
-on every step (prefill and decode alike), each incoming token's approximate softmax
-attention distribution over the existing cache is computed — using the new **key vector
-as a proxy query** (true queries are not visible at cache-wrapper level). The weights
-are accumulated into a per-token cumulative importance score. When the cache exceeds
-`h2o_budget`, the **lowest-score non-sink token** is permanently evicted. The cache is
-bounded at all times to `h2o_budget` positions.
-
-| Eviction axis | When it fires | Score signal | Memory shape |
+| Method | `method=` | What it does | New in |
 |---|---|---|---|
-| SnapKV-adapted | Once at prefill end | Key-as-query attention proxy | Grows during decode |
-| StreamingLLM-adapted | Every token | Position (recency + sink) | Constant |
-| **H2O-adapted** | Every token (budget exceeded) | Cumulative attention mass | Constant (≤ budget) |
+| [SnapKV-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/snapkv) | `snapkv` | Prefill observation-window eviction, once at prefill end | 0.19.0 |
+| [StreamingLLM-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/streaming_llm) | `streaming_llm` | Sink + recency window, constant memory | 0.20.0 |
+| [H2O-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/h2o) | `h2o` | Cumulative attention-mass heavy-hitter eviction | 0.21.0 |
+| [TOVA-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/tova) | `tova` | Memoryless current-step attention-weight eviction | 0.22.0 |
+| [PyramidKV-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/pyramidkv) | `pyramidkv` | H2O eviction with a per-layer pyramid budget | 0.23.0 |
+| [SqueezeAttention-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/squeeze) | `squeeze` | 2D layer×token data-driven budget eviction | 0.24.0 |
+| [ChunkKV-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/chunkkv) | `chunkkv` | Chunk-level eviction (`chunk_size=1` == H2O) | 0.25.0 |
+| [CaM-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/cam) | `cam` | Cache **merging** — merge evicted tokens, don't drop (`cam_merge=drop` == H2O) | 0.26.0 |
+
+> Every "-adapted" method is an honest adaptation, not a faithful port — the cache
+> wrapper sees per-layer K/V but not the model's true query/attention maps, so
+> attention-based signals use a key-as-query proxy. Each method's docs page states its
+> specific limitations plainly.
 
-```python
-config = KVCacheConfig(
-    method="h2o",
-    head_dim=128,
-    h2o_budget=512,   # max tokens retained at any time
-    h2o_n_sink=4,     # initial positions never evicted (attention sinks)
-)
-caches = KVCacheBuilder.for_model(model, config)
-```
-
-**Evidence:** 18 quantizer tests + 15 cache tests — all 33 passing. Budget-never-exceeded
-verified across a 30-step decode stress test. Sink protection verified. Score non-negativity
-and accumulation across steps verified. Deterministic.
-
-**Honest limitation:** key-as-query proxy approximates the paper's true query attention
-signal; no RoPE position-ID remapping after eviction; uniform budget across all heads.
-No model-level benchmark run yet — `benchmark_scripts/benchmark_h2o.py` is an
-offline-synthetic harness.
-
-*Inspired by H2O (arXiv:2306.14048, ICLR 2024, Zhang et al.) — not a faithful port.*
-
-## SqueezeAttention-adapted — 2D layer×token data-driven budget eviction — new in 0.24.0
-
-`method="squeeze"` is the library's **sixth eviction configuration**, the first **2D (layer × token)** budget method, and the first with a **data-driven** per-layer budget. *Inspired by, **not a faithful port of***, [SqueezeAttention (Wang et al., 2024, arXiv:2404.04793)](https://arxiv.org/abs/2404.04793): it is H2O-adapted's cumulative-attention-mass eviction with a per-layer budget that is **measured** rather than assumed. Where PyramidKV imposes a *fixed* positional taper, SqueezeAttention measures each layer's attention **concentration** during prefill and reallocates a fixed total budget toward broad layers and away from concentrated ones. When `squeeze_strength=0.0` it reduces exactly to uniform H2O.
-
-**Why measure instead of assume:** PyramidKV's pyramid is calibration-free but blind to the actual prompt. SqueezeAttention reads the geometry of each layer's key set (mean pairwise cosine dispersion, an attention-free entropy proxy) and puts budget where *this* prompt's attention actually spreads. It is the data-driven sibling of PyramidKV.
-
-| Eviction axis | Score signal | Budget |
-|---|---|---|
-| SnapKV-adapted | Key-as-query attention proxy | Uniform |
-| StreamingLLM-adapted | Position (recency + sink) | Uniform |
-| H2O-adapted | Cumulative attention mass | Uniform |
-| TOVA-adapted | Current-step attention weight | Uniform |
-| PyramidKV-adapted | Cumulative attention mass | Per-layer **fixed** pyramid |
-| **SqueezeAttention-adapted** | Cumulative attention mass | Per-layer **data-driven** (measured) |
-
-```python
-config = KVCacheConfig(
-    method="squeeze",
-    head_dim=128,
-    squeeze_budget=512,     # AVERAGE budget across layers (uniform-H2O baseline)
-    squeeze_n_sink=4,       # initial positions never evicted (attention sinks)
-    squeeze_strength=1.0,   # reallocation: 0.0 = uniform (== H2O), 1.0 = full inverse-concentration
-)
-caches = KVCacheBuilder.for_model(model, config)   # a shared coordinator re-budgets after prefill
-```
-
-**How the re-budget works:** a single shared `SqueezeCoordinator` (injected by `for_model`) collects each layer's concentration during prefill, computes the schedule **once at the prefill boundary** with `squeeze_budgets(...)`, and publishes each layer's resolved budget; over-budget layers are trimmed by H2O score. This is the first eviction method with a **runtime re-budgeting** step, but — unlike XQuant/MiniCache — it exchanges only per-layer scalars and runs its allocation exactly once. Single-cache construction (no coordinator) falls back to `squeeze_budget` and behaves as one uniform H2O layer.
-
-**Evidence:** 28 quantizer tests + 19 cache tests — all 47 passing. Concentration proxy verified (1.0 for identical keys, 0.0 for orthogonal, scale-invariant). Allocator verified: `strength=0` == uniform, mean within 5% of average, budgets monotone in concentration, floored at `n_sink+1`, `strength` bounds enforced. `for_model` verified to produce data-driven budgets where the broad early layer keeps more tokens than the concentrated deep layer on the same sequence. Coordinator finalises once-only and is idempotent per layer. Deterministic.
-
-**Honest limitation:** cosine-dispersion proxy for attention entropy (paper reads actual attention maps); key-as-query proxy for eviction (same as H2O); one-shot re-budget at prefill, frozen for decode; no RoPE remapping; uniform budget across heads within a layer. No model-level (perplexity/throughput) benchmark run — `benchmark_scripts/benchmark_squeeze.py` is an offline-synthetic harness; its results are committed in `benchmark_scripts/squeeze_benchmark_results.json` (Apple Silicon) and confirm `strength=0` == uniform, `strength>0` reallocates broad→more/concentrated→less, mean ≈ average.
-
-*Inspired by SqueezeAttention (arXiv:2404.04793, Wang et al., 2024) — not a faithful port.*
-
-## ChunkKV-adapted — chunk-level (semantic-block) eviction — new in 0.25.0
-
-`method="chunkkv"` is the library's **seventh eviction configuration** and the first to evict at **chunk** rather than **token** granularity. *Inspired by, **not a faithful port of***, [ChunkKV (Liu et al., 2025, arXiv:2502.00299)](https://arxiv.org/abs/2502.00299): every other eviction method scores and drops *individual tokens*; ChunkKV partitions the sequence into contiguous **chunks** of `chunk_size` tokens and keeps or drops each chunk *as a whole*, so surviving context stays locally coherent. When `chunk_size=1` it reduces **bit-for-bit** to H2O-adapted.
-
-**Why chunks instead of tokens:** a token is not a self-contained unit of meaning. Token-level eviction can punch holes through a clause, a variable definition, or a table row whose value is *collective*. ChunkKV ranks **chunks** by a mean-pooled importance proxy (H2O cumulative attention mass, or key L2 norm) and keeps whole contiguous spans — trading a little scoring granularity for local coherence.
-
-| Eviction axis | Granularity | Score signal | Budget |
-|---|---|---|---|
-| SnapKV-adapted | Token | Key-as-query attention proxy | Uniform |
-| H2O-adapted | Token | Cumulative attention mass | Uniform |
-| TOVA-adapted | Token | Current-step attention weight | Uniform |
-| PyramidKV-adapted | Token | Cumulative attention mass | Per-layer pyramid |
-| SqueezeAttention-adapted | Token | Cumulative attention mass | Per-layer data-driven |
-| **ChunkKV-adapted** | **Chunk** | Pooled attention-mass / key-norm | Uniform |
-
-```python
-from veloxquant_mlx import KVCacheConfig, KVCacheBuilder
-
-config = KVCacheConfig(
-    method="chunkkv",
-    head_dim=128,
-    chunkkv_budget=512,        # max tokens kept per layer (sinks included)
-    chunkkv_chunk_size=8,      # eviction granularity C; 1 == H2O bit-for-bit
-    chunkkv_n_sink=4,          # initial positions never evicted (attention sinks)
-    chunkkv_score="attn_mass", # "attn_mass" (H2O scorer) | "key_norm"
-)
-caches = KVCacheBuilder.for_model(model, config)
-```
-
-**How it works:** eviction reuses H2O's per-token scorer, but the *unit* of eviction is a chunk. While the cache exceeds budget, the non-sink tail is partitioned into contiguous chunks, each chunk is scored by the mean of its tokens, and the lowest-scoring whole chunk is dropped. No coordinator — each layer resolves its own chunks. Whole-chunk retention lets heads settle at slightly different counts, so the wrapper trims every head to the common minimum (keeping sinks + the recent tail) to emit a rectangular `[B, H, n_kept, D]` tensor. At `chunk_size=1` every head already holds exactly `budget`, so no trimming occurs and the H2O equivalence is exact.
-
-**Evidence:** 19 quantizer tests + 14 cache tests — all 33 passing, including a **bit-for-bit `chunk_size=1` == H2O** equivalence (identical kept keys *and* values vs `H2OKVCache`) at both the primitive and cache level. Partitioning verified contiguous/gap-free with a ragged tail; survivors are whole chunks (no partial chunk retained); sinks always preserved; both score modes exercised; deterministic. The offline-synthetic harness `benchmark_scripts/benchmark_chunkkv.py` (results committed in `benchmark_scripts/chunkkv_benchmark_results.json`, Apple Silicon) confirms `chunk_size=1` reproduces H2O exactly and that larger chunks cut the pure-Python eviction pass sharply — **~12.7× fewer/faster passes** at `C=16` vs `C=1` on the `seq=1024, budget=128` shape — while holding compression.
-
-**Honest limitation:** mean-pooled per-token score as a proxy for the paper's attention-over-chunk importance; no layer-wise kept-index reuse (each layer resolves chunks independently); key-as-query proxy for the `attn_mass` scorer (same as H2O); no RoPE remapping; uniform budget across heads within a layer. **No model-level (perplexity/throughput) benchmark run** — the harness measures compression, kept-token count, and eviction latency on synthetic data. ChunkKV's semantic-coherence advantage is a real-attention property and is not claimed from the synthetic harness.
-
-*Inspired by ChunkKV (arXiv:2502.00299, Liu et al., 2025) — not a faithful port.*
-
-## PyramidKV-adapted — layer-adaptive budget attention-mass eviction — new in 0.23.0
-
-`method="pyramidkv"` is the library's **fifth eviction configuration** and the first with a **per-layer budget**. *Inspired by, **not a faithful port of***, [PyramidKV (Cai et al., 2024, arXiv:2406.02069)](https://arxiv.org/abs/2406.02069): it is H2O-adapted's cumulative-attention-mass eviction wearing a *pyramid* of budgets instead of a single global one. Early layers (broad attention) get a large budget; deep layers (concentrated attention) get a small one; the **average is held fixed** so total memory matches uniform H2O. When the pyramid is flat (`pyramid_beta=1.0`) it reduces exactly to H2O.
-
-**Why a pyramid — pyramidal information funneling:** attention in early layers is broad and near-uniform, while deep layers concentrate on a few tokens. A uniform budget starves early layers and over-provisions deep ones; redistributing the same total into a pyramid puts memory where attention actually spreads.
-
-| Eviction axis | Score signal | Budget |
-|---|---|---|
-| SnapKV-adapted | Key-as-query attention proxy | Uniform |
-| StreamingLLM-adapted | Position (recency + sink) | Uniform |
-| H2O-adapted | Cumulative attention mass | Uniform |
-| TOVA-adapted | Current-step attention weight | Uniform |
-| **PyramidKV-adapted** | Cumulative attention mass | **Per-layer pyramid** |
-
-```python
-config = KVCacheConfig(
-    method="pyramidkv",
-    head_dim=128,
-    pyramid_budget=512,   # AVERAGE budget across layers (uniform-H2O baseline)
-    pyramid_n_sink=4,     # initial positions never evicted (attention sinks)
-    pyramid_beta=1.5,     # pyramid steepness: 1.0 = flat (== H2O), larger = steeper
-)
-caches = KVCacheBuilder.for_model(model, config)   # the pyramid needs layer context
-```
-
-The schedule for 12 layers, `avg_budget=512`, `beta=2.0` is `[1019, 927, …, 97, 5]` — mean exactly 512. The pyramid takes effect only via `for_model` (which knows each layer's index); single-cache construction falls back to the average budget and behaves as one uniform H2O layer. **No runtime coordinator** — layers never exchange data during generation (unlike XQuant/MiniCache).
-
-**Evidence:** 24 quantizer tests + 19 cache tests — all 43 passing. Allocator verified: monotonically decreasing, mean within 5% of average, `beta=1.0` == uniform, budgets floored at `n_sink+1`. `for_model` verified to produce a decreasing pyramid where early-layer caches retain more tokens than deep-layer caches on the same sequence. Budget-never-exceeded across a 30-step stress test. Deterministic.
-
-**Honest limitation:** fixed monotone (linear) budget schedule rather than the paper's prefill-entropy-derived allocation — funneling shape preserved, exact per-layer values not data-driven; key-as-query proxy for eviction (same as H2O); no RoPE remapping; uniform budget across heads within a layer. No model-level (perplexity/throughput) benchmark run — `benchmark_scripts/benchmark_pyramidkv.py` is an offline-synthetic harness; its results are committed in `benchmark_scripts/pyramidkv_benchmark_results.json` (24 configs on Apple Silicon) and confirm flat-beta == uniform, pyramid-beta strictly decreasing, mean == average.
-
-*Inspired by PyramidKV (arXiv:2406.02069, Cai et al., 2024) — not a faithful port.*
-
-## TOVA-adapted — current-step attention-weight eviction (memoryless) — new in 0.22.0
-
-`method="tova"` is the library's **fourth eviction axis** and the first **memoryless** one.
-*Inspired by, **not a faithful port of***, [TOVA / "Transformers are Multi-State RNNs" (Oren et al., 2024, arXiv:2401.06104)](https://arxiv.org/abs/2401.06104):
-on every step (prefill and decode alike), the new **key vector as a proxy query** attends to
-the post-append cache; when the cache exceeds `tova_budget`, the non-sink token with the
-**lowest current-step attention weight** is permanently evicted. The weights are then
-discarded — no score is carried across steps. The cache is bounded at all times to
-`tova_budget` positions.
-
-**The key contrast with H2O:** H2O accumulates attention mass, so a past heavy hitter resists
-eviction (inertial). TOVA scores by the present step only, so a token that stops being
-attended to is dropped even if it dominated earlier (memoryless, reactive). Neither policy
-dominates — that is exactly why both are provided.
-
-| Eviction axis | When it fires | Score signal | Memory shape |
-|---|---|---|---|
-| SnapKV-adapted | Once at prefill end | Key-as-query attention proxy | Grows during decode |
-| StreamingLLM-adapted | Every token | Position (recency + sink) | Constant |
-| H2O-adapted | Every token (budget exceeded) | Cumulative attention mass (inertial) | Constant (≤ budget) |
-| **TOVA-adapted** | Every token (budget exceeded) | Current-step attention weight (memoryless) | Constant (≤ budget) |
-
-```python
-config = KVCacheConfig(
-    method="tova",
-    head_dim=128,
-    tova_budget=512,   # max tokens retained at any time
-    tova_n_sink=4,     # initial positions never evicted (attention sinks)
-)
-caches = KVCacheBuilder.for_model(model, config)
-```
-
-**Evidence:** 19 quantizer tests + 15 cache tests — all 34 passing. Budget-never-exceeded
-verified across a 30-step decode stress test. Sink protection verified. Memorylessness (no
-scores carried across steps) verified. Current-step eviction correctness verified with
-axis-aligned test vectors (an orthogonal token is dropped over an aligned one). Deterministic.
-
-**Honest limitation:** key-as-query proxy approximates the paper's true query attention
-signal; no RoPE position-ID remapping after eviction; uniform budget across all heads.
-No model-level (perplexity/throughput) benchmark run — `benchmark_scripts/benchmark_tova.py`
-is an offline-synthetic harness. Its results are committed in
-`benchmark_scripts/tova_benchmark_results.json` (28 configs on Apple Silicon); measured
-compression ratio equals `seq_len / budget` exactly across every config.
-
-*Inspired by TOVA (arXiv:2401.06104, Oren et al., 2024) — not a faithful port.*
-
-## StreamingLLM-adapted — sink + recency-window constant-memory eviction — new in 0.20.0
-
-`method="streaming_llm"` is the repo's **first constant-memory cache** and first **structural positional eviction** method. *Inspired by, **not a faithful port of***, [StreamingLLM (Xiao et al., ICLR 2024, arXiv:2309.17453)](https://arxiv.org/abs/2309.17453): keep only the first `stream_n_sink` token positions (frozen attention sinks) and the most recent `stream_window_size` tokens (rolling FIFO). All other positions are permanently evicted. The cache never grows beyond `stream_n_sink + stream_window_size` positions regardless of generation length — **constant decode memory**.
-
-```python
-config = KVCacheConfig(
-    method="streaming_llm",
-    head_dim=128,
-    stream_n_sink=4,           # initial positions frozen as attention sinks
-    stream_window_size=512,    # FIFO capacity for recent tokens
-)
-caches = KVCacheBuilder.for_model(model, config)
-```
-
-**Evidence:** 17 quantizer tests + 15 cache tests — all 32 passing. Constant-memory guarantee verified (30-step decode stress test). FIFO trimming and sink-first ordering verified. Deterministic.
-
-**Honest limitation:** no attention mask adjustment (model sees all returned K/V positions); no RoPE position-ID remapping. No model-level benchmark run yet — cite only after `results_streaming_llm.json` is committed from a hardware run.
-
-*Inspired by StreamingLLM (arXiv:2309.17453, ICLR 2024, Xiao et al.) — not a faithful port.*
-
-## SnapKV-adapted — prefill observation-window token eviction — new in 0.19.0
-
-`method="snapkv"` is the repo's **first token eviction** cache and the first where
-the paper's actual signal (attention scores) is computable at the cache level without
-model interception. *Inspired by, **not a faithful port of***, [SnapKV (Yuan et al.,
-ICLR 2025, arXiv:2404.14469)](https://arxiv.org/abs/2404.14469): during prefill the
-last `snap_obs_window` key rows attend to all prefix positions via softmax; the pooled
-scores select the top-`snap_budget` tokens to keep. All others are dropped. Decode
-tokens are never evicted.
-
-```python
-config = KVCacheConfig(
-    method="snapkv",
-    head_dim=128,
-    snap_budget=512,        # hard cap on prefill tokens retained
-    snap_obs_window=32,     # trailing key rows as proxy queries
-    snap_n_sink=4,          # always-keep initial sink positions
-)
-caches = KVCacheBuilder.for_model(model, config)
-```
-
-**Evidence:** 18 quantizer tests + 13 cache tests all pass. Eviction ratio > 1 (always smaller than full fp16). Decode accumulation correct. Deterministic.
-
-**Honest limitation:** the paper uses actual prompt query vectors for the observation window; we substitute key vectors (key-as-query proxy). No max-pool smoothing. No model-level benchmark run yet — cite only after `results_snapkv.json` is committed from a hardware run.
-
-*Inspired by SnapKV (arXiv:2404.14469, ICLR 2025, Yuan et al.) — not a faithful port.*
-
-## ZipCache-adapted — saliency-adaptive per-token mixed precision — new in 0.18.0
-
-`method="zipcache"` is the repo's first **per-token mixed bit-width** cache. *Inspired by, **not a faithful port of***, [ZipCache (He et al., NeurIPS 2024, arXiv:2405.14256)](https://arxiv.org/abs/2405.14256): the top `hi_fraction` of tokens by key L2-norm are quantized at `hi_bits`; the rest at `lo_bits`. Both groups remain quantized — not fp16. This is the fourth use of the key-norm proxy in the repo, but with a different decision: bit-width routing rather than fp16 protection (KIVI-Sink) or head budgeting (AdaKV-proxy).
-
-```python
-config = KVCacheConfig(method="zipcache", head_dim=128,
-                       zipcache_hi_bits=4,        # salient tokens get 4-bit
-                       zipcache_lo_bits=2,         # rest get 2-bit
-                       zipcache_hi_fraction=0.20,  # top 20% by key-norm
-                       zipcache_group_size=32,
-                       zipcache_quantize_values=True)
-caches = KVCacheBuilder.for_model(model, config)
-```
-
-**Evidence (`tests/cache/test_zipcache_cache.py` (11) + `tests/quantizers/test_zipcache.py` (16), all passing):** saliency mask selects top-fraction by key-norm exactly; 4-bit channel quant cosine > 0.995; 2-bit cosine > 0.8; compress/reconstruct preserves shape and fp16 dtype; `hi_fraction=1.0` beats `hi_fraction=0.0`; byte ordering compressed ≤ fp16, mixed-bit ≥ all-lo baseline; effective avg bits in `[lo_bits, hi_bits]`; values-off passthrough; decode accumulation; determinism; `for_model` config propagation.
-
-**Honest limitation:** the proxy (key L2-norm) is weaker than true attention scores. No model-level benchmark yet — `benchmark_scripts/benchmark_zipcache.py` is an offline-synthetic harness.
-
-## SpectralQuant — new in 0.6.0
-
-SpectralQuant implements ["3% Is All You Need: Breaking TurboQuant's Compression Limit via Spectral Structure"](https://arxiv.org/abs/2506.xxxxx). The key insight: **KV cache keys concentrate ~96% of their variance in just 3–4% of dimensions universally across all transformer architectures**. SpectralQuant exploits this by rotating keys into their eigenvector basis before quantization — no more wasting bits on noise dimensions.
-
-**Three changes over TurboQuant:**
-1. **Eigenvector rotation** instead of random Hadamard — aligns signal dimensions first
-2. **Separate codebooks** for signal dims (d_s ≈ 4) and noise dims (d − d_s)
-3. **No QJL on noise dims** — applying QJL there injects variance without reducing bias, hurting quality
-
-```python
-from mlx_lm import load
-from veloxquant_mlx.spectral import calibrate_spectral_rotation
-from veloxquant_mlx.cache.spectral_cache import SpectralQuantKVCache
-from veloxquant_mlx.cache.base import KVCacheConfig
-
-model, tokenizer = load("mlx-community/Llama-3.1-8B-Instruct-4bit")
-
-# One-time calibration (~5s on 512 tokens)
-import mlx.core as mx
-tokens = mx.array(tokenizer.encode(calibration_text)[:512])[None]
-rotations = calibrate_spectral_rotation(model, tokens, model_name="llama31_8b")
-
-# Build one calibrated cache per layer
-import mlx_lm
-cfg = KVCacheConfig(method="spectral", head_dim=128, bit_width_inlier=3)
-caches = [SpectralQuantKVCache(cfg) for _ in range(model.args.num_hidden_layers)]
-for i, cache in enumerate(caches):
-    if i in rotations:
-        cache.calibrate(rotations[i])
-
-response = mlx_lm.generate(model, tokenizer,
-    prompt="Explain the transformer architecture.",
-    max_tokens=500,
-)
-```
-
-**Results on real models (3-bit, d_s=auto-calibrated):**
-
-| Model | SpectralQuant noQJL | TurboQuant 3-bit | Δ cosim | SQ ratio |
-|---|---|---|---|---|
-| Qwen2.5-0.5B | **0.9072** | 0.8329 | **+7.4pp** | **5.33×** |
-| Gemma 4 4B | **0.8625** | 0.7581 | **+10.4pp** | **5.33×** |
-
-> **Calibration required** — a one-time ~5–30s pass over 512 representative tokens. Save and reuse with `save_rotations` / `load_cached_rotations`. Run `python scripts/run_spectral_quant_eval.py --model <name>` to generate all benchmark figures.
-
----
-
-## RateQuant — per-layer mixed precision
-
-[RateQuant (arxiv:2605.06675)](https://arxiv.org/abs/2605.06675) allocates more bits to high-sensitivity layers and fewer to low-sensitivity ones via Theorem 2 reverse-waterfilling, with the average held at a user-chosen target. A sensitivity ratio above ~2× indicates measurable gains over uniform allocation.
-
-| Model | Sensitivity ratio | Allocation | Result |
-|---|---|---|---|
-| Falcon3-7B (28 layers, head_dim=256) | 6.48× | 14 × b=2, 14 × b=1 | **100% fp16** at 5.22× compression |
-| Gemma3-4B (34 layers, head_dim=256) | 14.39× | 3 × b=3, 11 × b=2, 20 × b=1 | **91% fp16** at 5.22× compression |
-
-> **What's not yet implemented from the paper:** per-head allocation, gradient-based sensitivity, K/V separation. Per-layer already captures most of the benefit at ≥1.5 bits.
-
----
-
-## VecInfer — 16× product VQ
-
-[VecInfer (arxiv:2510.06175)](https://arxiv.org/abs/2510.06175) (Yao et al. 2025) applies a **dual transform** to keys before product VQ encoding:
-
-1. **Smooth scaling** — per-channel `λ = √(max|K|)` suppresses outlier magnitudes
-2. **Walsh-Hadamard rotation** — spreads energy uniformly across all dims
-3. **K-means product VQ** — encode sub-vectors against a calibrated codebook
-
-The inverse transform is absorbed into queries so `q @ K.T` is preserved exactly. At 1 bit/elem a 128-dim key becomes 16 bytes instead of 256 — **16× compression**.
-
-**Standout result:** Qwen2.5-7B VecInfer-1bit *exceeds* fp16 throughput at 16× compression, likely due to its strong GQA ratio (28q/4kv heads).
-
----
 
 ## Metal kernels — new in 0.5.1
 
@@ -853,6 +381,10 @@ Source figures: [`figures/outlier_token_ratequant/`](figures/outlier_token_rateq
 
 ## Algorithm guide
 
+Picking a **quantizer** by measured bits, compression, and quality — a numbers-first
+companion to the [Method library](#method-library) inventory above (which also covers
+the eviction and low-rank families).
+
 | Method | Bits/dim | Compression | Quality (cosine) | Calibration | Best for |
 |---|---|---|---|---|---|
 | `turboquant_mse` | b | ~9× @ 2b | 0.86 @ 3b | None | Lowest overhead at 3–4 bit |
@@ -984,7 +516,7 @@ cache = (KVCacheBuilder()
 ## Development
 
 ```bash
-# Full test suite (212 tests, includes 7 Metal parity tests)
+# Full test suite (includes Metal parity tests)
 pytest veloxquant_mlx/tests/ -v
 
 # 2-bit improvement validation — fast synthetic run
@@ -1042,6 +574,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [PyramidKV (arXiv:2406.02069)](https://arxiv.org/abs/2406.02069) — Cai et al., "PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling" — layer-adaptive KV budget (large early, small deep, fixed average) over H2O-style cumulative attention-mass eviction; funnels memory to where attention spreads (adapted: fixed linear budget schedule instead of prefill-entropy allocation, key-as-query proxy, no RoPE remapping)
 - [SqueezeAttention (arXiv:2404.04793)](https://arxiv.org/abs/2404.04793) — Wang et al., "SqueezeAttention: 2D Management of KV-Cache in LLM Inference via Layer-wise Optimal Budget" — 2D (layer × token) budget: measures each layer's attention concentration and reallocates a fixed total budget over H2O-style cumulative attention-mass eviction; the data-driven sibling of PyramidKV (adapted: cosine-dispersion concentration proxy instead of observed attention maps, one-shot re-budget at prefill, key-as-query proxy, no RoPE remapping)
 - [ChunkKV (arXiv:2502.00299)](https://arxiv.org/abs/2502.00299) — Liu et al., "ChunkKV: Semantic-Preserving KV Cache Compression for Efficient Long-Context LLM Inference" — chunk-level eviction: partitions the sequence into contiguous chunks and keeps or drops whole chunks by pooled importance, preserving local coherence that token-level eviction shreds; `chunk_size=1` reduces to H2O (adapted: mean-pooled per-token score proxy for attention-over-chunk importance, no layer-wise index reuse, key-as-query proxy, no RoPE remapping)
+- [CaM (ICML 2024)](https://proceedings.mlr.press/v235/zhang24n.html) — Zhang et al., "CaM: Cache Merging for Memory-efficient LLMs Inference" (PMLR 235:58840-58850) — cache merging: instead of dropping the evicted token, merges it into the surviving token it most resembles, mitigating the output perturbation that dropping causes; `cam_merge=drop` reduces to H2O (adapted: cosine-similarity merge weight instead of the paper's attention-prominence weight, single nearest-survivor merge, key-as-query proxy, no RoPE remapping)
 
 </details>
 

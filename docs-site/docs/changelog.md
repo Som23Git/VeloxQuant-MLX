@@ -11,7 +11,21 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.25.0 — Latest
+## v0.26.0 — Latest
+
+### New
+- **CaM-adapted** (`method="cam"`) — the repo's **eighth eviction configuration** and the first on the **merge-vs-drop** axis. Every other eviction method permanently discards the tokens it evicts; CaM instead **merges** each evicted token into the surviving token it most resembles (a cosine-weighted blend of the value rows, and optionally the keys), then removes only the redundant slot — so the information is folded into a neighbour rather than lost. The eviction *choice* is H2O's; only the disposition differs. With `cam_merge="drop"` it reduces **bit-for-bit** to H2O-adapted. CaM-adapted ("CaM: Cache Merging for Memory-efficient LLMs Inference", Zhang et al., ICML 2024, PMLR 235:58840-58850) — documented as "CaM-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `CaMKVCache` (`veloxquant_mlx/cache/cam_cache.py`); primitives in `veloxquant_mlx/quantizers/cam.py`: `most_similar_survivor`, `merge_pair`, `CaMState`, `init_cam_state`, `cam_update`, `cam_get_kv`, `cam_fp16_bytes`, `full_cam_fp16_bytes`.
+  - Config: `cam_budget` (default 512), `cam_n_sink` (default 4), `cam_merge` (`"sim_weighted"` | `"mean"` | `"drop"`, default `"sim_weighted"`), `cam_merge_keys` (default False). No coordinator — each layer merges independently; the default `KVCacheBuilder.for_model()` path returns one `CaMKVCache` per layer.
+  - 18 quantizer tests + 14 cache tests, including a bit-for-bit `cam_merge="drop"` == H2O equivalence (identical kept keys *and* values vs `H2OKVCache`) at both the primitive and cache level; `benchmark_scripts/benchmark_cam.py` + committed `cam_benchmark_results.json`.
+
+### Honest scope
+- Cosine-similarity merge weight rather than the paper's attention-prominence weight (which is ~0 for a just-appended token that overflows before accumulating mass — the common streaming case); single nearest-survivor merge (no multi-target soft assignment / sampling); key-as-query proxy; no RoPE remapping; uniform budget across heads.
+- No model-level (perplexity/throughput) benchmark run. The offline harness measures output **perturbation** (cosine distance of the compressed-cache attention output vs the full-cache output over probe queries) against the H2O `drop` baseline; the measured finding is that `sim_weighted` merging reduces perturbation and the gain grows with compression ratio (e.g. 0.955 → 0.708 at `seq=1024, budget=64`, 16×), shrinking to ~0 at low compression where dropping barely hurts. Not an end-to-end task-quality claim.
+
+---
+
+## v0.25.0
 
 ### New
 - **ChunkKV-adapted** (`method="chunkkv"`) — the repo's **seventh eviction configuration** and the first to evict at **chunk** rather than **token** granularity. The sequence is partitioned into contiguous chunks of `chunk_size` tokens; each chunk is kept or dropped as a whole, ranked by a mean-pooled per-token importance proxy (H2O cumulative attention mass, or key L2 norm). Keeping whole contiguous spans preserves local structure that token-level eviction shreds. When `chunk_size=1` it reduces **bit-for-bit** to H2O-adapted. ChunkKV-adapted (arXiv:2502.00299, Liu et al., 2025) — documented as "ChunkKV-adapted (VeloxQuant-MLX implementation)," not a faithful port.

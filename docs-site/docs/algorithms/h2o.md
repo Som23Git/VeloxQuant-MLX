@@ -119,3 +119,7 @@ criterion for retention.
 | Constant-memory, position-based eviction | StreamingLLM-adapted |
 | **Constant-memory, importance-based eviction (continuous)** | **H2O-adapted** |
 | Recover quality from aggressive quantization | GEAR |
+
+**See also:** [CaM-adapted](./cam) makes the same eviction choice as H2O but
+**merges** the loser into a similar survivor instead of dropping it, recovering a
+share of the lost mass at high compression. `cam_merge="drop"` is exactly H2O.

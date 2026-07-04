@@ -17,6 +17,7 @@ from veloxquant_mlx.cache.tova_cache import TOVAKVCache
 from veloxquant_mlx.cache.pyramidkv_cache import PyramidKVCache
 from veloxquant_mlx.cache.squeeze_cache import SqueezeAttentionCache
 from veloxquant_mlx.cache.chunkkv_cache import ChunkKVCache
+from veloxquant_mlx.cache.cam_cache import CaMKVCache
 
 __all__ = [
     "KVCacheBuilder",
@@ -38,4 +39,5 @@ __all__ = [
     "PyramidKVCache",
     "SqueezeAttentionCache",
     "ChunkKVCache",
+    "CaMKVCache",
 ]
