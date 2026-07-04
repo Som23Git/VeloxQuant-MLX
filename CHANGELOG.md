@@ -7,6 +7,20 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.24.1] — 2026-07-04
+
+### Changed — documentation & landing page
+
+- **README** — dynamic shields.io PyPI version badge (auto-reads the live release),
+  new pepy.tech total-downloads badge, tests updated to 750/756, changelog badge to
+  0.24.1, and the intro now reads "twenty-seven compression strategies" (six of them
+  token-eviction caches). No code or API changes.
+- **Landing page** — "Method Library" redesign: uniform card grid grouped by category
+  (Eviction / Quantization / Low-rank / Cross-layer), quiet version metadata, a single
+  NEW pill on the three latest methods, and progressive-disclosure `<details>`
+  expanders. De-duplicated the install/quickstart sections and added a SqueezeAttention
+  quickstart tab. Fixed an invisible footer tagline and stale test/version counts.
+
 ## [0.24.0] — 2026-07-03
 
 ### Added — SqueezeAttention: 2D layer×token data-driven budget eviction (`method="squeeze"`)
