@@ -48,6 +48,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/tova',
         'algorithms/pyramidkv',
         'algorithms/squeeze',
+        'algorithms/chunkkv',
       ],
     },
   ],

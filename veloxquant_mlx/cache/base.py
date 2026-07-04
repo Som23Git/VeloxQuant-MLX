@@ -36,7 +36,7 @@ class KVCacheConfig:
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
-        "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze",
+        "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -147,6 +147,11 @@ class KVCacheConfig:
     squeeze_n_sink: int = 4              # initial positions protected from eviction (attention sinks)
     squeeze_strength: float = 1.0        # reallocation strength: 0.0 = uniform (== H2O), 1.0 = full inverse-concentration
     squeeze_resolved_budget: Optional[int] = None  # explicit per-layer budget override (None → coordinator supplies it)
+    # --- ChunkKV-adapted configuration (chunk-level / semantic-block eviction) ---
+    chunkkv_budget: int = 512            # max tokens kept per layer (sinks included)
+    chunkkv_chunk_size: int = 8          # eviction granularity C; 1 == H2O bit-for-bit
+    chunkkv_n_sink: int = 4              # initial positions protected from eviction (attention sinks)
+    chunkkv_score: str = "attn_mass"     # chunk-importance proxy: "attn_mass" (H2O scorer) | "key_norm"
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -213,6 +218,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.tova_cache import TOVAKVCache
         from veloxquant_mlx.cache.pyramidkv_cache import PyramidKVCache
         from veloxquant_mlx.cache.squeeze_cache import SqueezeAttentionCache
+        from veloxquant_mlx.cache.chunkkv_cache import ChunkKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -296,13 +302,18 @@ class KVCacheFactory:
             # requires KVCacheBuilder.for_model(), which builds the shared
             # SqueezeCoordinator and re-budgets after prefill.
             cache = SqueezeAttentionCache(config)
+        elif config.method == "chunkkv":
+            # No coordinator: each layer resolves its own chunks independently, so
+            # the default for_model path (one ChunkKVCache per layer) is all it
+            # needs. chunk_size=1 reduces bit-for-bit to H2O-adapted.
+            cache = ChunkKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv."
             )
 
         if config.sliding_window is not None:

@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements twenty-one KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements twenty-eight KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -39,6 +39,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [ZipCache-adapted](../algorithms/zipcache) | adaptive (2–4) | adaptive (2–4) | None | adaptive | ★★★★ | Per-token mixed bit-width — salient tokens get hi_bits, rest get lo_bits |
 | [SnapKV-adapted](../algorithms/snapkv) | fp16 (kept tokens) | fp16 (kept tokens) | None | token count | ★★★★ | Token eviction — keeps only a budget of prefill positions by obs-window attention |
 | [StreamingLLM-adapted](../algorithms/streaming_llm) | fp16 (kept tokens) | fp16 (kept tokens) | None | constant memory | ★★★★ | Structural eviction — first N sinks + last W recent tokens; constant-memory streaming |
+| [ChunkKV-adapted](../algorithms/chunkkv) | fp16 (kept chunks) | fp16 (kept chunks) | None | constant memory | ★★★★ | Chunk-level eviction — keeps whole contiguous chunks by pooled importance; `chunk_size=1` == H2O |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 

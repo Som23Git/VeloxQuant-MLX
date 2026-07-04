@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted — all in MLX. New in 0.24.0: SqueezeAttention-adapted 2D layer×token data-driven budget eviction — measures each layer's attention concentration at prefill and reallocates a fixed total budget via a one-shot coordinator re-budget. The data-driven sibling of PyramidKV. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted — all in MLX. New in 0.25.0: ChunkKV-adapted chunk-level eviction — keeps whole contiguous chunks by pooled importance instead of the top individual tokens, preserving local coherence that token-level eviction shreds; chunk_size=1 reduces bit-for-bit to H2O. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -1741,14 +1741,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">27 algorithms</span>
+        <span class="hero-pill">28 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 27 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention
+        <summary>See all 28 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -1879,12 +1879,13 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Twenty-seven compression strategies</h2>
+    <h2 class="section-title">Twenty-eight compression strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
 
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.25.0</span><span class="wn-body"><strong>ChunkKV-adapted</strong> — first chunk-level eviction cache. Partitions the sequence into contiguous chunks and keeps or drops each chunk <em>as a whole</em> by pooled importance, preserving local coherence that token-level eviction shreds. No coordinator; <code>chunk_size=1</code> reduces bit-for-bit to H2O.</span></li>
         <li><span class="wn-ver">0.24.0</span><span class="wn-body"><strong>SqueezeAttention-adapted</strong> — first 2D (layer × token) data-driven budget cache. Measures each layer's attention concentration at prefill and reallocates a fixed total budget toward broad layers via a one-shot coordinator re-budget. The data-driven sibling of PyramidKV; <code>strength=0</code> == H2O.</span></li>
         <li><span class="wn-ver">0.23.0</span><span class="wn-body"><strong>PyramidKV-adapted</strong> — first layer-adaptive budget cache. H2O-style eviction with a pyramid of per-layer budgets (large early, small deep, fixed average), funneling memory to where attention spreads. Flat pyramid == H2O.</span></li>
         <li><span class="wn-ver">0.22.0</span><span class="wn-body"><strong>TOVA-adapted</strong> — first memoryless eviction cache. Scores tokens by the attention weight at the current step only (no accumulation), evicting the token no longer attended to. The reactive counterpart to H2O.</span></li>
@@ -1961,6 +1962,11 @@
           <div class="picker-method" style="color:#fbbf24">SqueezeAttention</div>
           <div class="picker-detail">H2O eviction + measured per-layer budget · concentration-driven, re-budget at prefill → see details ↓</div>
         </a>
+        <a href="#algo-chunkkv" class="picker-card picker-card-link" style="border-color:rgba(34,197,94,0.35);">
+          <div class="picker-goal">Importance eviction that keeps whole chunks</div>
+          <div class="picker-method" style="color:#22c55e">ChunkKV</div>
+          <div class="picker-detail">Chunk-level eviction · keeps contiguous spans by pooled importance · chunk_size=1 == H2O → see details ↓</div>
+        </a>
       </div>
     </div>
 
@@ -1970,9 +1976,61 @@
         <div class="cat-header" style="--chip:#2dd4bf">
           <h3 class="cat-title">Token Eviction</h3>
           <span class="cat-blurb">Constant-memory caches that drop low-value tokens</span>
-          <span class="cat-count">6</span>
+          <span class="cat-count">7</span>
         </div>
         <div class="algo-grid">
+      <div id="algo-chunkkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">ChunkKV-adapted</div>
+        <div class="card-subtitle">chunk-level (semantic-block) eviction</div>
+        <div class="algo-desc card-summary">Keeps whole contiguous chunks by pooled importance instead of the top individual tokens.</div>
+        <div class="card-headline"><span class="headline-stat">chunk-granular · chunk_size=1 == H2O · 33/33 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from ChunkKV (arXiv:2502.00299, Liu et al., 2025). The library's
+              <strong style="color:#22c55e">seventh eviction configuration</strong> and the first to evict at
+              <strong style="color:var(--text)">chunk</strong> rather than <strong style="color:var(--text)">token</strong>
+              granularity. Every other eviction method ranks and drops <em>individual tokens</em>; ChunkKV partitions
+              the sequence into contiguous <strong style="color:var(--text)">chunks</strong> of <code>chunk_size</code>
+              tokens and keeps or drops each chunk <em>as a whole</em> — so surviving context stays locally coherent.
+              Set <code>chunkkv_chunk_size=1</code> and it reduces <strong style="color:#22c55e">bit-for-bit</strong> to H2O.
+              <br><br>
+              <strong style="color:var(--text)">① Score</strong> — mean-pool a per-token proxy (H2O cumulative attention mass, or key L2 norm) into one score per chunk<br>
+              <strong style="color:var(--text)">② Rank</strong> — order chunks by pooled importance; sinks are always kept and never grouped into an evictable chunk<br>
+              <strong style="color:var(--text)">③ Evict</strong> — while over budget, drop the lowest-scoring <em>whole chunk</em> of contiguous tokens<br>
+              <br>
+              <strong style="color:#22c55e">Why chunks, not tokens:</strong> a token is not a self-contained unit of meaning — token-level eviction punches holes through clauses, definitions, and table rows whose value is collective. ChunkKV trades a little scoring granularity for local coherence, on an axis orthogonal to every per-token eviction budget in the suite.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Compression axis</span>
+                <span class="value" style="color:#22c55e">chunk-level token eviction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">pooled attention-mass / key-norm</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Granularity</span>
+                <span class="value" style="color:#22c55e">whole chunks (chunk_size=1 == H2O)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Coordinator</span>
+                <span class="value">none (per-layer local)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Tests passing</span>
+                <span class="value">33 / 33</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.25.0 · arXiv:2502.00299</div>
+      </div>
       <div id="algo-squeeze" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
         <div class="card-head">
           <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
@@ -3081,6 +3139,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="ratequant">RateQuant · mixed-precision</button>
       <button class="tab-btn" data-tab="spectral" style="border-color:rgba(34,197,94,0.4);color:#22c55e">SpectralQuant</button>
       <button class="tab-btn" data-tab="squeeze" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">SqueezeAttention · eviction</button>
+      <button class="tab-btn" data-tab="chunkkv" style="border-color:rgba(34,197,94,0.4);color:#22c55e">ChunkKV · eviction</button>
     </div>
 
     <!-- RVQ tab -->
@@ -3234,6 +3293,39 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <span class="at">squeeze_strength</span><span class="op">=</span><span class="nu">1.0</span><span class="op">,</span>   <span class="cm"># 0.0 = uniform (== H2O), 1.0 = full reallocation</span>
 <span class="op">)</span>
 <span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>   <span class="cm"># shared coordinator re-budgets after prefill</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- ChunkKV tab -->
+    <div class="code-panel" id="tab-chunkkv">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — ChunkKV · chunk-level eviction · keeps whole contiguous spans</span>
+          <button class="code-copy" data-target="code-chunkkv">Copy</button>
+        </div>
+        <pre id="code-chunkkv"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Chunk-level eviction — keeps whole contiguous chunks by pooled importance</span>
+<span class="cm"># instead of the top individual tokens. No coordinator, no calibration.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"chunkkv"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">chunkkv_budget</span><span class="op">=</span><span class="nu">512</span><span class="op">,</span>        <span class="cm"># max tokens/layer (sinks included)</span>
+    <span class="at">chunkkv_chunk_size</span><span class="op">=</span><span class="nu">8</span><span class="op">,</span>      <span class="cm"># eviction granularity C; 1 == H2O bit-for-bit</span>
+    <span class="at">chunkkv_n_sink</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>          <span class="cm"># initial sink positions, never evicted</span>
+    <span class="at">chunkkv_score</span><span class="op">=</span><span class="st">"attn_mass"</span><span class="op">,</span>  <span class="cm"># "attn_mass" (H2O scorer) | "key_norm"</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
 
 <span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
     <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
@@ -3464,7 +3556,7 @@ pip install -e ".[dev]"</span></pre>
         const tab = btn.dataset.tab;
         tabBtns.forEach(b => b.classList.remove('active', 'active-purple', 'active-green', 'active-teal'));
         tabPanels.forEach(p => p.classList.remove('active'));
-        btn.classList.add(tab === 'vecinfer' ? 'active-purple' : tab === 'spectral' ? 'active-green' : tab === 'squeeze' ? 'active-teal' : 'active');
+        btn.classList.add(tab === 'vecinfer' ? 'active-purple' : (tab === 'spectral' || tab === 'chunkkv') ? 'active-green' : tab === 'squeeze' ? 'active-teal' : 'active');
         document.getElementById('tab-' + tab).classList.add('active');
       });
     });
@@ -3472,7 +3564,7 @@ pip install -e ".[dev]"</span></pre>
     // ── 2. BADGE TYPING ANIMATION ──
     (function typeBadge() {
       const badge = document.getElementById('hero-badge');
-      const text = 'v0.24.0 — SqueezeAttention 2D data-driven budget eviction shipped';
+      const text = 'v0.25.0 — ChunkKV-adapted chunk-level eviction shipped';
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         badge.textContent = text;
         return;

@@ -22,7 +22,7 @@
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.24.1-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.25.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -31,7 +31,7 @@
 
 ---
 
-A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **twenty-seven compression strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B, through six token-eviction caches (SnapKV, StreamingLLM, H2O, TOVA, PyramidKV, SqueezeAttention) — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **twenty-eight compression strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B, through seven token-eviction caches (SnapKV, StreamingLLM, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV) — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
@@ -440,6 +440,43 @@ caches = KVCacheBuilder.for_model(model, config)   # a shared coordinator re-bud
 **Honest limitation:** cosine-dispersion proxy for attention entropy (paper reads actual attention maps); key-as-query proxy for eviction (same as H2O); one-shot re-budget at prefill, frozen for decode; no RoPE remapping; uniform budget across heads within a layer. No model-level (perplexity/throughput) benchmark run — `benchmark_scripts/benchmark_squeeze.py` is an offline-synthetic harness; its results are committed in `benchmark_scripts/squeeze_benchmark_results.json` (Apple Silicon) and confirm `strength=0` == uniform, `strength>0` reallocates broad→more/concentrated→less, mean ≈ average.
 
 *Inspired by SqueezeAttention (arXiv:2404.04793, Wang et al., 2024) — not a faithful port.*
+
+## ChunkKV-adapted — chunk-level (semantic-block) eviction — new in 0.25.0
+
+`method="chunkkv"` is the library's **seventh eviction configuration** and the first to evict at **chunk** rather than **token** granularity. *Inspired by, **not a faithful port of***, [ChunkKV (Liu et al., 2025, arXiv:2502.00299)](https://arxiv.org/abs/2502.00299): every other eviction method scores and drops *individual tokens*; ChunkKV partitions the sequence into contiguous **chunks** of `chunk_size` tokens and keeps or drops each chunk *as a whole*, so surviving context stays locally coherent. When `chunk_size=1` it reduces **bit-for-bit** to H2O-adapted.
+
+**Why chunks instead of tokens:** a token is not a self-contained unit of meaning. Token-level eviction can punch holes through a clause, a variable definition, or a table row whose value is *collective*. ChunkKV ranks **chunks** by a mean-pooled importance proxy (H2O cumulative attention mass, or key L2 norm) and keeps whole contiguous spans — trading a little scoring granularity for local coherence.
+
+| Eviction axis | Granularity | Score signal | Budget |
+|---|---|---|---|
+| SnapKV-adapted | Token | Key-as-query attention proxy | Uniform |
+| H2O-adapted | Token | Cumulative attention mass | Uniform |
+| TOVA-adapted | Token | Current-step attention weight | Uniform |
+| PyramidKV-adapted | Token | Cumulative attention mass | Per-layer pyramid |
+| SqueezeAttention-adapted | Token | Cumulative attention mass | Per-layer data-driven |
+| **ChunkKV-adapted** | **Chunk** | Pooled attention-mass / key-norm | Uniform |
+
+```python
+from veloxquant_mlx import KVCacheConfig, KVCacheBuilder
+
+config = KVCacheConfig(
+    method="chunkkv",
+    head_dim=128,
+    chunkkv_budget=512,        # max tokens kept per layer (sinks included)
+    chunkkv_chunk_size=8,      # eviction granularity C; 1 == H2O bit-for-bit
+    chunkkv_n_sink=4,          # initial positions never evicted (attention sinks)
+    chunkkv_score="attn_mass", # "attn_mass" (H2O scorer) | "key_norm"
+)
+caches = KVCacheBuilder.for_model(model, config)
+```
+
+**How it works:** eviction reuses H2O's per-token scorer, but the *unit* of eviction is a chunk. While the cache exceeds budget, the non-sink tail is partitioned into contiguous chunks, each chunk is scored by the mean of its tokens, and the lowest-scoring whole chunk is dropped. No coordinator — each layer resolves its own chunks. Whole-chunk retention lets heads settle at slightly different counts, so the wrapper trims every head to the common minimum (keeping sinks + the recent tail) to emit a rectangular `[B, H, n_kept, D]` tensor. At `chunk_size=1` every head already holds exactly `budget`, so no trimming occurs and the H2O equivalence is exact.
+
+**Evidence:** 19 quantizer tests + 14 cache tests — all 33 passing, including a **bit-for-bit `chunk_size=1` == H2O** equivalence (identical kept keys *and* values vs `H2OKVCache`) at both the primitive and cache level. Partitioning verified contiguous/gap-free with a ragged tail; survivors are whole chunks (no partial chunk retained); sinks always preserved; both score modes exercised; deterministic. The offline-synthetic harness `benchmark_scripts/benchmark_chunkkv.py` (results committed in `benchmark_scripts/chunkkv_benchmark_results.json`, Apple Silicon) confirms `chunk_size=1` reproduces H2O exactly and that larger chunks cut the pure-Python eviction pass sharply — **~12.7× fewer/faster passes** at `C=16` vs `C=1` on the `seq=1024, budget=128` shape — while holding compression.
+
+**Honest limitation:** mean-pooled per-token score as a proxy for the paper's attention-over-chunk importance; no layer-wise kept-index reuse (each layer resolves chunks independently); key-as-query proxy for the `attn_mass` scorer (same as H2O); no RoPE remapping; uniform budget across heads within a layer. **No model-level (perplexity/throughput) benchmark run** — the harness measures compression, kept-token count, and eviction latency on synthetic data. ChunkKV's semantic-coherence advantage is a real-attention property and is not claimed from the synthetic harness.
+
+*Inspired by ChunkKV (arXiv:2502.00299, Liu et al., 2025) — not a faithful port.*
 
 ## PyramidKV-adapted — layer-adaptive budget attention-mass eviction — new in 0.23.0
 
@@ -1004,6 +1041,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [TOVA (arXiv:2401.06104)](https://arxiv.org/abs/2401.06104) — Oren et al., "Transformers are Multi-State RNNs" — memoryless current-step attention-weight token eviction; budget-bounded constant-memory cache, reactive counterpart to H2O's inertial cumulative scoring (adapted: key-as-query proxy for attention weights, no RoPE remapping)
 - [PyramidKV (arXiv:2406.02069)](https://arxiv.org/abs/2406.02069) — Cai et al., "PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling" — layer-adaptive KV budget (large early, small deep, fixed average) over H2O-style cumulative attention-mass eviction; funnels memory to where attention spreads (adapted: fixed linear budget schedule instead of prefill-entropy allocation, key-as-query proxy, no RoPE remapping)
 - [SqueezeAttention (arXiv:2404.04793)](https://arxiv.org/abs/2404.04793) — Wang et al., "SqueezeAttention: 2D Management of KV-Cache in LLM Inference via Layer-wise Optimal Budget" — 2D (layer × token) budget: measures each layer's attention concentration and reallocates a fixed total budget over H2O-style cumulative attention-mass eviction; the data-driven sibling of PyramidKV (adapted: cosine-dispersion concentration proxy instead of observed attention maps, one-shot re-budget at prefill, key-as-query proxy, no RoPE remapping)
+- [ChunkKV (arXiv:2502.00299)](https://arxiv.org/abs/2502.00299) — Liu et al., "ChunkKV: Semantic-Preserving KV Cache Compression for Efficient Long-Context LLM Inference" — chunk-level eviction: partitions the sequence into contiguous chunks and keeps or drops whole chunks by pooled importance, preserving local coherence that token-level eviction shreds; `chunk_size=1` reduces to H2O (adapted: mean-pooled per-token score proxy for attention-over-chunk importance, no layer-wise index reuse, key-as-query proxy, no RoPE remapping)
 
 </details>
 

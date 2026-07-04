@@ -212,3 +212,8 @@ pyramid.
 | Constant-memory, current-step-importance eviction (reactive) | TOVA-adapted |
 | Constant-memory, importance eviction with a fixed depth-adaptive budget | PyramidKV-adapted |
 | **Constant-memory, importance eviction with a data-driven depth-adaptive budget** | **SqueezeAttention-adapted** |
+
+**See also:** [ChunkKV-adapted](./chunkkv) shares the same H2O importance scorer but
+varies a different axis — the *granularity* of eviction (whole chunks vs single
+tokens) rather than the per-layer budget. The two are orthogonal knobs on the same
+eviction core; `chunk_size=1` and `strength=0` both recover plain H2O.

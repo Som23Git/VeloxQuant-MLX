@@ -121,3 +121,7 @@ compression.
 | Per-token mixed bit-width | ZipCache-adapted |
 | Hard cap on token count (very long contexts) | SnapKV-adapted |
 | Recover quality from aggressive quantization | GEAR |
+
+**See also:** [ChunkKV-adapted](./chunkkv) evicts on the same importance idea but at
+**chunk** rather than token granularity — it keeps whole contiguous spans instead of
+the top individual positions, trading scoring resolution for local coherence.

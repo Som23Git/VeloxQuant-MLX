@@ -11,7 +11,23 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.20.0 — Latest
+## v0.25.0 — Latest
+
+### New
+- **ChunkKV-adapted** (`method="chunkkv"`) — the repo's **seventh eviction configuration** and the first to evict at **chunk** rather than **token** granularity. The sequence is partitioned into contiguous chunks of `chunk_size` tokens; each chunk is kept or dropped as a whole, ranked by a mean-pooled per-token importance proxy (H2O cumulative attention mass, or key L2 norm). Keeping whole contiguous spans preserves local structure that token-level eviction shreds. When `chunk_size=1` it reduces **bit-for-bit** to H2O-adapted. ChunkKV-adapted (arXiv:2502.00299, Liu et al., 2025) — documented as "ChunkKV-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `ChunkKVCache` (`veloxquant_mlx/cache/chunkkv_cache.py`); primitives in `veloxquant_mlx/quantizers/chunkkv.py`: `chunk_partition`, `chunk_scores`, `chunkkv_keep_mask`, `ChunkKVState`, `init_chunkkv_state`, `chunkkv_update`, `chunkkv_trim_to`, `chunkkv_get_kv`, `chunkkv_fp16_bytes`, `full_chunkkv_fp16_bytes`.
+  - Config: `chunkkv_budget` (default 512), `chunkkv_chunk_size` (default 8), `chunkkv_n_sink` (default 4), `chunkkv_score` (`"attn_mass"` | `"key_norm"`, default `"attn_mass"`). No coordinator — each layer resolves its own chunks; the default `KVCacheBuilder.for_model()` path returns one `ChunkKVCache` per layer.
+  - 19 quantizer tests + 14 cache tests, including a bit-for-bit `chunk_size=1` == H2O equivalence at both the primitive and cache level; `benchmark_scripts/benchmark_chunkkv.py` + committed `chunkkv_benchmark_results.json` (offline-synthetic).
+
+### Honest scope
+- Pooled per-token score as a proxy for the paper's attention-over-chunk importance; no layer-wise kept-index reuse (each layer resolves chunks independently).
+- Key-as-query proxy for the `attn_mass` scorer (same as H2O-adapted); no RoPE position-ID remapping after eviction; uniform budget across heads within a layer.
+- Whole-chunk retention lets heads settle at slightly different counts — the wrapper trims every head to the common minimum so the emitted tensor is rectangular.
+- No model-level (perplexity/throughput) benchmark run yet. The committed harness measures compression, kept-token count, and eviction latency on synthetic data; larger chunks cut the pure-Python eviction pass sharply (~12.7× fewer passes at `C=16` vs `C=1` on the `seq=1024, budget=128` shape) while holding compression. ChunkKV's semantic-coherence advantage is a real-attention property and is not claimed from the synthetic harness.
+
+---
+
+## v0.20.0
 
 ### New
 - **StreamingLLM-adapted** (`method="streaming_llm"`) — the repo's first **constant-memory** cache and first **structural positional eviction** method. Keeps only the first `stream_n_sink` token positions (frozen attention sinks) and the most recent `stream_window_size` positions (rolling FIFO). All other positions are permanently evicted. Both prefill and decode tokens go through the same logic — the cache never exceeds `stream_n_sink + stream_window_size` positions regardless of generation length. StreamingLLM-adapted (arXiv:2309.17453, ICLR 2024, Xiao et al.) — positional eviction (no scoring, no calibration); documented as "StreamingLLM-adapted (VeloxQuant-MLX implementation)."

@@ -7,6 +7,58 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.25.0] — 2026-07-04
+
+### Added — ChunkKV: chunk-level (semantic-block) eviction (`method="chunkkv"`)
+
+- **`veloxquant_mlx.cache.chunkkv_cache.ChunkKVCache`** — the library's **seventh
+  eviction configuration** and the first to evict at **chunk** rather than **token**
+  granularity. *Inspired by, not a faithful port of,* "ChunkKV: Semantic-Preserving
+  KV Cache Compression for Efficient Long-Context LLM Inference" (Liu et al., 2025,
+  arXiv:2502.00299). Every other eviction method scores and drops individual tokens;
+  ChunkKV partitions the sequence into contiguous chunks of `chunk_size` tokens and
+  keeps or drops each chunk *as a whole*, preserving local coherence that token-level
+  eviction shreds. When `chunk_size=1` it reduces **bit-for-bit** to H2O-adapted.
+- **`veloxquant_mlx.quantizers.chunkkv`** — pure primitives: `chunk_partition`
+  (split into sink + body chunks), `chunk_scores` (mean-pool a per-token score into
+  per-chunk scores), `chunkkv_keep_mask` (chunk-aligned keep-mask for a budget),
+  `ChunkKVState` + `init_chunkkv_state` / `chunkkv_update` / `chunkkv_trim_to` /
+  `chunkkv_get_kv` / `chunkkv_fp16_bytes` / `full_chunkkv_fp16_bytes`.
+- **Chunk-importance proxy** — `chunkkv_score="attn_mass"` (default) mean-pools H2O's
+  cumulative attention mass; `chunkkv_score="key_norm"` mean-pools the key L2 norm
+  (calibration-free, coarser). Sinks (`chunkkv_n_sink`) are always kept and never
+  grouped into an evictable chunk.
+- **Config** — `chunkkv_budget` (default 512), `chunkkv_chunk_size` (default 8),
+  `chunkkv_n_sink` (default 4), `chunkkv_score` (`"attn_mass"` | `"key_norm"`).
+  No coordinator: each layer resolves its own chunks, so the default
+  `KVCacheBuilder.for_model()` path returns one `ChunkKVCache` per layer. Whole-chunk
+  retention lets heads settle at slightly different counts, so the wrapper trims every
+  head to the common minimum (`chunkkv_trim_to`) to emit a rectangular tensor.
+- **Tests** — 19 quantizer tests + 14 cache tests (all passing), including a
+  bit-for-bit `chunk_size=1` == H2O equivalence (identical kept keys *and* values vs
+  `H2OKVCache`) at both the primitive and cache level. Survivors verified to be whole
+  chunks; sinks always preserved; both score modes exercised; deterministic.
+- **Benchmark** — `benchmark_scripts/benchmark_chunkkv.py` + committed
+  `chunkkv_benchmark_results.json` (offline-synthetic, Apple Silicon). Confirms
+  `chunk_size=1` reproduces H2O and that larger chunks cut the pure-Python eviction
+  pass sharply (~12.7× fewer/faster passes at `C=16` vs `C=1` on the
+  `seq=1024, budget=128` shape) while holding compression.
+
+### Honest scope
+
+- Mean-pooled per-token score as a proxy for the paper's attention-over-chunk
+  importance; no layer-wise kept-index reuse (each layer resolves chunks independently).
+- Key-as-query proxy for the `attn_mass` scorer (same as H2O-adapted); no RoPE
+  position-ID remapping after eviction; uniform budget across heads within a layer.
+- **No model-level (perplexity/throughput) benchmark run.** The harness measures
+  compression, kept-token count, and eviction latency on synthetic data. ChunkKV's
+  semantic-coherence advantage is a real-attention property and is not claimed from
+  the synthetic harness.
+- Docs: new `docs-site/docs/algorithms/chunkkv.md`, sidebar + overview + changelog
+  entries, cross-links from SnapKV and SqueezeAttention. README intro now reads
+  "twenty-eight compression strategies" (seven token-eviction caches). Landing page
+  updated with a ChunkKV card, picker entry, quickstart tab, and what's-new item.
+
 ## [0.24.1] — 2026-07-04
 
 ### Changed — documentation & landing page
