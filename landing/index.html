@@ -1913,9 +1913,9 @@
     <div class="picker-intro fade-in">
       <p class="picker-intro-label">Not sure which to use? Choose by goal:</p>
       <div class="picker-grid">
-        <a href="#algo-rvq" class="picker-card picker-card-link">
+        <a href="#algo-rvq" class="picker-card picker-card-link" style="border-color:rgba(56,189,248,0.30);">
           <div class="picker-goal">Everyday long-context work</div>
-          <div class="picker-method">RVQ-1bit</div>
+          <div class="picker-method" style="color:#38bdf8">RVQ-1bit</div>
           <div class="picker-detail">7.5× · zero-shot · the default choice → see details ↓</div>
         </a>
         <a href="#algo-vecinfer" class="picker-card picker-card-link">
@@ -1928,19 +1928,19 @@
           <div class="picker-method" style="color:#22c55e">SpectralQuant</div>
           <div class="picker-detail">5.95× · +7–10pp cosine sim · universal → see details ↓</div>
         </a>
-        <a href="#algo-rabitq" class="picker-card picker-card-link" style="border-color:rgba(34,197,94,0.35);">
+        <a href="#algo-rabitq" class="picker-card picker-card-link" style="border-color:rgba(45,212,191,0.30);">
           <div class="picker-goal">Maximum context in fixed RAM</div>
-          <div class="picker-method" style="color:#22c55e">RaBitQ + MSE-b4</div>
+          <div class="picker-method" style="color:#2dd4bf">RaBitQ + MSE-b4</div>
           <div class="picker-detail">6× full KV · 103k tokens @ 8 GB → see details ↓</div>
         </a>
-        <a href="#algo-ratequant" class="picker-card picker-card-link">
+        <a href="#algo-ratequant" class="picker-card picker-card-link" style="border-color:rgba(96,165,250,0.30);">
           <div class="picker-goal">Heterogeneous layer sensitivity</div>
-          <div class="picker-method">RateQuant</div>
+          <div class="picker-method" style="color:#60a5fa">RateQuant</div>
           <div class="picker-detail">Per-layer allocation · 1.6s calibration → see details ↓</div>
         </a>
-        <a href="#algo-commvq" class="picker-card picker-card-link" style="border-color:rgba(0,212,255,0.25);">
+        <a href="#algo-commvq" class="picker-card picker-card-link" style="border-color:rgba(129,140,248,0.30);">
           <div class="picker-goal">RoPE-compatible exact VQ</div>
-          <div class="picker-method">CommVQ</div>
+          <div class="picker-method" style="color:#818cf8">CommVQ</div>
           <div class="picker-detail">64× key compression · ICML 2025 → see details ↓</div>
         </a>
         <a href="#algo-h2o" class="picker-card picker-card-link" style="border-color:rgba(251,146,60,0.35);">
@@ -1948,9 +1948,9 @@
           <div class="picker-method" style="color:#fb923c">H2O</div>
           <div class="picker-detail">Constant memory · cumulative attention mass → see details ↓</div>
         </a>
-        <a href="#algo-tova" class="picker-card picker-card-link" style="border-color:rgba(45,212,191,0.35);">
+        <a href="#algo-tova" class="picker-card picker-card-link" style="border-color:rgba(248,113,113,0.35);">
           <div class="picker-goal">Importance-based eviction (reactive)</div>
-          <div class="picker-method" style="color:#2dd4bf">TOVA</div>
+          <div class="picker-method" style="color:#f87171">TOVA</div>
           <div class="picker-detail">Constant memory · memoryless current-step weight → see details ↓</div>
         </a>
         <a href="#algo-pyramidkv" class="picker-card picker-card-link" style="border-color:rgba(192,132,252,0.35);">
@@ -1963,14 +1963,14 @@
           <div class="picker-method" style="color:#fbbf24">SqueezeAttention</div>
           <div class="picker-detail">H2O eviction + measured per-layer budget · concentration-driven, re-budget at prefill → see details ↓</div>
         </a>
-        <a href="#algo-chunkkv" class="picker-card picker-card-link" style="border-color:rgba(34,197,94,0.35);">
+        <a href="#algo-chunkkv" class="picker-card picker-card-link" style="border-color:rgba(244,114,182,0.35);">
           <div class="picker-goal">Importance eviction that keeps whole chunks</div>
-          <div class="picker-method" style="color:#22c55e">ChunkKV</div>
+          <div class="picker-method" style="color:#f472b6">ChunkKV</div>
           <div class="picker-detail">Chunk-level eviction · keeps contiguous spans by pooled importance · chunk_size=1 == H2O → see details ↓</div>
         </a>
-        <a href="#algo-cam" class="picker-card picker-card-link" style="border-color:rgba(56,189,248,0.35);">
+        <a href="#algo-cam" class="picker-card picker-card-link" style="border-color:rgba(34,211,238,0.35);">
           <div class="picker-goal">Aggressive eviction that recovers quality</div>
-          <div class="picker-method" style="color:#38bdf8">CaM</div>
+          <div class="picker-method" style="color:#22d3ee">CaM</div>
           <div class="picker-detail">Cache merging · merges evicted tokens into similar survivors instead of dropping · cam_merge=drop == H2O → see details ↓</div>
         </a>
       </div>
