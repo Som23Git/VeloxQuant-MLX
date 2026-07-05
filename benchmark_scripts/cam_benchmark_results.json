@@ -1,0 +1,182 @@
+[
+  {
+    "seq_len": 256,
+    "budget": 64,
+    "merge_mode": "drop",
+    "tokens_kept": 64,
+    "compression_ratio": 4.0,
+    "perturbation": 0.47609,
+    "gain_vs_drop": 0.0,
+    "latency_ms": 233.79
+  },
+  {
+    "seq_len": 256,
+    "budget": 64,
+    "merge_mode": "mean",
+    "tokens_kept": 64,
+    "compression_ratio": 4.0,
+    "perturbation": 0.59418,
+    "gain_vs_drop": -0.11809,
+    "latency_ms": 562.08
+  },
+  {
+    "seq_len": 256,
+    "budget": 64,
+    "merge_mode": "sim_weighted",
+    "tokens_kept": 64,
+    "compression_ratio": 4.0,
+    "perturbation": 0.48847,
+    "gain_vs_drop": -0.01238,
+    "latency_ms": 697.47
+  },
+  {
+    "seq_len": 256,
+    "budget": 128,
+    "merge_mode": "drop",
+    "tokens_kept": 128,
+    "compression_ratio": 2.0,
+    "perturbation": 0.29036,
+    "gain_vs_drop": 0.0,
+    "latency_ms": 149.59
+  },
+  {
+    "seq_len": 256,
+    "budget": 128,
+    "merge_mode": "mean",
+    "tokens_kept": 128,
+    "compression_ratio": 2.0,
+    "perturbation": 0.29531,
+    "gain_vs_drop": -0.00495,
+    "latency_ms": 384.57
+  },
+  {
+    "seq_len": 256,
+    "budget": 128,
+    "merge_mode": "sim_weighted",
+    "tokens_kept": 128,
+    "compression_ratio": 2.0,
+    "perturbation": 0.26166,
+    "gain_vs_drop": 0.0287,
+    "latency_ms": 480.84
+  },
+  {
+    "seq_len": 512,
+    "budget": 64,
+    "merge_mode": "drop",
+    "tokens_kept": 64,
+    "compression_ratio": 8.0,
+    "perturbation": 0.65997,
+    "gain_vs_drop": 0.0,
+    "latency_ms": 466.21
+  },
+  {
+    "seq_len": 512,
+    "budget": 64,
+    "merge_mode": "mean",
+    "tokens_kept": 64,
+    "compression_ratio": 8.0,
+    "perturbation": 0.73828,
+    "gain_vs_drop": -0.07831,
+    "latency_ms": 1357.34
+  },
+  {
+    "seq_len": 512,
+    "budget": 64,
+    "merge_mode": "sim_weighted",
+    "tokens_kept": 64,
+    "compression_ratio": 8.0,
+    "perturbation": 0.65048,
+    "gain_vs_drop": 0.00949,
+    "latency_ms": 1720.99
+  },
+  {
+    "seq_len": 512,
+    "budget": 128,
+    "merge_mode": "drop",
+    "tokens_kept": 128,
+    "compression_ratio": 4.0,
+    "perturbation": 0.55283,
+    "gain_vs_drop": 0.0,
+    "latency_ms": 432.63
+  },
+  {
+    "seq_len": 512,
+    "budget": 128,
+    "merge_mode": "mean",
+    "tokens_kept": 128,
+    "compression_ratio": 4.0,
+    "perturbation": 0.49729,
+    "gain_vs_drop": 0.05554,
+    "latency_ms": 1186.66
+  },
+  {
+    "seq_len": 512,
+    "budget": 128,
+    "merge_mode": "sim_weighted",
+    "tokens_kept": 128,
+    "compression_ratio": 4.0,
+    "perturbation": 0.44172,
+    "gain_vs_drop": 0.11111,
+    "latency_ms": 1493.69
+  },
+  {
+    "seq_len": 1024,
+    "budget": 64,
+    "merge_mode": "drop",
+    "tokens_kept": 64,
+    "compression_ratio": 16.0,
+    "perturbation": 0.95455,
+    "gain_vs_drop": 0.0,
+    "latency_ms": 1039.53
+  },
+  {
+    "seq_len": 1024,
+    "budget": 64,
+    "merge_mode": "mean",
+    "tokens_kept": 64,
+    "compression_ratio": 16.0,
+    "perturbation": 0.76816,
+    "gain_vs_drop": 0.18639,
+    "latency_ms": 2968.92
+  },
+  {
+    "seq_len": 1024,
+    "budget": 64,
+    "merge_mode": "sim_weighted",
+    "tokens_kept": 64,
+    "compression_ratio": 16.0,
+    "perturbation": 0.70794,
+    "gain_vs_drop": 0.24661,
+    "latency_ms": 3725.12
+  },
+  {
+    "seq_len": 1024,
+    "budget": 128,
+    "merge_mode": "drop",
+    "tokens_kept": 128,
+    "compression_ratio": 8.0,
+    "perturbation": 0.62155,
+    "gain_vs_drop": 0.0,
+    "latency_ms": 981.7
+  },
+  {
+    "seq_len": 1024,
+    "budget": 128,
+    "merge_mode": "mean",
+    "tokens_kept": 128,
+    "compression_ratio": 8.0,
+    "perturbation": 0.63977,
+    "gain_vs_drop": -0.01822,
+    "latency_ms": 2763.6
+  },
+  {
+    "seq_len": 1024,
+    "budget": 128,
+    "merge_mode": "sim_weighted",
+    "tokens_kept": 128,
+    "compression_ratio": 8.0,
+    "perturbation": 0.5369,
+    "gain_vs_drop": 0.08465,
+    "latency_ms": 3514.0
+  }
+]

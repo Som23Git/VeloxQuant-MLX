@@ -191,3 +191,7 @@ granularity for coherence and cheaper eviction.
 | Constant-memory, importance eviction with a fixed depth-adaptive budget | PyramidKV-adapted |
 | Constant-memory, importance eviction with a data-driven depth-adaptive budget | SqueezeAttention-adapted |
 | **Constant-memory, importance eviction that keeps whole contiguous chunks** | **ChunkKV-adapted** |
+
+**See also:** [CaM-adapted](./cam) varies the other end of eviction — instead of
+changing *what* is evicted (a chunk vs a token), it changes what *happens* to the
+loser: CaM merges it into a survivor rather than dropping it.

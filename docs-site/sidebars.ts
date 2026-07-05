@@ -49,6 +49,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/pyramidkv',
         'algorithms/squeeze',
         'algorithms/chunkkv',
+        'algorithms/cam',
       ],
     },
   ],

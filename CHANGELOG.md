@@ -7,6 +7,54 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.26.0] — 2026-07-04
+
+### Added — CaM: cache merging (merge evicted tokens instead of dropping) (`method="cam"`)
+
+- **`veloxquant_mlx.cache.cam_cache.CaMKVCache`** — the library's **eighth
+  eviction configuration** and the first on the **merge-vs-drop** axis. *Inspired
+  by, not a faithful port of,* "CaM: Cache Merging for Memory-efficient LLMs
+  Inference" (Zhang, Du, Luo, Zhong, Zhang, Liu & Ji, ICML 2024, PMLR
+  235:58840-58850). Every other eviction method permanently discards the tokens it
+  evicts; CaM instead **merges** each evicted token into the surviving token it
+  most resembles (a cosine-weighted blend of the value rows, and optionally the
+  keys), then removes only the redundant slot. The eviction *choice* is H2O's;
+  only the disposition differs. With `cam_merge="drop"` it reduces **bit-for-bit**
+  to H2O-adapted.
+- **`veloxquant_mlx.quantizers.cam`** — pure primitives: `most_similar_survivor`
+  (nearest retained non-sink key by cosine), `merge_pair` (the weighted blend),
+  `CaMState` + `init_cam_state` / `cam_update` / `cam_get_kv` / `cam_fp16_bytes` /
+  `full_cam_fp16_bytes`.
+- **Merge modes** — `cam_merge="sim_weighted"` (default) blends by
+  `w = clip(cos(k_evicted, k_survivor), 0, 1)`; `"mean"` is an unweighted average;
+  `"drop"` skips the blend (== H2O). Values are always merged; keys only when
+  `cam_merge_keys=True`.
+- **Config** — `cam_budget` (default 512), `cam_n_sink` (default 4), `cam_merge`
+  (default `"sim_weighted"`), `cam_merge_keys` (default False). No coordinator;
+  the default `KVCacheBuilder.for_model()` path returns one `CaMKVCache` per layer.
+- **Tests** — 18 quantizer tests + 14 cache tests (all passing), including a
+  bit-for-bit `cam_merge="drop"` == H2O equivalence (identical kept keys *and*
+  values vs `H2OKVCache`) at both the primitive and cache level.
+- **Benchmark** — `benchmark_scripts/benchmark_cam.py` + committed
+  `cam_benchmark_results.json` (offline-synthetic, Apple Silicon). Measures output
+  **perturbation** (cosine distance of the compressed-cache attention output vs the
+  full cache over probe queries) against the H2O `drop` baseline; `sim_weighted`
+  merging reduces perturbation and the gain grows with compression ratio
+  (0.955 → 0.708 at `seq=1024, budget=64`, 16×), shrinking to ~0 at low compression.
+
+### Honest scope
+
+- Cosine-similarity merge weight rather than the paper's attention-prominence
+  weight (which is ~0 for a just-appended token that overflows before it
+  accumulates mass — the common streaming case); single nearest-survivor merge (no
+  multi-target soft assignment / sampling); key-as-query proxy; no RoPE remapping;
+  uniform budget across heads.
+- **No model-level (perplexity/throughput) benchmark run.** The harness measures
+  the output-perturbation proxy CaM targets, not end-to-end task quality.
+- Docs: new `docs-site/docs/algorithms/cam.md`, sidebar + overview + intro +
+  changelog entries, cross-links from H2O and ChunkKV. README/landing counts:
+  twenty-eight → twenty-nine strategies; version bump 0.25.0 → 0.26.0.
+
 ## [0.25.0] — 2026-07-04
 
 ### Added — ChunkKV: chunk-level (semantic-block) eviction (`method="chunkkv"`)
