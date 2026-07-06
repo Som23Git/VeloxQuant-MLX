@@ -11,7 +11,18 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.27.0 — Latest
+## v0.28.0 — Latest
+
+### New
+- **NSNQuant-adapted** (`method="nsnquant"`) — the repo's first **calibration-free distribution-matching VQ**: instead of fitting a codebook to the data (per-sequence k-means, EM) or using a data-independent geometric code (signs, polar grids), NSNQuant **reshapes the data to match a fixed code**. A Normalize-Shift-Normalize transform (token-norm → channel-mean shift → token-norm) plus a Hadamard rotation maps K/V tokens onto the standard normal distribution, so one codebook built offline from synthetic Gaussian samples — never from model activations — quantizes any model at 1–2 bits/element. NSNQuant-adapted ("NSNQuant: A Double Normalization Approach for Calibration-Free Low-Bit Vector Quantization of KV Cache", Son, Choi, Yoo, NeurIPS 2025, arXiv:2505.18231) — documented as "NSNQuant-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `NSNQuantKVCache` (`veloxquant_mlx/cache/nsnquant_cache.py`) — single-layer wrapper, no coordinator, with a chunk-flush fp16 residual buffer (KIVI's idiom): every `nsn_residual_length` tokens flush through the pipeline as one self-contained chunk with its own online channel mean; prefill and decode produce identical quantized state by construction. Primitives in `veloxquant_mlx/quantizers/nsnquant.py`: `nsn_transform`, `nsn_inverse`, `build_universal_codebook`, `vq_encode`, `vq_decode`, `hadamard_forward`/`hadamard_inverse` (reusing `mx.hadamard_transform` via the repo's existing Hadamard infrastructure).
+  - Config: `nsn_bits` (default 2: uint8 sign mask + uint8 index per 8-dim subvector = 2 bits/element; 1: index only), `nsn_residual_length` (default 64; paper suggests 128 for 1-bit), `nsn_codebook_size` (default 256), `nsn_subvector_dim` (default 8), `nsn_seed` (default 1234), `nsn_max_ctx` (default 8192). Both keys **and** values quantized, mirroring the paper (unlike the keys-only SVDq/xKV precedent).
+  - 16 quantizer tests + 19 cache tests, including a mechanism-validation ablation (on channel-biased input the full NSN pipeline must beat the identical Hadamard+VQ without NSN by a pinned margin) and a prefill-vs-decode path-independence check; `benchmark_scripts/benchmark_nsn.py` + committed `nsn_benchmark_results.json` — NSN gains +0.038 (2-bit) / +0.110 (1-bit) reconstruction cosine over the no-NSN ablation at strong channel bias, honestly collapsing to ~+0.001–0.002 on already-centered input; 0.96–0.98 cosine at ~2.5 effective bits/element (metadata included), beating a KIVI-2bit baseline on every row of the sweep.
+  - Honest scope: post-RoPE keys (the paper applies NSN pre-RoPE with a custom kernel — the central simplification of this adaptation), explicit value Hadamard (no projection-layer fusion), spherical-k-means-only codebook (no gradient fine-tune), fp16 metadata (~0.5 bits/element overhead vs the paper's double-quantized ~0.23), no fused kernels, no model-level perplexity/throughput benchmark — offline reconstruction-quality and byte-accounting numbers only.
+
+---
+
+## v0.27.0
 
 ### New
 - **xKV-adapted** (`method="xkv"`) — the repo's **third cross-layer** mechanism, alongside XQuant (code reuse) and MiniCache (SLERP direction merge). A fixed-size contiguous group of layers jointly factorizes its stacked key matrices into **one shared SVD basis** via a fan-in/fan-out coordinator; every group member then stores only its own latent codes in that shared basis, amortizing the basis storage cost across the whole group. xKV-adapted ("xKV: Cross-Layer KV-Cache Compression via Aligned Singular Vector Extraction", Chang, Lin, Lin, Chiang, Akhauri, Dai, Jiang, Li, Ceze, Wu, Abdelfattah, arXiv:2503.18893, preprint) — documented as "xKV-adapted (VeloxQuant-MLX implementation)," not a faithful port.

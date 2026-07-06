@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted — all in MLX. New in 0.27.0: xKV-adapted cross-layer shared-subspace compression — a group of layers jointly factorizes their key matrices into one shared SVD basis, amortizing the basis storage cost across the whole group; 8–20% fewer bytes than independent per-layer SVD at matched reconstruction quality. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted — all in MLX. New in 0.28.0: NSNQuant-adapted calibration-free universal-codebook VQ — a Normalize-Shift-Normalize transform plus Hadamard rotation reshapes K/V onto the standard normal distribution, so one fixed codebook built from synthetic Gaussian samples quantizes any model at 1–2 bits/element, no calibration ever. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -57,14 +57,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">30 algorithms</span>
+        <span class="hero-pill">31 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 30 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV
+        <summary>See all 31 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -115,6 +115,8 @@
       <span class="provenance-item">ICLR 2025 <em>PALU · SnapKV</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">ICML 2025 <em>CommVQ</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">NeurIPS 2025 <em>NSNQuant</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">AISTATS 2026 <em>PolarQuant</em></span>
       <span class="provenance-dot">·</span>
@@ -202,6 +204,7 @@
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.28.0</span><span class="wn-body"><strong>NSNQuant-adapted</strong> — first calibration-free <em>distribution-matching</em> VQ. Instead of fitting a codebook to the data, a Normalize-Shift-Normalize transform + Hadamard rotation reshapes K/V tokens onto the standard normal, so <em>one universal codebook</em> built offline from synthetic Gaussian samples quantizes any model at 1–2 bits/element. Both keys and values; chunk-flush fp16 residual buffer; +0.04–0.11 reconstruction cosine over the same VQ without NSN on channel-biased inputs, collapsing to ~0 when input is already centered.</span></li>
         <li><span class="wn-ver">0.27.0</span><span class="wn-body"><strong>xKV-adapted</strong> — third cross-layer method. A fixed-size group of layers jointly factorizes their stacked key matrices into <em>one shared SVD basis</em> via a fan-in/fan-out coordinator, amortizing the basis storage cost across every member. 8–20% fewer bytes than independent per-layer SVD at matched reconstruction quality, improving with group size.</span></li>
         <li><span class="wn-ver">0.26.0</span><span class="wn-body"><strong>CaM-adapted</strong> — first cache-<em>merging</em> cache. Makes the same eviction choice as H2O but <em>merges</em> the evicted token into the survivor it most resembles (cosine-weighted) instead of dropping it, recovering a share of the lost mass at high compression. No coordinator; <code>cam_merge=drop</code> reduces bit-for-bit to H2O.</span></li>
         <li><span class="wn-ver">0.25.0</span><span class="wn-body"><strong>ChunkKV-adapted</strong> — first chunk-level eviction cache. Partitions the sequence into contiguous chunks and keeps or drops each chunk <em>as a whole</em> by pooled importance, preserving local coherence that token-level eviction shreds. No coordinator; <code>chunk_size=1</code> reduces bit-for-bit to H2O.</span></li>
@@ -220,7 +223,7 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (25)</button>
+      <button class="filter-btn active" data-filter="all">All (29)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -295,6 +298,11 @@
           <div class="picker-goal">Adjacent layers share more than a code or direction</div>
           <div class="picker-method" style="color:#f472b6">xKV</div>
           <div class="picker-detail">Cross-layer shared subspace · joint SVD basis across a layer group, amortized storage → see details ↓</div>
+        </a>
+        <a href="#algo-nsnquant" class="picker-card picker-card-link" style="border-color:rgba(167,139,250,0.35);">
+          <div class="picker-goal">VQ compression with zero calibration, ever</div>
+          <div class="picker-method" style="color:#a78bfa">NSNQuant</div>
+          <div class="picker-detail">Universal-codebook VQ · NSN + Hadamard reshape data to one fixed Gaussian codebook · 1–2 bits/element → see details ↓</div>
         </a>
       </div>
     </div>
@@ -726,7 +734,7 @@
         <div class="cat-header" style="--chip:#7c3aed">
           <h3 class="cat-title">Quantization</h3>
           <span class="cat-blurb">Scalar, vector & codebook cache quantization</span>
-          <span class="cat-count">14</span>
+          <span class="cat-count">15</span>
         </div>
         <div class="algo-grid">
       <div id="algo-rabitq" class="algo-card fade-in" data-tags="full-kv metal extreme zero-cal" data-cat="quant">
@@ -1122,6 +1130,49 @@
           </div>
         </details>
         <div class="card-meta">arXiv:2605.06675</div>
+      </div>
+      <div id="algo-nsnquant" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">NSNQuant-adapted</div>
+        <div class="card-subtitle">calibration-free universal-codebook VQ</div>
+        <div class="algo-desc card-summary">Reshapes K/V onto the standard normal so one fixed Gaussian codebook quantizes any model — no calibration, ever.</div>
+        <div class="card-headline"><span class="headline-stat">universal codebook · 1–2 bits/element · 35/35 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from NSNQuant (Son, Choi &amp; Yoo, NeurIPS 2025, <a href="https://arxiv.org/abs/2505.18231" target="_blank" rel="noopener" style="color:#a78bfa">arXiv:2505.18231</a>). Every other VQ method either fits its codebook to the data (RVQ, CommVQ) or uses a fixed geometric code (RaBitQ, VecInfer, PolarQuant); NSNQuant <strong style="color:#a78bfa">inverts the relationship — it reshapes the data to match a fixed code</strong>.
+              <br><br>
+              <strong style="color:var(--text)">① Normalize</strong> — scale each token to norm √d (store s1), suppressing outlier tokens<br>
+              <strong style="color:var(--text)">② Shift</strong> — subtract the chunk's own channel mean o, zero-centering the distribution<br>
+              <strong style="color:var(--text)">③ Normalize</strong> — rescale to √d (store s2); the result closely matches an isotropic Gaussian after a Hadamard rotation<br>
+              <strong style="color:var(--text)">④ Universal VQ</strong> — 8-dim subvectors match by cosine against one codebook built offline from synthetic <code>randn</code> samples — never model activations<br>
+              <br>
+              <strong style="color:#a78bfa">Why it works:</strong> once every chunk looks standard-normal, one codebook fits all models, layers, and datasets — calibration-free by construction. Both keys and values quantized; chunk-flush fp16 residual buffer (KIVI's idiom). Measured: +0.04 (2-bit) / +0.11 (1-bit) reconstruction cosine over the identical VQ without NSN on channel-biased input, honestly collapsing to ~0 on centered input.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Payload</span>
+                <span class="value" style="color:#a78bfa">2-bit: sign mask + index · 1-bit: index only</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Effective rate (2-bit, metadata incl.)</span>
+                <span class="value">~2.5 bits/element (~6.4× vs fp16)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Reconstruction (synthetic)</span>
+                <span class="value">0.96–0.98 cosine @ 2-bit</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — by construction</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs KIVI / geometric VQ</span>
+                <span class="value">adapts the data to the code, not the code to the data</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.28.0 · NeurIPS 2025</div>
       </div>
       <div id="algo-kivi" class="algo-card fade-in" data-tags="zero-cal" data-cat="quant">
         <div class="card-head">
@@ -1571,6 +1622,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="chunkkv" style="border-color:rgba(34,197,94,0.4);color:#22c55e">ChunkKV · eviction</button>
       <button class="tab-btn" data-tab="cam" style="border-color:rgba(56,189,248,0.4);color:#38bdf8">CaM · merging</button>
       <button class="tab-btn" data-tab="xkv" style="border-color:rgba(244,114,182,0.4);color:#f472b6">xKV · shared subspace</button>
+      <button class="tab-btn" data-tab="nsnquant" style="border-color:rgba(167,139,250,0.4);color:#a78bfa">NSNQuant · universal VQ</button>
     </div>
 
     <!-- RVQ tab -->
@@ -1832,6 +1884,36 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
 <span class="op">)</span></pre>
       </div>
     </div>
+    <div class="code-panel" id="tab-nsnquant">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — NSNQuant · calibration-free universal-codebook VQ</span>
+          <button class="code-copy" data-target="code-nsnquant">Copy</button>
+        </div>
+        <pre id="code-nsnquant"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Calibration-free universal-codebook VQ — NSN + Hadamard reshape K/V onto</span>
+<span class="cm"># the standard normal so one fixed Gaussian codebook fits any model.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"nsnquant"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">nsn_bits</span><span class="op">=</span><span class="nu">2</span><span class="op">,</span>               <span class="cm"># 2 = sign mask + index (~2 b/elem); 1 = index only</span>
+    <span class="at">nsn_residual_length</span><span class="op">=</span><span class="nu">64</span><span class="op">,</span>   <span class="cm"># fp16 chunk buffer; paper suggests 128 for 1-bit</span>
+    <span class="at">nsn_codebook_size</span><span class="op">=</span><span class="nu">256</span><span class="op">,</span>     <span class="cm"># centroids (256 -&gt; uint8 indices)</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
   </section>
 
   <div class="divider"></div>
@@ -2001,7 +2083,7 @@ pip install -e ".[dev]"</span></pre>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
           <li>12 production models validated</li>
-          <li>817/821 tests passing (incl. Metal parity tests)</li>
+          <li>874/879 tests passing (remaining 5: machine-dependent Metal fp16-tolerance parity flakes)</li>
         </ul>
       </div>
     </div>

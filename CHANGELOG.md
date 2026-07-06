@@ -7,6 +7,84 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.28.0] — 2026-07-06
+
+### Added — NSNQuant: calibration-free universal-codebook VQ (`method="nsnquant"`)
+
+- **`veloxquant_mlx.cache.nsnquant_cache.NSNQuantKVCache`** — the library's
+  **thirty-first configuration** and its first **calibration-free
+  distribution-matching VQ**. *Inspired by, not a faithful port of,*
+  "NSNQuant: A Double Normalization Approach for Calibration-Free Low-Bit
+  Vector Quantization of KV Cache" (Son, Choi & Yoo, NeurIPS 2025,
+  arXiv:2505.18231). Every other VQ method in the repo either fits its
+  codebook to the data (RVQ's per-sequence k-means, CommVQ) or uses a
+  data-independent geometric code (RaBitQ signs, VecInfer binary, PolarQuant
+  grids, QJL sketches); NSNQuant inverts the relationship — a
+  **Normalize-Shift-Normalize transform + Hadamard rotation reshapes K/V
+  tokens onto the standard normal distribution**, so one codebook built
+  offline from synthetic Gaussian samples (never model activations)
+  quantizes any model at 1–2 bits/element.
+- **`veloxquant_mlx.quantizers.nsnquant`** — pure primitives: `nsn_transform`
+  / `nsn_inverse` (token-norm → channel-mean shift → token-norm, exact
+  restoration `x̂ = s1·(s2·x_nsn + o)`), `build_universal_codebook`
+  (deterministic seeded spherical k-means on synthetic standard-normal
+  samples; "magnitude" positive-orthant variant for 2-bit + sign mask,
+  "signed" variant for 1-bit), `vq_encode`/`vq_decode` (8-dim subvector
+  cosine matching, uint8 indices), `hadamard_forward`/`hadamard_inverse`
+  (reusing `mx.hadamard_transform` — norm-preserving, so it composes with
+  NSN's stored scales).
+- **Chunk-flush residual buffer** — KIVI's fp16-residual idiom, upgraded:
+  every `nsn_residual_length` tokens age past the quantized frontier as one
+  self-contained chunk with its own online channel mean (no frozen
+  statistics, no coordinator, chunk *i* forever independent of later
+  arrivals). Prefill and decode produce identical quantized state by
+  construction — verified bit-for-bit by test. Unlike KIVI's
+  incoming-block-only simplification, decode tokens *do* get quantized once
+  they age out.
+- **Config** — `nsn_bits` (default 2: uint8 sign mask + uint8 codebook index
+  per 8-dim subvector = 2 bits/element; 1: index only), `nsn_residual_length`
+  (default 64; the paper recommends 128 for 1-bit), `nsn_codebook_size`
+  (default 256), `nsn_subvector_dim` (default 8), `nsn_seed` (default 1234),
+  `nsn_max_ctx` (default 8192). Both keys **and** values quantized (mirrors
+  the paper; unlike the keys-only SVDq/xKV precedent). Build-time validation
+  with clear messages (bits ∈ {1,2}, head_dim divisibility, Hadamard
+  compatibility).
+- **Byte accounting** — payload at exactly `nsn_bits` bits/element plus fp16
+  metadata counted honestly (`s1`+`s2` per token, `o` per chunk ≈ 0.5
+  bits/element at defaults — the paper double-quantizes these to ~0.23; we
+  don't, and say so); `residual_fp16_bytes` reported separately as a
+  snapshot so ratios aren't inflated. ~2.5 effective bits/element at 2-bit
+  defaults → ~6.4× vs fp16.
+- **Tests** — 16 quantizer + 19 cache tests (871 total passing), including a
+  mechanism-validation ablation (on channel-biased input the full NSN
+  pipeline must beat the identical Hadamard+VQ without NSN by a pinned
+  margin) and the prefill-vs-decode path-independence check.
+- **Benchmark** — `benchmark_scripts/benchmark_nsn.py` + committed
+  `nsn_benchmark_results.json` (offline-synthetic, no model download):
+  NSN gains **+0.038 (2-bit) / +0.110 (1-bit)** reconstruction cosine over
+  the no-NSN ablation at strong synthetic channel bias, and the gain
+  honestly **collapses to ~+0.001–0.002 when the input is already centered**
+  (NSN only helps when there is a bias to remove); 0.96–0.98 cosine at ~2.5
+  effective bits/element, above a KIVI-2bit baseline (0.66–0.88) on every
+  row of the sweep. **Explicitly NOT a model-level perplexity/throughput
+  benchmark.**
+
+### Honest scope
+
+- **Post-RoPE keys** — the paper applies NSN to keys *before* RoPE and defers
+  RoPE onto the stored mean inside a custom attention kernel; our cache
+  wrappers receive post-RoPE keys from `update_and_fetch`, so NSN + Hadamard
+  run post-RoPE. This is the central simplification of the adaptation.
+- **No value-projection Hadamard fusion** (model surgery) — the value-side
+  Hadamard is applied explicitly to cached tensors instead.
+- **No gradient fine-tuning of the codebook** — seeded spherical k-means
+  only; expect a slightly worse codebook than the paper's.
+- **No 4-bit double quantization of metadata** — fp16, counted.
+- **No fused kernels** — MLX ops; on Apple Silicon the win is memory, not
+  throughput, exactly as with KIVI.
+- **No model-level benchmark run** — offline-synthetic reconstruction and
+  byte-accounting numbers only.
+
 ## [0.27.0] — 2026-07-06
 
 ### Added — xKV: cross-layer shared-subspace key compression (`method="xkv"`)

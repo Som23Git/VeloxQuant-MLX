@@ -96,3 +96,5 @@ Full-KV compression includes the fp16 residual window, so it is not inflated.
 :::
 
 See `figures/kivi/fig4_vs_existing.png` for the KIVI-vs-VecInfer comparison.
+
+See also: [NSNQuant](../algorithms/nsnquant) — the other residual-window wrapper; it differs because it adapts the data to a fixed universal codebook (NSN + Hadamard Gaussianization) rather than fitting scalar min/max scales to the data.

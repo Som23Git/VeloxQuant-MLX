@@ -57,7 +57,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.27.0 — xKV-adapted cross-layer shared-subspace SVD shipped";
+  const text = "v0.28.0 — NSNQuant-adapted calibration-free universal-codebook VQ shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;

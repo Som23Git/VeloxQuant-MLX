@@ -37,6 +37,7 @@ class KVCacheConfig:
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
+        "nsnquant",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -164,6 +165,13 @@ class KVCacheConfig:
     xkv_latent_bits: int = 4             # single-bit-width latent quantization
     xkv_group_quant_size: int = 32       # token group size for latent quantization
     xkv_max_ctx: int = 8192              # coordinator per-group token budget
+    # --- NSNQuant configuration (calibration-free universal-codebook VQ) -
+    nsn_bits: int = 2                    # 2 = sign mask + index, 1 = index only
+    nsn_residual_length: int = 64        # fp16 chunk buffer; paper suggests 128 for 1-bit
+    nsn_codebook_size: int = 256         # centroids (256 → uint8 indices)
+    nsn_subvector_dim: int = 8           # VQ subvector dimension (paper: 8)
+    nsn_seed: int = 1234                 # codebook RNG seed (synthetic Gaussian)
+    nsn_max_ctx: int = 8192              # per-layer token budget
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -233,6 +241,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.chunkkv_cache import ChunkKVCache
         from veloxquant_mlx.cache.cam_cache import CaMKVCache
         from veloxquant_mlx.cache.xkv_cache import XKVCache
+        from veloxquant_mlx.cache.nsnquant_cache import NSNQuantKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -333,13 +342,19 @@ class KVCacheFactory:
             # KVCacheBuilder.for_model(), which builds the shared
             # XKVCoordinator and assigns member/group roles.
             cache = XKVCache(config)
+        elif config.method == "nsnquant":
+            # No coordinator: single-layer wrapper with a chunk-flush residual
+            # buffer; the universal codebook is model-independent (synthetic
+            # Gaussian), so the default for_model path (one NSNQuantKVCache
+            # per layer) is all it needs.
+            cache = NSNQuantKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant."
             )
 
         if config.sliding_window is not None:

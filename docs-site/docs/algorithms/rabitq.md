@@ -105,6 +105,7 @@ Compare with [TurboQuant RVQ](../algorithms/rvq) which compresses both keys and 
 ## See also
 
 - [QJL — simpler 1-bit method](../algorithms/qjl)
+- [NSNQuant — universal-codebook VQ](../algorithms/nsnquant): differs because it adapts the data to a fixed codebook (NSN Gaussianization), not the codebook (or geometry) to the data
 - [TurboQuant RVQ — better quality at same bits](../algorithms/rvq)
 - [API — RaBitQQuantizer](../api/quantizers)
 - [Metal API — rabitq_hamming_score](../api/metal-api)
