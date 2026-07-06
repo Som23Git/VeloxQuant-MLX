@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted — all in MLX. New in 0.26.0: CaM-adapted cache merging — merges each evicted token into the surviving token it most resembles instead of dropping it, recovering a share of the lost mass at high compression; cam_merge=drop reduces bit-for-bit to H2O. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted — all in MLX. New in 0.27.0: xKV-adapted cross-layer shared-subspace compression — a group of layers jointly factorizes their key matrices into one shared SVD basis, amortizing the basis storage cost across the whole group; 8–20% fewer bytes than independent per-layer SVD at matched reconstruction quality. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -57,14 +57,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">29 algorithms</span>
+        <span class="hero-pill">30 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 29 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM
+        <summary>See all 30 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -195,12 +195,13 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Twenty-nine compression strategies</h2>
+    <h2 class="section-title">Thirty compression strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
 
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.27.0</span><span class="wn-body"><strong>xKV-adapted</strong> — third cross-layer method. A fixed-size group of layers jointly factorizes their stacked key matrices into <em>one shared SVD basis</em> via a fan-in/fan-out coordinator, amortizing the basis storage cost across every member. 8–20% fewer bytes than independent per-layer SVD at matched reconstruction quality, improving with group size.</span></li>
         <li><span class="wn-ver">0.26.0</span><span class="wn-body"><strong>CaM-adapted</strong> — first cache-<em>merging</em> cache. Makes the same eviction choice as H2O but <em>merges</em> the evicted token into the survivor it most resembles (cosine-weighted) instead of dropping it, recovering a share of the lost mass at high compression. No coordinator; <code>cam_merge=drop</code> reduces bit-for-bit to H2O.</span></li>
         <li><span class="wn-ver">0.25.0</span><span class="wn-body"><strong>ChunkKV-adapted</strong> — first chunk-level eviction cache. Partitions the sequence into contiguous chunks and keeps or drops each chunk <em>as a whole</em> by pooled importance, preserving local coherence that token-level eviction shreds. No coordinator; <code>chunk_size=1</code> reduces bit-for-bit to H2O.</span></li>
         <li><span class="wn-ver">0.24.0</span><span class="wn-body"><strong>SqueezeAttention-adapted</strong> — first 2D (layer × token) data-driven budget cache. Measures each layer's attention concentration at prefill and reallocates a fixed total budget toward broad layers via a one-shot coordinator re-budget. The data-driven sibling of PyramidKV; <code>strength=0</code> == H2O.</span></li>
@@ -288,6 +289,11 @@
           <div class="picker-goal">Aggressive eviction that recovers quality</div>
           <div class="picker-method" style="color:#22d3ee">CaM</div>
           <div class="picker-detail">Cache merging · merges evicted tokens into similar survivors instead of dropping · cam_merge=drop == H2O → see details ↓</div>
+        </a>
+        <a href="#algo-xkv" class="picker-card picker-card-link" style="border-color:rgba(244,114,182,0.35);">
+          <div class="picker-goal">Adjacent layers share more than a code or direction</div>
+          <div class="picker-method" style="color:#f472b6">xKV</div>
+          <div class="picker-detail">Cross-layer shared subspace · joint SVD basis across a layer group, amortized storage → see details ↓</div>
         </a>
       </div>
     </div>
@@ -1330,7 +1336,7 @@
         <div class="cat-header" style="--chip:#f472b6">
           <h3 class="cat-title">Cross-layer</h3>
           <span class="cat-blurb">Methods that share or merge state across layers</span>
-          <span class="cat-count">2</span>
+          <span class="cat-count">3</span>
         </div>
         <div class="algo-grid">
       <div id="algo-minicache" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="xlayer">
@@ -1418,6 +1424,54 @@
           </div>
         </details>
         <div class="card-meta">v0.13.0</div>
+      </div>
+      <div id="algo-xkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="xlayer">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#f472b6">Cross-layer</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">xKV-adapted</div>
+        <div class="card-subtitle">cross-layer shared-subspace SVD</div>
+        <div class="algo-desc card-summary">A group of layers jointly factorizes their keys into one shared SVD basis instead of one basis each.</div>
+        <div class="card-headline"><span class="headline-stat">shared subspace · 8–20% fewer bytes vs independent SVD · 23/23 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from xKV (Chang et al., arXiv:2503.18893, preprint). The library's
+              <strong style="color:#f472b6">third cross-layer</strong> mechanism, alongside XQuant (code reuse) and
+              MiniCache (SLERP direction merge). Motivated by Centered Kernel Alignment showing that the
+              <em>dominant singular subspaces</em> of nearby layers' key caches are well aligned — so rather than
+              pairing or merging tensors, xKV <strong style="color:var(--text)">jointly factorizes a whole group</strong>
+              of layers into one shared low-rank basis, amortizing its storage cost across every member.
+              <br><br>
+              <strong style="color:var(--text)">① Fan-in</strong> — every member of a fixed-size contiguous group publishes its own raw prefill keys to a shared coordinator<br>
+              <strong style="color:var(--text)">② Joint SVD</strong> — once all members have published, one truncated SVD runs over the stacked, mean-centered keys, producing a shared basis<br>
+              <strong style="color:var(--text)">③ Fan-out</strong> — every member (including whichever triggered the computation) adopts the identical shared basis<br>
+              <strong style="color:var(--text)">④ Per-layer latents</strong> — each member projects its own keys into the shared basis and stores only its own latent codes<br>
+              <br>
+              <strong style="color:#f472b6">Why it works:</strong> a basis fit jointly across N layers costs roughly the same to compute as one layer's basis, but is shared by all N — the amortization win grows with group size. Keys only (values fp16), mirroring SVDq's precedent in this repo.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Cross-layer mechanism</span>
+                <span class="value" style="color:#f472b6">joint SVD -> shared subspace</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Amortized across</span>
+                <span class="value" style="color:#f472b6">N layers per group (xkv_group_size)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Byte savings vs independent SVD</span>
+                <span class="value">8–20%, improves with group size</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs XQuant / MiniCache</span>
+                <span class="value">shares a subspace, not codes or a direction</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.27.0 · preprint</div>
       </div>
         </div>
       </div>
@@ -1515,6 +1569,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="squeeze" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">SqueezeAttention · eviction</button>
       <button class="tab-btn" data-tab="chunkkv" style="border-color:rgba(34,197,94,0.4);color:#22c55e">ChunkKV · eviction</button>
       <button class="tab-btn" data-tab="cam" style="border-color:rgba(56,189,248,0.4);color:#38bdf8">CaM · merging</button>
+      <button class="tab-btn" data-tab="xkv" style="border-color:rgba(244,114,182,0.4);color:#f472b6">xKV · shared subspace</button>
     </div>
 
     <!-- RVQ tab -->
@@ -1732,6 +1787,39 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <span class="at">cam_n_sink</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>             <span class="cm"># initial sink positions, never evicted</span>
     <span class="at">cam_merge</span><span class="op">=</span><span class="st">"sim_weighted"</span><span class="op">,</span>  <span class="cm"># "sim_weighted" | "mean" | "drop" (drop == H2O)</span>
     <span class="at">cam_merge_keys</span><span class="op">=</span><span class="kw">False</span><span class="op">,</span>       <span class="cm"># merge keys too (values are always merged)</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- xKV tab -->
+    <div class="code-panel" id="tab-xkv">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — xKV · cross-layer shared-subspace SVD</span>
+          <button class="code-copy" data-target="code-xkv">Copy</button>
+        </div>
+        <pre id="code-xkv"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Cross-layer shared-subspace compression — a group of layers jointly</span>
+<span class="cm"># factorizes their keys into one shared SVD basis. No calibration.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"xkv"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">xkv_group_size</span><span class="op">=</span><span class="nu">2</span><span class="op">,</span>            <span class="cm"># layers per shared-subspace group (2 = pairs)</span>
+    <span class="at">xkv_rank</span><span class="op">=</span><span class="kw">None</span><span class="op">,</span>              <span class="cm"># None -> energy-threshold rank selection</span>
+    <span class="at">xkv_energy_threshold</span><span class="op">=</span><span class="nu">0.95</span><span class="op">,</span>  <span class="cm"># fraction of singular value energy retained</span>
+    <span class="at">xkv_latent_bits</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>       <span class="cm"># single-bit-width latent quantization</span>
 <span class="op">)</span>
 <span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
 

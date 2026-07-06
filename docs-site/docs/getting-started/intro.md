@@ -7,7 +7,7 @@ slug: /getting-started/intro
 
 # What is VeloxQuant-MLX?
 
-VeloxQuant-MLX is a production-grade **KV cache compression library** for Apple Silicon (M-series Macs). It implements twenty-nine compression algorithms — quantization plus token eviction — that compress the key-value cache used during LLM inference, reducing peak memory by up to **98%** while maintaining near-lossless output quality.
+VeloxQuant-MLX is a production-grade **KV cache compression library** for Apple Silicon (M-series Macs). It implements thirty compression algorithms — quantization plus token eviction — that compress the key-value cache used during LLM inference, reducing peak memory by up to **98%** while maintaining near-lossless output quality.
 
 LLMs like Llama, Mistral, and Qwen store past context in a KV cache that grows linearly with sequence length. On a MacBook M3 Pro with 18 GB unified memory, a 7B model at 8k context can consume 14 GB of cache alone — leaving almost no room for anything else. VeloxQuant-MLX compresses that cache on-the-fly with Metal GPU kernels, making long-context inference practical on consumer hardware.
 
@@ -33,7 +33,7 @@ Apple's M-series chips have a unique advantage: **unified memory**. The GPU and 
 
 ## Algorithm overview
 
-VeloxQuant-MLX provides twenty-nine algorithms ranging from zero-calibration 1-bit methods to sophisticated mixed-precision allocators, low-rank latent caches, cross-layer schemes, and token-eviction/merging caches:
+VeloxQuant-MLX provides thirty algorithms ranging from zero-calibration 1-bit methods to sophisticated mixed-precision allocators, low-rank latent caches, cross-layer schemes, and token-eviction/merging caches:
 
 | Algorithm | Bits | Calibration | Best for |
 |---|---|---|---|
@@ -55,6 +55,7 @@ VeloxQuant-MLX provides twenty-nine algorithms ranging from zero-calibration 1-b
 | **PALU** | ~0.6 | None | First true latent cache — K and V stored low-rank |
 | **CacheGen** | 3–4 | None | First entropy-coded cache — storage win on correlated KV |
 | **MiniCache** | fp16 (merged) | None | Cross-layer SLERP merge — deep layer pairs cost one |
+| **xKV-adapted** | uniform-bit (latent) | None | Cross-layer shared-subspace — joint SVD basis amortized across a layer group |
 
 See [Algorithm Overview](../algorithms/overview) for a full comparison.
 

@@ -7,6 +7,78 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.27.0] — 2026-07-06
+
+### Added — xKV: cross-layer shared-subspace key compression (`method="xkv"`)
+
+- **`veloxquant_mlx.cache.xkv_cache.XKVCache`** — the library's **thirtieth
+  configuration** and the **third cross-layer** mechanism, alongside XQuant
+  (code reuse) and MiniCache (SLERP direction merge). *Inspired by, not a
+  faithful port of,* "xKV: Cross-Layer KV-Cache Compression via Aligned
+  Singular Vector Extraction" (Chang, Lin, Lin, Chiang, Akhauri, Dai, Jiang,
+  Li, Ceze, Wu & Abdelfattah, arXiv:2503.18893, preprint). Every other
+  cross-layer method either reuses one anchor's codes (XQuant) or merges a
+  *pair* of layers' directions (MiniCache); xKV instead **jointly factorizes
+  a whole group of layers** into one shared low-rank SVD basis, amortizing
+  the basis storage cost across every member of the group.
+- **`veloxquant_mlx.cache.xkv_coordinator.XKVCoordinator`** — a
+  fan-in-then-fan-out coordinator: every group member publishes its own raw
+  prefill keys; once all members of a group have published for the same
+  token range, the joint SVD runs once and the resulting shared basis is
+  broadcast back to every member (including whichever one triggered the
+  computation). This is a different coordination shape than XQuant/MiniCache,
+  which have a single publisher and one or more readers.
+- **`veloxquant_mlx.quantizers.xkv`** — pure primitives: `pair_layers_grouped`
+  (fixed-size contiguous grouping, including a trailing partial group),
+  `joint_svd_compress` (stack N layers' centered keys, single truncated SVD),
+  `project_into_shared_basis`, `reconstruct_from_shared_basis`,
+  `quantize_latents_uniform`.
+- **Grouping** — `xkv_group_size` (default 2) chunks attention-bearing layers
+  into fixed contiguous groups; layer 0 of each group is the conventional
+  "leader" (the only member reporting the amortized `shared_basis_bytes`
+  cost, avoiding double-counting when bytes are summed across layers).
+- **Config** — `xkv_group_size` (default 2), `xkv_rank` (default `None` →
+  energy-threshold selection), `xkv_energy_threshold` (default 0.95),
+  `xkv_latent_bits` (default 4 — single-bit-width latent quantization, not
+  SVDq-style mixed-bit routing), `xkv_group_quant_size` (default 32),
+  `xkv_max_ctx` (default 8192). Keys only — values pass through fp16
+  unchanged, mirroring SVDq's existing precedent in this repo.
+- **Tests** — 9 quantizer tests + 14 cache tests (all passing), including a
+  group-of-1 degeneracy check (`joint_svd_compress` on a single matrix
+  matches SVDq's plain single-layer SVD at the same rank) and a
+  mechanism-validation test (a shared basis fit jointly across synthetic
+  layers with genuinely shared low-rank structure reconstructs better than
+  independent per-layer SVD on unrelated noise at matched rank).
+- **Benchmark** — `benchmark_scripts/benchmark_xkv.py` + committed
+  `xkv_benchmark_results.json` (offline-synthetic). Sweeps group size (2–4)
+  and a synthetic shared-structure fraction against an independent-per-layer
+  -SVD baseline at matched rank: reconstruction MSE lands within ~1% of
+  independent SVD across every configuration tested (near-parity, not a
+  quality regression), while byte cost is **8–20% lower** than independent
+  SVD, improving with larger group sizes — the amortization win the
+  shared-basis mechanism is designed to deliver.
+
+### Honest scope
+
+- Fixed contiguous layer grouping — no CKA-based (Centered Kernel Alignment)
+  validation that the grouped layers actually share a subspace, unlike the
+  paper's empirical per-architecture grouping.
+- No "Selective Reconstruction" — the paper's decode-time latency
+  optimization (exactly reconstruct a subset of group layers, derive the
+  rest) is not implemented; every layer is fully reconstructed on every
+  fetch, like every other wrapper in this repo.
+- Single-bit-width latent quantization, not SVDq's importance-ranked
+  mixed-bit routing — xKV's distinguishing feature is the shared basis, not a
+  novel bit-allocation scheme.
+- **No model-level (perplexity/throughput) benchmark run.** The harness
+  measures reconstruction-MSE parity and byte-accounting savings against an
+  independent-SVD baseline, and an output-perturbation proxy — not end-to-end
+  task quality on a real model.
+- Docs: new `docs-site/docs/algorithms/xkv.md`, sidebar + overview + intro +
+  changelog entries, cross-links from XQuant and MiniCache pages. README/
+  landing counts: twenty-nine → thirty strategies; version bump 0.26.0 →
+  0.27.0.
+
 ## [0.26.0] — 2026-07-04
 
 ### Added — CaM: cache merging (merge evicted tokens instead of dropping) (`method="cam"`)

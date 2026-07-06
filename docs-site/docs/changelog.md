@@ -11,7 +11,18 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.26.0 — Latest
+## v0.27.0 — Latest
+
+### New
+- **xKV-adapted** (`method="xkv"`) — the repo's **third cross-layer** mechanism, alongside XQuant (code reuse) and MiniCache (SLERP direction merge). A fixed-size contiguous group of layers jointly factorizes its stacked key matrices into **one shared SVD basis** via a fan-in/fan-out coordinator; every group member then stores only its own latent codes in that shared basis, amortizing the basis storage cost across the whole group. xKV-adapted ("xKV: Cross-Layer KV-Cache Compression via Aligned Singular Vector Extraction", Chang, Lin, Lin, Chiang, Akhauri, Dai, Jiang, Li, Ceze, Wu, Abdelfattah, arXiv:2503.18893, preprint) — documented as "xKV-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `XKVCache` (`veloxquant_mlx/cache/xkv_cache.py`); `XKVCoordinator` (`veloxquant_mlx/cache/xkv_coordinator.py`) — a fan-in-then-fan-out coordinator, distinct from XQuant/MiniCache's single-publisher pattern since the joint SVD needs every group member's keys before any of them can compress; primitives in `veloxquant_mlx/quantizers/xkv.py`: `pair_layers_grouped`, `joint_svd_compress`, `project_into_shared_basis`, `reconstruct_from_shared_basis`, `quantize_latents_uniform`.
+  - Config: `xkv_group_size` (default 2), `xkv_rank` (default `None` -> energy-threshold selection), `xkv_energy_threshold` (default 0.95), `xkv_latent_bits` (default 4), `xkv_group_quant_size` (default 32), `xkv_max_ctx` (default 8192). Keys only — values pass through fp16 unchanged, mirroring SVDq's precedent.
+  - 9 quantizer tests + 14 cache tests, including a group-of-1 degeneracy check (`joint_svd_compress` on a single matrix matches SVDq's plain single-layer SVD) and a mechanism-validation test (shared structure across synthetic layers reconstructs better than independent per-layer SVD on unrelated noise at matched rank); `benchmark_scripts/benchmark_xkv.py` + committed `xkv_benchmark_results.json` — sweeps group size (2–4) and a synthetic shared-structure knob, showing near-parity reconstruction MSE (within ~1%) and 8–20% fewer bytes than independent per-layer SVD, improving with larger group sizes.
+  - Honest scope: fixed contiguous grouping (no CKA-based layer-alignment validation), no "Selective Reconstruction" decode-time optimization, single-bit-width latent quantization (not SVDq-style mixed-bit routing), no model-level perplexity/throughput benchmark — offline reconstruction-quality and byte-accounting numbers only.
+
+---
+
+## v0.26.0
 
 ### New
 - **CaM-adapted** (`method="cam"`) — the repo's **eighth eviction configuration** and the first on the **merge-vs-drop** axis. Every other eviction method permanently discards the tokens it evicts; CaM instead **merges** each evicted token into the surviving token it most resembles (a cosine-weighted blend of the value rows, and optionally the keys), then removes only the redundant slot — so the information is folded into a neighbour rather than lost. The eviction *choice* is H2O's; only the disposition differs. With `cam_merge="drop"` it reduces **bit-for-bit** to H2O-adapted. CaM-adapted ("CaM: Cache Merging for Memory-efficient LLMs Inference", Zhang et al., ICML 2024, PMLR 235:58840-58850) — documented as "CaM-adapted (VeloxQuant-MLX implementation)," not a faithful port.

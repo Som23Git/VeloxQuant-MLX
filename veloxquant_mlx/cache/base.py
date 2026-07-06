@@ -36,7 +36,7 @@ class KVCacheConfig:
         "turboquant_prod", "turboquant_mse", "turboquant_rvq",
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
-        "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam",
+        "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -157,6 +157,13 @@ class KVCacheConfig:
     cam_n_sink: int = 4                  # initial positions protected from eviction (attention sinks)
     cam_merge: str = "sim_weighted"      # merge rule: "sim_weighted" | "mean" | "drop" (drop == H2O bit-for-bit)
     cam_merge_keys: bool = False         # merge keys too (values are always merged)
+    # --- xKV configuration (cross-layer shared-subspace key compression) -
+    xkv_group_size: int = 2              # layers per shared-subspace group (2 = pairs)
+    xkv_rank: Optional[int] = None       # explicit shared rank; None → energy threshold
+    xkv_energy_threshold: float = 0.95   # fraction of singular value energy to retain
+    xkv_latent_bits: int = 4             # single-bit-width latent quantization
+    xkv_group_quant_size: int = 32       # token group size for latent quantization
+    xkv_max_ctx: int = 8192              # coordinator per-group token budget
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -225,6 +232,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.squeeze_cache import SqueezeAttentionCache
         from veloxquant_mlx.cache.chunkkv_cache import ChunkKVCache
         from veloxquant_mlx.cache.cam_cache import CaMKVCache
+        from veloxquant_mlx.cache.xkv_cache import XKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -318,13 +326,20 @@ class KVCacheFactory:
             # for_model path (one CaMKVCache per layer) is all it needs.
             # cam_merge="drop" reduces bit-for-bit to H2O-adapted.
             cache = CaMKVCache(config)
+        elif config.method == "xkv":
+            # Single-cache construction yields a degenerate (coordinator-less)
+            # standalone member — behaves as per-layer SVD compression with no
+            # basis sharing. Cross-layer subspace sharing requires
+            # KVCacheBuilder.for_model(), which builds the shared
+            # XKVCoordinator and assigns member/group roles.
+            cache = XKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv."
             )
 
         if config.sliding_window is not None:
@@ -590,6 +605,10 @@ class KVCacheBuilder:
         if config.method == "squeeze":
             return KVCacheBuilder._build_squeeze(layers, args, config, _FallbackCache)
 
+        # --- xKV: cross-layer shared-subspace SVD needs a shared coordinator --
+        if config.method == "xkv":
+            return KVCacheBuilder._build_xkv(layers, args, config, _FallbackCache)
+
         caches = []
         attn_idx = 0  # index into b_spec, advances only for attention layers
         for i, layer in enumerate(layers):
@@ -672,6 +691,62 @@ class KVCacheBuilder:
             )
             caches.append(XQuantKVCache(layer_cfg, role=role, group_id=group_id,
                                         coordinator=coordinator))
+        return caches
+
+    @staticmethod
+    def _build_xkv(layers, args, config: "KVCacheConfig", fallback_cls) -> list:
+        """Build one shared XKVCoordinator and member/group-assigned caches
+        per layer.
+
+        Members are assigned over *attention-bearing* layers only, in fixed
+        contiguous groups of ``xkv_group_size`` (a trailing partial group is
+        still valid, with a smaller ``n_members``), so non-attention layers
+        (MoE gates, etc.) get a plain fallback cache and do not consume a
+        group slot.
+        """
+        from veloxquant_mlx.cache.xkv_cache import XKVCache
+        from veloxquant_mlx.cache.xkv_coordinator import XKVCoordinator
+        from veloxquant_mlx.quantizers.xkv import pair_layers_grouped
+
+        def _head_dim(layer):
+            attn = getattr(layer, "self_attn", None) or getattr(layer, "attn", None)
+            if attn is None:
+                return None
+            hd = getattr(attn, "head_dim", None)
+            if hd is None and args is not None:
+                hd = getattr(args, "head_dim", None) or (
+                    args.hidden_size // args.num_attention_heads
+                )
+            return hd
+
+        attn_layer_idx = [i for i, L in enumerate(layers) if _head_dim(L) is not None]
+        roles = pair_layers_grouped(len(attn_layer_idx), config.xkv_group_size)
+        coordinator = XKVCoordinator(max_ctx=config.xkv_max_ctx)
+
+        role_by_layer: dict[int, tuple[int, int, int]] = {
+            attn_layer_idx[k]: roles[k] for k in range(len(attn_layer_idx))
+        }
+
+        caches = []
+        for i, layer in enumerate(layers):
+            hd = _head_dim(layer)
+            if hd is None:
+                caches.append(fallback_cls())
+                continue
+            member_idx, group_id, n_members = role_by_layer[i]
+            layer_cfg = KVCacheConfig(
+                method="xkv",
+                head_dim=hd,
+                seed=config.seed + i,
+                xkv_group_size=config.xkv_group_size,
+                xkv_rank=config.xkv_rank,
+                xkv_energy_threshold=config.xkv_energy_threshold,
+                xkv_latent_bits=config.xkv_latent_bits,
+                xkv_group_quant_size=config.xkv_group_quant_size,
+                xkv_max_ctx=config.xkv_max_ctx,
+            )
+            caches.append(XKVCache(layer_cfg, member_idx=member_idx, group_id=group_id,
+                                    n_members=n_members, coordinator=coordinator))
         return caches
 
     @staticmethod

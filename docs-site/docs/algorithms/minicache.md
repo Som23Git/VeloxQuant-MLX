@@ -124,10 +124,12 @@ perplexity figures are claimed.
 MiniCache targets models deep enough to have a sizable middle-to-deep region of
 similar layers. It composes the cross-layer axis with whatever per-layer scheme
 you use on the unmerged early layers. It is the natural complement to
-[XQuant](../algorithms/xquant): XQuant reuses codes, MiniCache merges tensors —
-two different routes to inter-layer redundancy.
+[XQuant](../algorithms/xquant) and [xKV](../algorithms/xkv): XQuant reuses
+codes, MiniCache merges tensors, and xKV jointly factorizes a whole group into
+one shared subspace — three different routes to inter-layer redundancy.
 
 | Method | Cross-layer mechanism | Quantizes |
 |--------|----------------------|-----------|
 | XQuant | code reuse + residual | yes (low-bit) |
 | MiniCache | SLERP direction merge + retention | no (fp16 directions) |
+| xKV | joint SVD -> shared subspace across a group | yes (uniform-bit latents) |

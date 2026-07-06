@@ -183,5 +183,6 @@ XQuant's reference implementation couples layers inside a modified attention for
 - [SVDq](./svdq) — sub-2-bit keys via offline SVD (a candidate anchor quantizer)
 - [Kitty](./kitty) — per-channel mixed precision (orthogonal axis)
 - [KIVI](./kivi) — uniform 2-bit group quantization (the default anchor scheme)
+- [xKV](./xkv) — a third cross-layer route: jointly factorizes a *group* of layers into one shared SVD basis, rather than reusing one anchor's codes
 - [Algorithm overview](./overview) — full method comparison
 - [mlx_lm integration guide](../guides/mlx-lm-integration)

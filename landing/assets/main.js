@@ -57,7 +57,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.26.0 — CaM-adapted cache merging (merge, don't drop) shipped";
+  const text = "v0.27.0 — xKV-adapted cross-layer shared-subspace SVD shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;
