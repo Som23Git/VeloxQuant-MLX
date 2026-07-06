@@ -1549,15 +1549,18 @@ footer {
     display: none;
     position: fixed;
     inset: 60px 0 0 0;
-    background: rgba(8,8,15,0.97);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    height: calc(100vh - 60px);
+    /* Fully opaque, no backdrop-filter: a translucent panel let the hero
+       badge's glow (box-shadow blur escapes the panel edges even at
+       97% alpha) ghost through underneath it on mobile. */
+    background: var(--bg);
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2rem;
     z-index: 105;
     border-top: 1px solid var(--border);
+    overflow-y: auto;
   }
   .nav-links.open { display: flex; }
   .nav-links a { font-size: 1.1rem; }
