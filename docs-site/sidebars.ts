@@ -51,6 +51,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/squeeze',
         'algorithms/chunkkv',
         'algorithms/cam',
+        'algorithms/knorm',
         'algorithms/xkv',
       ],
     },

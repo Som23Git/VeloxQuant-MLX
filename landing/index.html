@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted — all in MLX. New in 0.28.0: NSNQuant-adapted calibration-free universal-codebook VQ — a Normalize-Shift-Normalize transform plus Hadamard rotation reshapes K/V onto the standard normal distribution, so one fixed codebook built from synthetic Gaussian samples quantizes any model at 1–2 bits/element, no calibration ever. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted — all in MLX. New in 0.29.0: L2Norm-adapted intrinsic key-norm eviction (EMNLP 2024) — token importance read directly off the stored key's L2 norm, no attention scores and no proxy; zero per-step scoring cost and provably path-independent kept sets. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -57,14 +57,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">31 algorithms</span>
+        <span class="hero-pill">32 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 31 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant
+        <summary>See all 32 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -109,6 +109,8 @@
       <span class="provenance-item">ICML 2024 <em>KIVI · CaM</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">SIGCOMM 2024 <em>CacheGen</em></span>
+      <span class="provenance-dot">·</span>
+      <span class="provenance-item">EMNLP 2024 <em>L2-norm eviction</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">NeurIPS 2024 <em>KVQuant · MiniCache · ZipCache</em></span>
       <span class="provenance-dot">·</span>
@@ -204,6 +206,7 @@
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.29.0</span><span class="wn-body"><strong>L2Norm-adapted</strong> — first <em>intrinsic-signal</em> eviction cache. Token importance is read directly off the stored key's L2 norm (EMNLP 2024 finding: <em>low</em> norm ⇒ high attention in trained LMs) — no attention scores, no key-as-query proxy. Zero per-step scoring cost (~100–800× faster than H2O at prefill on the committed harness) and bit-for-bit path-independent kept sets: prefill and token-by-token decode yield identical caches.</span></li>
         <li><span class="wn-ver">0.28.0</span><span class="wn-body"><strong>NSNQuant-adapted</strong> — first calibration-free <em>distribution-matching</em> VQ. Instead of fitting a codebook to the data, a Normalize-Shift-Normalize transform + Hadamard rotation reshapes K/V tokens onto the standard normal, so <em>one universal codebook</em> built offline from synthetic Gaussian samples quantizes any model at 1–2 bits/element. Both keys and values; chunk-flush fp16 residual buffer; +0.04–0.11 reconstruction cosine over the same VQ without NSN on channel-biased inputs, collapsing to ~0 when input is already centered.</span></li>
         <li><span class="wn-ver">0.27.0</span><span class="wn-body"><strong>xKV-adapted</strong> — third cross-layer method. A fixed-size group of layers jointly factorizes their stacked key matrices into <em>one shared SVD basis</em> via a fan-in/fan-out coordinator, amortizing the basis storage cost across every member. 8–20% fewer bytes than independent per-layer SVD at matched reconstruction quality, improving with group size.</span></li>
         <li><span class="wn-ver">0.26.0</span><span class="wn-body"><strong>CaM-adapted</strong> — first cache-<em>merging</em> cache. Makes the same eviction choice as H2O but <em>merges</em> the evicted token into the survivor it most resembles (cosine-weighted) instead of dropping it, recovering a share of the lost mass at high compression. No coordinator; <code>cam_merge=drop</code> reduces bit-for-bit to H2O.</span></li>
@@ -223,7 +226,7 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (29)</button>
+      <button class="filter-btn active" data-filter="all">All (30)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -294,6 +297,11 @@
           <div class="picker-method" style="color:#22d3ee">CaM</div>
           <div class="picker-detail">Cache merging · merges evicted tokens into similar survivors instead of dropping · cam_merge=drop == H2O → see details ↓</div>
         </a>
+        <a href="#algo-knorm" class="picker-card picker-card-link" style="border-color:rgba(52,211,153,0.35);">
+          <div class="picker-goal">Importance eviction with zero scoring cost</div>
+          <div class="picker-method" style="color:#34d399">L2Norm</div>
+          <div class="picker-detail">Intrinsic key-norm eviction · no attention, no proxy · path-independent kept sets → see details ↓</div>
+        </a>
         <a href="#algo-xkv" class="picker-card picker-card-link" style="border-color:rgba(244,114,182,0.35);">
           <div class="picker-goal">Adjacent layers share more than a code or direction</div>
           <div class="picker-method" style="color:#f472b6">xKV</div>
@@ -313,7 +321,7 @@
         <div class="cat-header" style="--chip:#2dd4bf">
           <h3 class="cat-title">Token Eviction</h3>
           <span class="cat-blurb">Constant-memory caches that drop (or merge) low-value tokens</span>
-          <span class="cat-count">8</span>
+          <span class="cat-count">9</span>
         </div>
         <div class="algo-grid">
       <div id="algo-cam" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
@@ -367,6 +375,52 @@
           </div>
         </details>
         <div class="card-meta">v0.26.0 · ICML 2024 · PMLR 235</div>
+      </div>
+      <div id="algo-knorm" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">L2Norm-adapted</div>
+        <div class="card-subtitle">intrinsic key-norm eviction</div>
+        <div class="algo-desc card-summary">Reads token importance directly off the stored key's L2 norm — no attention scores, no proxy, no per-step cost.</div>
+        <div class="card-headline"><span class="headline-stat">intrinsic signal · path-independent · 24/24 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from Devoto, Zhao, Scardapane &amp; Minervini (EMNLP 2024, <a href="https://arxiv.org/abs/2406.11430" target="_blank" rel="noopener" style="color:#34d399">arXiv:2406.11430</a>). The library's <strong style="color:#34d399">ninth eviction configuration</strong> and the first with an <strong style="color:var(--text)">intrinsic</strong> scorer: every other eviction method scores with attention / a key-as-query proxy or pure position; L2Norm reads importance off the stored key itself. The paper's counterintuitive trained-LM finding: keys with <em>low</em> L2 norm attract <em>high</em> attention — so keep the lowest-norm tokens. (Note the sign inversion vs ChunkKV's key_norm option.)
+              <br><br>
+              <strong style="color:var(--text)">① Norm once</strong> — each incoming key's L2 norm is computed at insertion and never updated<br>
+              <strong style="color:var(--text)">② Top-k</strong> — over budget, one protected top-k keeps the lowest-norm tokens (sinks always survive), in original order<br>
+              <strong style="color:var(--text)">③ No loop</strong> — no per-token softmax-over-cache: 0.3–1.2 ms per prefill block vs H2O's 37–275 ms on the same harness<br>
+              <br>
+              <strong style="color:#34d399">Why it's different:</strong> because the score is intrinsic, the kept set is <em>path-independent</em> — prefill-in-one-block and token-by-token decode produce bit-for-bit identical caches (pinned by test; no accumulating-score method has this). Honest scope: the low-norm ⇒ high-attention correlation is the paper's empirical claim about trained models — under an isotropic synthetic control the advantage reverses, reported in full in the committed benchmark.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Scorer class</span>
+                <span class="value" style="color:#34d399">intrinsic (stored key itself)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">key L2 norm — low = keep (EMNLP 2024)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Per-step scoring cost</span>
+                <span class="value" style="color:#34d399">none (norm at insertion)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Path-independent kept set</span>
+                <span class="value">yes (knorm_recent=0) — bit-for-bit tested</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs H2O prefill wall time</span>
+                <span class="value">~100–800× faster (offline harness)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.29.0 · EMNLP 2024</div>
       </div>
       <div id="algo-chunkkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
         <div class="card-head">
@@ -1623,6 +1677,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="cam" style="border-color:rgba(56,189,248,0.4);color:#38bdf8">CaM · merging</button>
       <button class="tab-btn" data-tab="xkv" style="border-color:rgba(244,114,182,0.4);color:#f472b6">xKV · shared subspace</button>
       <button class="tab-btn" data-tab="nsnquant" style="border-color:rgba(167,139,250,0.4);color:#a78bfa">NSNQuant · universal VQ</button>
+      <button class="tab-btn" data-tab="knorm" style="border-color:rgba(52,211,153,0.4);color:#34d399">L2Norm · eviction</button>
     </div>
 
     <!-- RVQ tab -->
@@ -1914,6 +1969,36 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
 <span class="op">)</span></pre>
       </div>
     </div>
+    <div class="code-panel" id="tab-knorm">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — L2Norm · intrinsic key-norm eviction</span>
+          <button class="code-copy" data-target="code-knorm">Copy</button>
+        </div>
+        <pre id="code-knorm"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Intrinsic key-norm eviction (EMNLP 2024) — low-norm keys attract high</span>
+<span class="cm"># attention in trained LMs, so keep the lowest-norm tokens. No attention</span>
+<span class="cm"># scores, no proxy, no per-step scoring cost.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"knorm"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">knorm_budget</span><span class="op">=</span><span class="nu">512</span><span class="op">,</span>   <span class="cm"># max tokens kept (incl. sinks)</span>
+    <span class="at">knorm_n_sink</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>     <span class="cm"># leading positions never evicted</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
   </section>
 
   <div class="divider"></div>
@@ -2083,7 +2168,7 @@ pip install -e ".[dev]"</span></pre>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
           <li>12 production models validated</li>
-          <li>874/879 tests passing (remaining 5: machine-dependent Metal fp16-tolerance parity flakes)</li>
+          <li>897/903 tests passing (remaining 6: machine-dependent Metal fp16-tolerance parity flakes)</li>
         </ul>
       </div>
     </div>

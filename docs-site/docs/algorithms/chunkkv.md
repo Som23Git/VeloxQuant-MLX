@@ -195,3 +195,5 @@ granularity for coherence and cheaper eviction.
 **See also:** [CaM-adapted](./cam) varies the other end of eviction — instead of
 changing *what* is evicted (a chunk vs a token), it changes what *happens* to the
 loser: CaM merges it into a survivor rather than dropping it.
+
+See also: [L2Norm](../algorithms/knorm) — note the sign inversion: ChunkKV's `key_norm` scoring treats *high*-norm chunks as important, while L2Norm implements the EMNLP 2024 finding that *low*-norm keys attract high attention.

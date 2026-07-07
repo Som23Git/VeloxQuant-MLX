@@ -11,7 +11,23 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.28.0 — Latest
+## v0.29.0 — Latest
+
+### New
+- **L2Norm-adapted** (`method="knorm"`) — the repo's first **intrinsic-signal** eviction cache: token importance is read directly off the stored key vector's L2 norm, with the counterintuitive sign the paper reports in trained decoder LMs — **low norm ⇒ high future attention** — so the cache keeps the lowest-norm tokens. No attention scores, no key-as-query proxy (the approximation H2O/SnapKV/TOVA need), no structure-only recency rule: the paper's actual signal is fully observable at the cache level, making this the cleanest adaptation in the eviction family. L2Norm-adapted ("A Simple and Effective L2 Norm-Based Strategy for KV Cache Compression", Devoto, Zhao, Scardapane, Minervini, EMNLP 2024, arXiv:2406.11430) — documented as "L2Norm-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `L2NormKVCache` (`veloxquant_mlx/cache/knorm_cache.py`); primitives in `veloxquant_mlx/quantizers/knorm.py`: `KnormState`, `init_knorm_state`, `knorm_update` (vectorized — one protected top-k per incoming block, no per-token softmax-over-cache loop), `knorm_get_kv`, `knorm_fp16_bytes`, `full_knorm_fp16_bytes`.
+  - Because the score is intrinsic (computed once at insertion, never updated): eviction is **~100–800× faster than H2O-adapted** at prefill on the committed harness (0.3 ms vs 240 ms at S=1024), and with `knorm_recent=0` the kept set is **path-independent** — prefill-in-one-block and token-by-token decode produce bit-for-bit identical caches (the "keep k best with a heap" invariant, pinned by test at both the primitive and wrapper level). No accumulating-score method has this property.
+  - Config: `knorm_budget` (default 512), `knorm_n_sink` (default 4), `knorm_recent` (default 0 — trailing protected window, an extension beyond the paper; enabling it breaks path independence), `knorm_keep` (`"low"` = paper finding | `"high"` = inverted ablation arm). No coordinator — the default `KVCacheBuilder.for_model()` path returns one `L2NormKVCache` per layer.
+  - 10 quantizer tests + 14 cache tests, including the bit-for-bit path-independence check and a mechanism test under paper-like geometry; `benchmark_scripts/benchmark_knorm.py` + committed `knorm_benchmark_results.json` — under geometry constructed to exhibit the paper's correlation, keep-low beats random eviction by **+0.17** mean output perturbation and the inverted scorer by **+0.21**; under the isotropic control the advantage **reverses** (keep-low ~0.07 *worse* than random — softmax favors high-norm keys on isotropic Gaussians), reported in full.
+
+### Honest scope
+- The low-norm ⇒ high-attention correlation is the paper's **empirical claim about trained models** — the offline-synthetic benchmark validates the machinery under constructed geometry, not the correlation itself, and the isotropic control shows the method can underperform random eviction when that geometry is absent.
+- No RoPE position-ID remapping after eviction; uniform budget and n_sink across heads (same as the rest of the eviction family); `knorm_recent` and `knorm_keep="high"` are extensions beyond the paper, both off by default.
+- No model-level (perplexity/throughput) benchmark run.
+
+---
+
+## v0.28.0
 
 ### New
 - **NSNQuant-adapted** (`method="nsnquant"`) — the repo's first **calibration-free distribution-matching VQ**: instead of fitting a codebook to the data (per-sequence k-means, EM) or using a data-independent geometric code (signs, polar grids), NSNQuant **reshapes the data to match a fixed code**. A Normalize-Shift-Normalize transform (token-norm → channel-mean shift → token-norm) plus a Hadamard rotation maps K/V tokens onto the standard normal distribution, so one codebook built offline from synthetic Gaussian samples — never from model activations — quantizes any model at 1–2 bits/element. NSNQuant-adapted ("NSNQuant: A Double Normalization Approach for Calibration-Free Low-Bit Vector Quantization of KV Cache", Son, Choi, Yoo, NeurIPS 2025, arXiv:2505.18231) — documented as "NSNQuant-adapted (VeloxQuant-MLX implementation)," not a faithful port.

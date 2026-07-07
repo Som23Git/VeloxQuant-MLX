@@ -123,3 +123,5 @@ criterion for retention.
 **See also:** [CaM-adapted](./cam) makes the same eviction choice as H2O but
 **merges** the loser into a similar survivor instead of dropping it, recovering a
 share of the lost mass at high compression. `cam_merge="drop"` is exactly H2O.
+
+See also: [L2Norm](../algorithms/knorm) — the same keep/evict machinery with an *intrinsic* scorer (key L2 norm, computed once at insertion): no per-step softmax over the cache, and path-independent kept sets, at the price of trusting the paper's low-norm ⇒ high-attention finding rather than reacting to the query stream.

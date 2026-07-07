@@ -7,6 +7,62 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.29.0] — 2026-07-07
+
+### Added — L2Norm: intrinsic key-norm eviction (`method="knorm"`)
+
+- **`veloxquant_mlx.cache.knorm_cache.L2NormKVCache`** — the library's
+  **thirty-second configuration** and its first **intrinsic-signal** eviction
+  cache. *Inspired by, not a faithful port of,* "A Simple and Effective L2
+  Norm-Based Strategy for KV Cache Compression" (Devoto, Zhao, Scardapane &
+  Minervini, EMNLP 2024, arXiv:2406.11430). Every eviction method shipped so
+  far scores tokens with attention / a key-as-query proxy (SnapKV, H2O,
+  TOVA, PyramidKV, SqueezeAttention, ChunkKV, CaM) or pure structure
+  (StreamingLLM, sink, sliding-window); L2Norm reads importance **directly
+  off the stored key** — the paper's trained-LM finding is that *low* key
+  norm predicts *high* attention, so the lowest-norm tokens are kept. Note
+  the sign inversion vs ChunkKV's `key_norm` option and ZipCache's saliency
+  proxy (which treat high norm as important) — the inversion is the paper's
+  empirical content.
+- **`veloxquant_mlx.quantizers.knorm`** — `KnormState`, `init_knorm_state`,
+  `knorm_update` (vectorized: norms are computed once at insertion and never
+  updated, so eviction is a single protected top-k per incoming block — no
+  per-token softmax-over-cache loop like H2O), `knorm_get_kv`,
+  `knorm_fp16_bytes`, `full_knorm_fp16_bytes`.
+- **Two properties fall out of the intrinsic score** (both measured/pinned):
+  - **Speed:** 0.3–1.2 ms per prefill block vs H2O-adapted's 37–275 ms on
+    identical inputs in the committed harness (~100–800×).
+  - **Path independence** (`knorm_recent=0`): the kept set equals the global
+    budget-best over all tokens seen regardless of arrival grouping (the
+    "keep k best with a heap" invariant) — prefill and token-by-token decode
+    produce bit-for-bit identical caches, pinned by test at the primitive
+    and wrapper level. No accumulating-score method has this property.
+- **Config** — `knorm_budget` (default 512), `knorm_n_sink` (default 4),
+  `knorm_recent` (default 0; extension, breaks path independence when on),
+  `knorm_keep` (`"low"` paper default | `"high"` inverted ablation).
+  Build-time validation (keep mode, sinks+recent < budget). No coordinator.
+- **Tests** — 10 quantizer + 14 cache tests (903 total collected).
+- **Benchmark** — `benchmark_scripts/benchmark_knorm.py` + committed
+  `knorm_benchmark_results.json` (offline-synthetic): under geometry
+  constructed to exhibit the paper's correlation, keep-low beats random
+  eviction by **+0.17** mean output perturbation and the inverted scorer by
+  **+0.21**, and beats H2O-adapted on most rows at matched budget; under
+  the isotropic control the advantage **reverses** (keep-low ~0.07 worse
+  than random), reported in full. **Explicitly NOT a model-level
+  perplexity/throughput benchmark.**
+
+### Honest scope
+
+- The low-norm ⇒ high-attention correlation is the **paper's empirical
+  claim about trained models**. Synthetic data cannot validate it — the
+  benchmark validates the machinery under constructed geometry and shows
+  the method underperforming random eviction when that geometry is absent.
+- No RoPE position-ID remapping after eviction; uniform budget/n_sink
+  across heads (same as the rest of the eviction family).
+- `knorm_recent` and `knorm_keep="high"` are extensions beyond the paper,
+  both off by default.
+- No model-level benchmark run.
+
 ## [0.28.0] — 2026-07-06
 
 ### Added — NSNQuant: calibration-free universal-codebook VQ (`method="nsnquant"`)

@@ -57,7 +57,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.28.0 — NSNQuant-adapted calibration-free universal-codebook VQ shipped";
+  const text = "v0.29.0 — L2Norm-adapted intrinsic key-norm eviction shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;

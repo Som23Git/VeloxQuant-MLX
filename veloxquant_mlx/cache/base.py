@@ -37,7 +37,7 @@ class KVCacheConfig:
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
-        "nsnquant",
+        "nsnquant", "knorm",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -172,6 +172,11 @@ class KVCacheConfig:
     nsn_subvector_dim: int = 8           # VQ subvector dimension (paper: 8)
     nsn_seed: int = 1234                 # codebook RNG seed (synthetic Gaussian)
     nsn_max_ctx: int = 8192              # per-layer token budget
+    # --- L2Norm-adapted configuration (intrinsic key-norm eviction) ------
+    knorm_budget: int = 512              # max tokens kept (incl. sinks)
+    knorm_n_sink: int = 4                # leading positions never evicted
+    knorm_recent: int = 0                # trailing protected window (0 = paper-faithful)
+    knorm_keep: str = "low"              # "low" = paper finding; "high" = inverted ablation
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -242,6 +247,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.cam_cache import CaMKVCache
         from veloxquant_mlx.cache.xkv_cache import XKVCache
         from veloxquant_mlx.cache.nsnquant_cache import NSNQuantKVCache
+        from veloxquant_mlx.cache.knorm_cache import L2NormKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -348,13 +354,18 @@ class KVCacheFactory:
             # Gaussian), so the default for_model path (one NSNQuantKVCache
             # per layer) is all it needs.
             cache = NSNQuantKVCache(config)
+        elif config.method == "knorm":
+            # No coordinator: intrinsic key-norm scores need no cross-layer or
+            # cross-step state; the default for_model path (one L2NormKVCache
+            # per layer) is all it needs.
+            cache = L2NormKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm."
             )
 
         if config.sliding_window is not None:
