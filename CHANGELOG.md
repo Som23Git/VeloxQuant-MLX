@@ -7,6 +7,68 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.30.0] — 2026-07-08
+
+### Added — SKVQ: sliding-window reorder + clip quantization (`method="skvq"`)
+
+Sliding-window quantization with two mechanisms new to the library, inspired
+by "SKVQ: Sliding-window Key and Value Cache Quantization for Large Language
+Models" (Duanmu, Yuan, Li, Duan, Zhang, Lin — **COLM 2024**,
+arXiv:2405.06219). Documented as **"SKVQ-adapted (VeloxQuant-MLX
+implementation)"** — not a faithful port.
+
+- **Channel reordering** — per-head permutations sort head-dim channels by
+  dynamic range so channels of similar range share a quantization group
+  (one wide channel no longer stretches the scale for its whole group).
+  Computed from the **first flushed chunk** of live traffic, then frozen.
+- **Clipped dynamic quantization** — per-token, per-group asymmetric
+  min/max quantization whose window is shrunk by a clip factor α found by
+  **per-group grid search** against reconstruction MSE; α=1 (plain min/max)
+  is always in the grid, so the search never loses under its own metric.
+  The chosen α is folded into the stored (lo, scale) — nothing extra kept.
+- **Sliding fp16 window + sink filter** — the NSNQuant chunk-flush idiom:
+  tokens aging past `skvq_window` are quantized once and frozen; the first
+  `skvq_n_sink` tokens stay fp16 (the paper's attention-sink filter). Both
+  K and V quantized, per-token channel groups (reordering is what makes
+  that viable for keys).
+- **Path independence, pinned by test:** prefill-in-one-block and
+  token-by-token decode produce **bit-for-bit identical caches**. Fully
+  deterministic — no RNG anywhere.
+- Code: `veloxquant_mlx/quantizers/skvq.py` (`channel_permutation`,
+  `invert_permutation`, `apply_permutation`, `clipped_group_quant`,
+  `clipped_group_dequant`, `skvq_round_trip`, byte helpers),
+  `veloxquant_mlx/cache/skvq_cache.py` (`SKVQKVCache`), config fields
+  `skvq_bits_key`/`skvq_bits_value` (2/2), `skvq_group_size` (32),
+  `skvq_window` (128), `skvq_n_sink` (5), `skvq_reorder`,
+  `skvq_clip_search`/`skvq_clip_alpha`, `skvq_max_ctx`. No coordinator —
+  single-layer factory branch.
+- Tests: 13 quantizer + 18 cache (31 new), incl. α=1 ≡ plain min/max
+  against a numpy reference, never-worse clip search, frozen permutations,
+  sink-row fp16 exactness, closed-form byte accounting, `for_model` wiring.
+- Benchmark (`benchmark_scripts/benchmark_skvq.py`, committed
+  `skvq_benchmark_results.json`, offline-synthetic): under a
+  heterogeneous-channel regime, reordering cuts key MSE a further **16.9%**
+  on top of clip search and collapses per-channel normalized error ~450×;
+  clip search adds **14.0%** on top of reordering; under the homogeneous
+  control reordering buys **−0.3%** (nothing) — both regimes reported. The
+  repo's KIVI reference wins several heterogeneous rows outright (its
+  per-channel key scheme is intrinsically immune to channel heterogeneity)
+  — reported as measured.
+
+### Honest scope
+- The paper's offline calibration (KMeans channel clustering on WikiText-2,
+  attention-output-MSE clip search, permutation fused into projection
+  weights) is replaced by first-chunk statistics with an explicit runtime
+  permute/inverse-permute — a documented adaptation, not the paper's
+  pipeline.
+- No 1.5-bit value packing, no FP8(E4M3) metadata (CUDA packing artifacts);
+  integer bit-widths and fp16 metadata, all counted in byte accounting.
+- That real transformer K/V exhibit the heterogeneous-channel regime is the
+  paper's premise (shared with KIVI/KVQuant) — the offline-synthetic
+  benchmark cannot validate it, and the homogeneous control shows
+  reordering buys nothing without it.
+- No model-level (perplexity/throughput) benchmark run.
+
 ## [0.29.0] — 2026-07-07
 
 ### Added — L2Norm: intrinsic key-norm eviction (`method="knorm"`)

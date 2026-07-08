@@ -98,3 +98,5 @@ Full-KV compression includes the fp16 residual window, so it is not inflated.
 See `figures/kivi/fig4_vs_existing.png` for the KIVI-vs-VecInfer comparison.
 
 See also: [NSNQuant](../algorithms/nsnquant) — the other residual-window wrapper; it differs because it adapts the data to a fixed universal codebook (NSN + Hadamard Gaussianization) rather than fitting scalar min/max scales to the data.
+
+See also: [SKVQ](../algorithms/skvq) — the reorder+clip evolution of this same group quantizer (COLM 2024): it quantizes *both* K and V with per-token groups (the KIVI value scheme), made viable for keys by sorting channels into like-range groups, and shrinks each group's min/max window by a per-group searched clip factor. Its sliding window also quantizes decode tokens once they age out, where this wrapper's residual logic only touches the incoming block.

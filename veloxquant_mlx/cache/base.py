@@ -37,7 +37,7 @@ class KVCacheConfig:
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
-        "nsnquant", "knorm",
+        "nsnquant", "knorm", "skvq",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -177,6 +177,16 @@ class KVCacheConfig:
     knorm_n_sink: int = 4                # leading positions never evicted
     knorm_recent: int = 0                # trailing protected window (0 = paper-faithful)
     knorm_keep: str = "low"              # "low" = paper finding; "high" = inverted ablation
+    # --- SKVQ-adapted configuration (sliding-window reorder + clip quant) -
+    skvq_bits_key: int = 2               # key code bit-width (paper: 2)
+    skvq_bits_value: int = 2             # value code bit-width (paper: 1.5; we ship integer bits)
+    skvq_group_size: int = 32            # channels per quant group (per-token groups)
+    skvq_window: int = 128               # fp16 sliding window == flush chunk size (paper: ~128)
+    skvq_n_sink: int = 5                 # leading tokens restored to fp16 (paper's filter: ~5)
+    skvq_reorder: bool = True            # channel reordering (False = identity ablation)
+    skvq_clip_search: bool = True        # per-group clip-factor grid search at flush time
+    skvq_clip_alpha: float = 1.0         # fixed clip factor when search is off
+    skvq_max_ctx: int = 8192             # per-layer token budget
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -248,6 +258,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.xkv_cache import XKVCache
         from veloxquant_mlx.cache.nsnquant_cache import NSNQuantKVCache
         from veloxquant_mlx.cache.knorm_cache import L2NormKVCache
+        from veloxquant_mlx.cache.skvq_cache import SKVQKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -359,13 +370,19 @@ class KVCacheFactory:
             # cross-step state; the default for_model path (one L2NormKVCache
             # per layer) is all it needs.
             cache = L2NormKVCache(config)
+        elif config.method == "skvq":
+            # No coordinator: single-layer chunk-flush wrapper; the channel
+            # permutations are per-layer state frozen from the first flushed
+            # chunk, so the default for_model path (one SKVQKVCache per
+            # layer) is all it needs.
+            cache = SKVQKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq."
             )
 
         if config.sliding_window is not None:

@@ -22,7 +22,7 @@
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.29.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.30.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
 </p>
@@ -31,7 +31,7 @@
 
 ---
 
-A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **thirty-two compression strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B, through eight token-eviction caches (SnapKV, StreamingLLM, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV, and L2Norm's intrinsic key-norm scorer — EMNLP 2024, no attention and no proxy), a cache-**merging** cache (CaM) that folds evicted tokens into survivors instead of dropping them, three cross-layer methods (XQuant's code reuse, MiniCache's SLERP merge, and xKV's joint shared-subspace SVD across a layer group), and a calibration-free universal-codebook VQ (NSNQuant, NeurIPS 2025) that reshapes K/V onto one fixed Gaussian codebook instead of fitting a codebook to the data — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
+A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to **16× with near-lossless quality** on Apple M-series chips. Ships **thirty-three compression strategies** — from zero-calibration 1-bit RVQ to RaBitQ (1-bit keys + MSE-b4 values) which achieves **6× full KV compression** and fits **6× more context** in the same RAM budget on Falcon3-7B, through eight token-eviction caches (SnapKV, StreamingLLM, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV, and L2Norm's intrinsic key-norm scorer — EMNLP 2024, no attention and no proxy), a cache-**merging** cache (CaM) that folds evicted tokens into survivors instead of dropping them, three cross-layer methods (XQuant's code reuse, MiniCache's SLERP merge, and xKV's joint shared-subspace SVD across a layer group), and a calibration-free universal-codebook VQ (NSNQuant, NeurIPS 2025) that reshapes K/V onto one fixed Gaussian codebook instead of fitting a codebook to the data, plus a sliding-window quantizer (SKVQ, COLM 2024) that regroups head-dim channels by their statistics and clip-searches each quantization group's range — plus a hand-written Metal compute kernel that makes the VecInfer **quantize** hot path **6.9–14.7× faster** (13× at S=2048) and **98% lighter on peak memory** at the OOM-trigger shape. (The companion dequant kernel is at MLX `mx.take` parity — the speedup is on the quantize path.) Plug it in with three lines; `mlx_lm.generate` runs unchanged.
 
 ---
 
@@ -59,7 +59,7 @@ A KV-cache compression library for `mlx_lm` that compresses the Key tensor up to
 
 1. [Installation](#installation)
 2. [Quickstart](#quickstart)
-3. [Method library](#method-library) — all 32 methods at a glance
+3. [Method library](#method-library) — all 33 methods at a glance
 4. [Metal kernels](#metal-kernels--new-in-051)
 5. [Benchmark results](#benchmark-results)
 6. [Algorithm guide](#algorithm-guide) — pick a quantizer by workload
@@ -169,7 +169,7 @@ caches = KVCacheBuilder.for_model(model, config)
 
 ## Method library
 
-All 32 methods share the same 3-line integration (`method="<id>"` in `KVCacheConfig`).
+All 33 methods share the same 3-line integration (`method="<id>"` in `KVCacheConfig`).
 Each links to its full page — mechanism, config, evidence, and honest limitations — on
 the [documentation site](https://veloxquant-mlx.netlify.app/docs/algorithms/overview).
 A few representative methods have runnable examples in [Quickstart](#quickstart) above;
@@ -189,6 +189,7 @@ the rest follow the identical pattern.
 | [CommVQ](https://veloxquant-mlx.netlify.app/docs/algorithms/commvq) | `comm_vq` | RoPE-commutative VQ, exact inner product (ICML 2025) | — |
 | [KIVI](https://veloxquant-mlx.netlify.app/docs/algorithms/kivi) | `kivi` | Tuning-free asymmetric 2-bit baseline | 0.8.0 |
 | [KIVI-Sink](https://veloxquant-mlx.netlify.app/docs/algorithms/kivi-sink) | `kivi_sink` | Sink-protected low-bit quantization | 0.9.0 |
+| [SKVQ-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/skvq) | `skvq` | **Channel reordering + clipped dynamic quant** behind a sliding fp16 window + sink filter (COLM 2024) — permutations from first-chunk stats, no calibration | 0.30.0 |
 | [SVDq](https://veloxquant-mlx.netlify.app/docs/algorithms/svdq) | `svdq` | Sub-2-bit keys (~1.25 bit) via prefill SVD | 0.10.0 |
 | [Kitty](https://veloxquant-mlx.netlify.app/docs/algorithms/kitty) | `kitty` | Adaptive channel precision, zero calibration | 0.11.0 |
 | [KVQuant-NUQ](https://veloxquant-mlx.netlify.app/docs/algorithms/kvquant) | `kvquant` | Non-uniform datatype + outlier isolation | 0.14.0 |
@@ -579,6 +580,7 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 - [ChunkKV (arXiv:2502.00299)](https://arxiv.org/abs/2502.00299) — Liu et al., "ChunkKV: Semantic-Preserving KV Cache Compression for Efficient Long-Context LLM Inference" — chunk-level eviction: partitions the sequence into contiguous chunks and keeps or drops whole chunks by pooled importance, preserving local coherence that token-level eviction shreds; `chunk_size=1` reduces to H2O (adapted: mean-pooled per-token score proxy for attention-over-chunk importance, no layer-wise index reuse, key-as-query proxy, no RoPE remapping)
 - [CaM (ICML 2024)](https://proceedings.mlr.press/v235/zhang24n.html) — Zhang et al., "CaM: Cache Merging for Memory-efficient LLMs Inference" (PMLR 235:58840-58850) — cache merging: instead of dropping the evicted token, merges it into the surviving token it most resembles, mitigating the output perturbation that dropping causes; `cam_merge=drop` reduces to H2O (adapted: cosine-similarity merge weight instead of the paper's attention-prominence weight, single nearest-survivor merge, key-as-query proxy, no RoPE remapping)
 - [L2-norm eviction (EMNLP 2024, arXiv:2406.11430)](https://arxiv.org/abs/2406.11430) — Devoto, Zhao, Scardapane & Minervini, "A Simple and Effective L2 Norm-Based Strategy for KV Cache Compression" — intrinsic key-norm eviction: in trained decoder LMs a low key L2 norm predicts high attention, so the cache keeps the lowest-norm tokens; code at https://github.com/alessiodevoto/l2compress (adapted: uniform budget across heads, no RoPE position remapping, optional recent-window and inverted-scorer extensions off by default)
+- [SKVQ (COLM 2024, arXiv:2405.06219)](https://arxiv.org/abs/2405.06219) — Duanmu, Yuan, Li, Duan, Zhang & Lin, "SKVQ: Sliding-window Key and Value Cache Quantization for Large Language Models" — channel reordering (group like-range channels so per-token group min/max stays tight) + clipped dynamic quantization (per-group searched clip factor) behind a sliding fp16 window with an attention-sink filter; code at https://github.com/cat538/SKVQ (adapted: offline KMeans/attention-MSE calibration replaced by first-flushed-chunk statistics and per-group reconstruction-MSE clip search; explicit runtime permutation instead of weight fusion; integer bit-widths and fp16 metadata instead of 1.5-bit packing and FP8)
 - [NSNQuant (NeurIPS 2025, arXiv:2505.18231)](https://arxiv.org/abs/2505.18231) — Son, Choi & Yoo, "NSNQuant: A Double Normalization Approach for Calibration-Free Low-Bit Vector Quantization of KV Cache" — calibration-free universal-codebook VQ: a token-wise Normalize / channel-wise Shift / token-wise Normalize transform plus Hadamard rotation aligns K/V token distributions with the standard normal, so a single codebook built offline from synthetic Gaussian samples quantizes any model at 1–2 bits/element (adapted: post-RoPE keys, explicit value Hadamard, spherical-k-means-only codebook without gradient fine-tune, fp16 metadata without double quantization)
 - [xKV (arXiv:2503.18893)](https://arxiv.org/abs/2503.18893) — Chang, Lin, Lin, Chiang, Akhauri, Dai, Jiang, Li, Ceze, Wu & Abdelfattah, "xKV: Cross-Layer KV-Cache Compression via Aligned Singular Vector Extraction" — cross-layer shared-subspace compression: jointly factorizes a fixed-size group of layers' stacked key matrices into one shared SVD basis (motivated by CKA showing dominant subspaces align across nearby layers), amortizing the basis storage cost across every member of the group (adapted: fixed contiguous grouping instead of CKA-validated grouping, no "Selective Reconstruction" decode-time optimization, single-bit-width latent quantization, keys only)
 

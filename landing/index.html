@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted — all in MLX. New in 0.29.0: L2Norm-adapted intrinsic key-norm eviction (EMNLP 2024) — token importance read directly off the stored key's L2 norm, no attention scores and no proxy; zero per-step scoring cost and provably path-independent kept sets. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted — all in MLX. New in 0.30.0: SKVQ-adapted sliding-window quantization (COLM 2024) — channel reordering groups like-range channels so per-token quant groups stay tight, plus per-group clip-factor search; both K and V behind a sliding fp16 window with a sink filter, bit-for-bit path-independent. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -57,14 +57,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">32 algorithms</span>
+        <span class="hero-pill">33 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 32 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm
+        <summary>See all 33 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -111,6 +111,7 @@
       <span class="provenance-item">SIGCOMM 2024 <em>CacheGen</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">EMNLP 2024 <em>L2-norm eviction</em></span>
+      <span class="provenance-item">COLM 2024 <em>SKVQ</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">NeurIPS 2024 <em>KVQuant · MiniCache · ZipCache</em></span>
       <span class="provenance-dot">·</span>
@@ -206,6 +207,7 @@
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.30.0</span><span class="wn-body"><strong>SKVQ-adapted</strong> — sliding-window quantization with two mechanisms new to the library (COLM 2024): <em>channel reordering</em> (per-head permutations sort like-range channels into the same quant group, frozen from the first flushed chunk — no calibration) and <em>clipped dynamic quantization</em> (per-group grid-searched clip factor; α=1 always in the grid, so the search never loses under its own metric). Both K and V behind a sliding fp16 window + sink filter; bit-for-bit path-independent. Measured: reordering −16.9% key MSE on top of clip search under channel heterogeneity, −0.3% (nothing) under the homogeneous control — both reported.</span></li>
         <li><span class="wn-ver">0.29.0</span><span class="wn-body"><strong>L2Norm-adapted</strong> — first <em>intrinsic-signal</em> eviction cache. Token importance is read directly off the stored key's L2 norm (EMNLP 2024 finding: <em>low</em> norm ⇒ high attention in trained LMs) — no attention scores, no key-as-query proxy. Zero per-step scoring cost (~100–800× faster than H2O at prefill on the committed harness) and bit-for-bit path-independent kept sets: prefill and token-by-token decode yield identical caches.</span></li>
         <li><span class="wn-ver">0.28.0</span><span class="wn-body"><strong>NSNQuant-adapted</strong> — first calibration-free <em>distribution-matching</em> VQ. Instead of fitting a codebook to the data, a Normalize-Shift-Normalize transform + Hadamard rotation reshapes K/V tokens onto the standard normal, so <em>one universal codebook</em> built offline from synthetic Gaussian samples quantizes any model at 1–2 bits/element. Both keys and values; chunk-flush fp16 residual buffer; +0.04–0.11 reconstruction cosine over the same VQ without NSN on channel-biased inputs, collapsing to ~0 when input is already centered.</span></li>
         <li><span class="wn-ver">0.27.0</span><span class="wn-body"><strong>xKV-adapted</strong> — third cross-layer method. A fixed-size group of layers jointly factorizes their stacked key matrices into <em>one shared SVD basis</em> via a fan-in/fan-out coordinator, amortizing the basis storage cost across every member. 8–20% fewer bytes than independent per-layer SVD at matched reconstruction quality, improving with group size.</span></li>
@@ -226,7 +228,7 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (30)</button>
+      <button class="filter-btn active" data-filter="all">All (31)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -311,6 +313,11 @@
           <div class="picker-goal">VQ compression with zero calibration, ever</div>
           <div class="picker-method" style="color:#a78bfa">NSNQuant</div>
           <div class="picker-detail">Universal-codebook VQ · NSN + Hadamard reshape data to one fixed Gaussian codebook · 1–2 bits/element → see details ↓</div>
+        </a>
+        <a href="#algo-skvq" class="picker-card picker-card-link" style="border-color:rgba(251,113,133,0.35);">
+          <div class="picker-goal">Low-bit quant when a few channels dominate</div>
+          <div class="picker-method" style="color:#fb7185">SKVQ</div>
+          <div class="picker-detail">Channel reordering + per-group clip search · sliding fp16 window + sink filter · COLM 2024 → see details ↓</div>
         </a>
       </div>
     </div>
@@ -788,7 +795,7 @@
         <div class="cat-header" style="--chip:#7c3aed">
           <h3 class="cat-title">Quantization</h3>
           <span class="cat-blurb">Scalar, vector & codebook cache quantization</span>
-          <span class="cat-count">15</span>
+          <span class="cat-count">16</span>
         </div>
         <div class="algo-grid">
       <div id="algo-rabitq" class="algo-card fade-in" data-tags="full-kv metal extreme zero-cal" data-cat="quant">
@@ -1227,6 +1234,48 @@
           </div>
         </details>
         <div class="card-meta">v0.28.0 · NeurIPS 2025</div>
+      </div>
+      <div id="algo-skvq" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">SKVQ-adapted</div>
+        <div class="card-subtitle">sliding-window reorder + clip quantization</div>
+        <div class="algo-desc card-summary">Sorts like-range channels into the same quant group and clip-searches each group's range — two tricks new to the library, behind a sliding fp16 window.</div>
+        <div class="card-headline"><span class="headline-stat">reorder + clip · 2-bit K/V · 31/31 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from SKVQ (Duanmu, Yuan, Li, Duan, Zhang &amp; Lin, COLM 2024, <a href="https://arxiv.org/abs/2405.06219" target="_blank" rel="noopener" style="color:#fb7185">arXiv:2405.06219</a>). Plain group quantization lets one wide channel stretch the scale for its whole group; SKVQ attacks that two ways, both <strong style="color:#fb7185">new to this library</strong>.
+              <br><br>
+              <strong style="color:var(--text)">① Channel reordering</strong> — per-head permutations sort head-dim channels by dynamic range so like-range channels share a group; computed from the <em>first flushed chunk</em> of live traffic and frozen (the paper's offline KMeans + weight fusion, adapted to cache-observable data)<br>
+              <strong style="color:var(--text)">② Clipped dynamic quantization</strong> — each group's min/max window shrinks by a per-group grid-searched clip factor α, saturating a few extremes to buy finer resolution everywhere else; α=1 is always in the grid, so the search never loses under its own metric<br>
+              <strong style="color:var(--text)">③ Sliding fp16 window + sink filter</strong> — tokens aging past the window are quantized once and frozen; the first tokens stay fp16 (the paper's attention-sink filter)<br>
+              <br>
+              <strong style="color:#fb7185">Honest measurement (committed JSON):</strong> under channel heterogeneity, reordering cuts key MSE a further 16.9% on top of clip search and collapses per-channel normalized error ~450×; under the homogeneous control it buys −0.3% — nothing, as it should. KIVI's per-channel key scheme wins several heterogeneous rows outright (reported as measured). Prefill and decode produce bit-for-bit identical caches.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Bits (keys / values)</span>
+                <span class="value" style="color:#fb7185">2 / 2 default (paper: 2 / 1.5)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Reordering win (heterogeneous / control)</span>
+                <span class="value">−16.9% key MSE / −0.3% (nothing)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Clip-search win (on top of reorder)</span>
+                <span class="value">−14.0% key MSE</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Path independence</span>
+                <span class="value">prefill ≡ decode, bit-for-bit (pinned by test)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — first-chunk statistics, frozen</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.30.0 · COLM 2024</div>
       </div>
       <div id="algo-kivi" class="algo-card fade-in" data-tags="zero-cal" data-cat="quant">
         <div class="card-head">
@@ -1678,6 +1727,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="xkv" style="border-color:rgba(244,114,182,0.4);color:#f472b6">xKV · shared subspace</button>
       <button class="tab-btn" data-tab="nsnquant" style="border-color:rgba(167,139,250,0.4);color:#a78bfa">NSNQuant · universal VQ</button>
       <button class="tab-btn" data-tab="knorm" style="border-color:rgba(52,211,153,0.4);color:#34d399">L2Norm · eviction</button>
+      <button class="tab-btn" data-tab="skvq" style="border-color:rgba(251,113,133,0.4);color:#fb7185">SKVQ · reorder + clip</button>
     </div>
 
     <!-- RVQ tab -->
@@ -1999,6 +2049,37 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
 <span class="op">)</span></pre>
       </div>
     </div>
+    <div class="code-panel" id="tab-skvq">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — SKVQ · sliding-window reorder + clip quantization</span>
+          <button class="code-copy" data-target="code-skvq">Copy</button>
+        </div>
+        <pre id="code-skvq"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Sliding-window quantization (COLM 2024): channel reordering groups</span>
+<span class="cm"># like-range channels (permutations frozen from the first flushed chunk),</span>
+<span class="cm"># clip search shrinks each group's range; recent window stays fp16.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"skvq"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">skvq_bits_key</span><span class="op">=</span><span class="nu">2</span><span class="op">,</span>   <span class="cm"># paper setting</span>
+    <span class="at">skvq_window</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>   <span class="cm"># fp16 sliding window</span>
+    <span class="at">skvq_n_sink</span><span class="op">=</span><span class="nu">5</span><span class="op">,</span>     <span class="cm"># attention-sink filter, kept fp16</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
   </section>
 
   <div class="divider"></div>
@@ -2168,7 +2249,7 @@ pip install -e ".[dev]"</span></pre>
           <li>Matplotlib ≥ 3.8 (for benchmark plots)</li>
           <li>MIT License — free for commercial use</li>
           <li>12 production models validated</li>
-          <li>897/903 tests passing (remaining 6: machine-dependent Metal fp16-tolerance parity flakes)</li>
+          <li>928/934 tests passing (remaining 6: machine-dependent Metal fp16-tolerance parity flakes)</li>
         </ul>
       </div>
     </div>

@@ -11,7 +11,24 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.29.0 — Latest
+## v0.30.0 — Latest
+
+### New
+- **SKVQ-adapted** (`method="skvq"`) — sliding-window quantization with two mechanisms new to the library: **channel reordering** (permute head-dim channels so channels of similar dynamic range share a quantization group — per-head permutations sorted by range, frozen from the first flushed chunk) and **clipped dynamic quantization** (each group's min/max window shrunk by a per-group grid-searched clip factor α, saturating a few extremes to buy finer resolution everywhere else; α=1 is always in the grid so the search never loses under its own metric). Both K and V quantized with per-token channel groups behind a sliding fp16 window (the NSNQuant chunk-flush idiom) with the paper's attention-sink filter (first `skvq_n_sink` tokens stay fp16). Inspired by "SKVQ: Sliding-window Key and Value Cache Quantization for Large Language Models" (Duanmu, Yuan, Li, Duan, Zhang, Lin, COLM 2024, arXiv:2405.06219) — documented as "SKVQ-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `SKVQKVCache` (`veloxquant_mlx/cache/skvq_cache.py`); primitives in `veloxquant_mlx/quantizers/skvq.py`: `channel_permutation`, `invert_permutation`, `apply_permutation`, `clipped_group_quant`/`clipped_group_dequant` (vectorized per-group α search, α folded into the stored lo/scale — nothing extra kept), `skvq_round_trip`, byte helpers.
+  - Prefill and token-by-token decode produce **bit-for-bit identical caches** (chunk boundaries, first-chunk permutation statistics, clip search, and sink restore are all functions of the same chunk contents — pinned by test). Deterministic end to end: no RNG anywhere.
+  - Config: `skvq_bits_key`/`skvq_bits_value` (default 2/2), `skvq_group_size` (32), `skvq_window` (128), `skvq_n_sink` (5), `skvq_reorder` (True; False = identity ablation), `skvq_clip_search` (True) / `skvq_clip_alpha`, `skvq_max_ctx`. No coordinator — the default `KVCacheBuilder.for_model()` path returns one `SKVQKVCache` per layer.
+  - 13 quantizer tests + 18 cache tests; `benchmark_scripts/benchmark_skvq.py` + committed `skvq_benchmark_results.json` — under a heterogeneous-channel regime (2.5-decade smooth scale spread), reordering cuts key MSE a further **16.9%** on top of clip search and collapses per-channel normalized error ~450×; clip search adds **14.0%** on top of reordering; under the homogeneous control reordering buys **−0.3%** (nothing), reported in full. The repo's KIVI reference wins several heterogeneous rows outright (its per-channel key scheme is intrinsically immune to channel heterogeneity) — reported as measured.
+
+### Honest scope
+- The paper's offline calibration (KMeans channel clustering on WikiText-2 + attention-output-MSE clip search, permutation fused into projection weights) is replaced by **first-chunk statistics** (sort by dynamic range; per-group reconstruction-MSE grid search) with an explicit runtime permute/inverse-permute — a documented adaptation, not the paper's pipeline.
+- No 1.5-bit value packing and no FP8(E4M3) metadata (both CUDA artifacts); integer bit-widths and fp16 metadata, all counted in the byte accounting.
+- That real transformer K/V exhibit the heterogeneous-channel regime is the paper's premise (shared with KIVI/KVQuant), not something the offline-synthetic benchmark can validate — the homogeneous control shows reordering buys nothing without it.
+- No model-level (perplexity/throughput) benchmark run.
+
+---
+
+## v0.29.0
 
 ### New
 - **L2Norm-adapted** (`method="knorm"`) — the repo's first **intrinsic-signal** eviction cache: token importance is read directly off the stored key vector's L2 norm, with the counterintuitive sign the paper reports in trained decoder LMs — **low norm ⇒ high future attention** — so the cache keeps the lowest-norm tokens. No attention scores, no key-as-query proxy (the approximation H2O/SnapKV/TOVA need), no structure-only recency rule: the paper's actual signal is fully observable at the cache level, making this the cleanest adaptation in the eviction family. L2Norm-adapted ("A Simple and Effective L2 Norm-Based Strategy for KV Cache Compression", Devoto, Zhao, Scardapane, Minervini, EMNLP 2024, arXiv:2406.11430) — documented as "L2Norm-adapted (VeloxQuant-MLX implementation)," not a faithful port.

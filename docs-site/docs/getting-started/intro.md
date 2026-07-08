@@ -7,7 +7,7 @@ slug: /getting-started/intro
 
 # What is VeloxQuant-MLX?
 
-VeloxQuant-MLX is a production-grade **KV cache compression library** for Apple Silicon (M-series Macs). It implements thirty compression algorithms — quantization plus token eviction — that compress the key-value cache used during LLM inference, reducing peak memory by up to **98%** while maintaining near-lossless output quality.
+VeloxQuant-MLX is a production-grade **KV cache compression library** for Apple Silicon (M-series Macs). It implements thirty-three compression algorithms — quantization plus token eviction — that compress the key-value cache used during LLM inference, reducing peak memory by up to **98%** while maintaining near-lossless output quality.
 
 LLMs like Llama, Mistral, and Qwen store past context in a KV cache that grows linearly with sequence length. On a MacBook M3 Pro with 18 GB unified memory, a 7B model at 8k context can consume 14 GB of cache alone — leaving almost no room for anything else. VeloxQuant-MLX compresses that cache on-the-fly with Metal GPU kernels, making long-context inference practical on consumer hardware.
 
@@ -33,7 +33,7 @@ Apple's M-series chips have a unique advantage: **unified memory**. The GPU and 
 
 ## Algorithm overview
 
-VeloxQuant-MLX provides thirty algorithms ranging from zero-calibration 1-bit methods to sophisticated mixed-precision allocators, low-rank latent caches, cross-layer schemes, and token-eviction/merging caches:
+VeloxQuant-MLX provides thirty-three algorithms ranging from zero-calibration 1-bit methods to sophisticated mixed-precision allocators, low-rank latent caches, cross-layer schemes, and token-eviction/merging caches:
 
 | Algorithm | Bits | Calibration | Best for |
 |---|---|---|---|
@@ -47,6 +47,7 @@ VeloxQuant-MLX provides thirty algorithms ranging from zero-calibration 1-bit me
 | **CommVQ** | 2–4 | None | RoPE-compatible residual VQ |
 | **KIVI** | 2 | None | Tuning-free asymmetric baseline |
 | **KIVI-Sink** | 2 | None | Sink-protected low-bit quantization |
+| **SKVQ-adapted** | 2 | None (first-chunk stats) | Channel reordering + clip search behind a sliding fp16 window |
 | **SVDq** | ~1.25 | SVD at prefill | Sub-2-bit keys, long context |
 | **Kitty** | ~2.5 | None | Adaptive channel precision |
 | **AdaKV-proxy** | 2–4 | None | Per-head adaptive bits, layers on KIVI |

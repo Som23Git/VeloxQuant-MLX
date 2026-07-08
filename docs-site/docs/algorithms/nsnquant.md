@@ -199,3 +199,4 @@ rather than hoping the geometry fits.
 | KIVI | scalar min/max groups | none | 2–4 | yes |
 | RaBitQ / VecInfer | geometric (signs/binary) | none | 1–2 | no |
 | **NSNQuant** | universal Gaussian codebook | none (by construction) | 1–2 | yes (chunk-flush) |
+| [SKVQ](../algorithms/skvq) | scalar min/max + channel reorder + clip | none (first-chunk stats) | 2–4 | yes (chunk-flush, same idiom) |
