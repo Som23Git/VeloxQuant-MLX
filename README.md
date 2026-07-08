@@ -25,6 +25,7 @@
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.30.1-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
+  <a href="https://buymeacoffee.com/rajveer43"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-ffdd00?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"/></a>
 </p>
 
 </div>
@@ -613,6 +614,16 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 **Framework:** [Apple MLX](https://github.com/ml-explore/mlx)
 
 </details>
+
+---
+
+## Support
+
+VeloxQuant-MLX has passed **15,000+ downloads** on PyPI. It's free, MIT-licensed,
+and built nights-and-weekends — if it saves your Mac some memory (or you just
+want to see the 34th method land), you can
+[**buy me a coffee** ☕](https://buymeacoffee.com/rajveer43). Stars, issues, and
+PRs are equally appreciated.
 
 ---
 

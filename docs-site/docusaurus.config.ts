@@ -129,6 +129,10 @@ const config: Config = {
               label: 'Issues',
               href: 'https://github.com/rajveer43/veloxquant-mlx/issues',
             },
+            {
+              label: '☕ Buy me a coffee',
+              href: 'https://buymeacoffee.com/rajveer43',
+            },
           ],
         },
         {
