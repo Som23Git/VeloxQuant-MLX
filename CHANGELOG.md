@@ -7,6 +7,26 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.30.1] — 2026-07-08
+
+### Fixed — PyPI package metadata (no code changes)
+
+Metadata-only patch release. PyPI mirrors such as pepy.tech showed no
+summary/version/license/author for the package because the published
+metadata was malformed in ways downstream consumers reject:
+
+- **Summary** was a ~700-character 33-method list — replaced with a proper
+  one-line summary (the full method list lives in the README, which is the
+  PyPI long description).
+- **License** field contained the entire MIT license text
+  (`license = { file = "LICENSE" }` embeds the file verbatim) — now a PEP 639
+  SPDX expression (`License-Expression: MIT`, `License-File: LICENSE`);
+  the deprecated `License ::` classifier was dropped per PEP 639.
+- **Author** was empty (name+email pairs emit only `Author-email:`) — now
+  also emits `Author: Rajveer Rathod`.
+
+Wheel/sdist contents are otherwise identical to 0.30.0.
+
 ## [0.30.0] — 2026-07-08
 
 ### Added — SKVQ: sliding-window reorder + clip quantization (`method="skvq"`)

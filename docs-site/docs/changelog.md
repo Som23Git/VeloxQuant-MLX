@@ -11,7 +11,14 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.30.0 — Latest
+## v0.30.1 — Latest
+
+### Fixed
+- **PyPI package metadata only — no code changes.** PyPI mirrors such as pepy.tech showed no summary/version/license/author because the published metadata was malformed for downstream consumers: the Summary was a ~700-character method list (now a one-line summary), the License field embedded the entire MIT license text via `license = { file = "LICENSE" }` (now a PEP 639 SPDX expression, `License-Expression: MIT`), and the `Author:` field was empty (now populated alongside `Author-email:`). Wheel/sdist contents are otherwise identical to 0.30.0.
+
+---
+
+## v0.30.0
 
 ### New
 - **SKVQ-adapted** (`method="skvq"`) — sliding-window quantization with two mechanisms new to the library: **channel reordering** (permute head-dim channels so channels of similar dynamic range share a quantization group — per-head permutations sorted by range, frozen from the first flushed chunk) and **clipped dynamic quantization** (each group's min/max window shrunk by a per-group grid-searched clip factor α, saturating a few extremes to buy finer resolution everywhere else; α=1 is always in the grid so the search never loses under its own metric). Both K and V quantized with per-token channel groups behind a sliding fp16 window (the NSNQuant chunk-flush idiom) with the paper's attention-sink filter (first `skvq_n_sink` tokens stay fp16). Inspired by "SKVQ: Sliding-window Key and Value Cache Quantization for Large Language Models" (Duanmu, Yuan, Li, Duan, Zhang, Lin, COLM 2024, arXiv:2405.06219) — documented as "SKVQ-adapted (VeloxQuant-MLX implementation)," not a faithful port.
