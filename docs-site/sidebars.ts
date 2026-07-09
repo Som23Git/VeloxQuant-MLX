@@ -53,6 +53,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/chunkkv',
         'algorithms/cam',
         'algorithms/knorm',
+        'algorithms/qfilters',
         'algorithms/xkv',
       ],
     },

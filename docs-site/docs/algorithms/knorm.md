@@ -25,6 +25,7 @@ a third:
 | Attention / proxy | softmax weights (true or key-as-query proxy) | [SnapKV](../algorithms/snapkv) · [H2O](../algorithms/h2o) · [TOVA](../algorithms/tova) · [PyramidKV](../algorithms/pyramidkv) · [SqueezeAttention](../algorithms/squeeze) · [ChunkKV](../algorithms/chunkkv) · [CaM](../algorithms/cam) |
 | Structural | position only (sinks, recency) | [StreamingLLM](../algorithms/streaming_llm) · sink · sliding-window |
 | **Intrinsic** | **the stored key itself (L2 norm)** | **L2Norm** |
+| Projection | key's projection onto a frozen per-head direction | [Q-Filters](../algorithms/qfilters) |
 
 Two consequences fall out of the score being intrinsic (computed once at
 insertion, never updated):
@@ -171,3 +172,4 @@ query stream, use [H2O](../algorithms/h2o) (cumulative) or
 | H2O | cumulative proxy-attention mass | softmax over cache | no |
 | TOVA | current-step proxy attention | softmax over cache | no |
 | **L2Norm** | intrinsic key norm | none (norm at insertion) | **yes** (`recent=0`) |
+| [Q-Filters](../algorithms/qfilters) | projection onto frozen key-SVD direction | none (after calibration) | no |

@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted — all in MLX. New in 0.30.0: SKVQ-adapted sliding-window quantization (COLM 2024) — channel reordering groups like-range channels so per-token quant groups stay tight, plus per-group clip-factor search; both K and V behind a sliding fp16 window with a sink filter, bit-for-bit path-independent. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted, Q-Filters-adapted — all in MLX. New in 0.31.0: Q-Filters-adapted query-agnostic projection eviction (preprint) — score cached keys by their projection onto a frozen per-head direction; the paper derives it from query SVD, we substitute the SVD of observed keys (a documented deviation that recovers the axis but not its sign). Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -57,14 +57,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">33 algorithms</span>
+        <span class="hero-pill">34 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 33 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ
+        <summary>See all 34 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -125,7 +125,7 @@
       <span class="provenance-dot">·</span>
       <span class="provenance-item">ICLR 2026 <em>TurboQuant</em></span>
       <span class="provenance-dot">·</span>
-      <span class="provenance-item">arXiv <em>QJL · VecInfer · SpectralQuant · RateQuant · GEAR · TOVA · PyramidKV · SqueezeAttention · ChunkKV · xKV</em></span>
+      <span class="provenance-item">arXiv <em>QJL · VecInfer · SpectralQuant · RateQuant · GEAR · TOVA · PyramidKV · SqueezeAttention · ChunkKV · xKV · Q-Filters</em></span>
     </div>
   </div>
 
@@ -207,6 +207,7 @@
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.31.0</span><span class="wn-body"><strong>Q-Filters-adapted</strong> — query-agnostic projection eviction (preprint), the library's fourth eviction scorer class. Score each key by its projection onto a frozen per-head direction. The honest crux: the paper derives that direction from <em>query</em> SVD offline, but a cache never sees queries, so we substitute the SVD of the first observed <em>keys</em> — which recovers the dominant axis but not which end is important, making <code>qfilters_sign</code> a genuine ablation and the kept set path-dependent. Measured: key-SVD recovers the planted axis at filter_cosine ≈ 0.97; the correct-sign arm beats random by +0.16 mean perturbation under paper-like geometry, ~nothing under the isotropic control — both reported.</span></li>
         <li><span class="wn-ver">0.30.0</span><span class="wn-body"><strong>SKVQ-adapted</strong> — sliding-window quantization with two mechanisms new to the library (COLM 2024): <em>channel reordering</em> (per-head permutations sort like-range channels into the same quant group, frozen from the first flushed chunk — no calibration) and <em>clipped dynamic quantization</em> (per-group grid-searched clip factor; α=1 always in the grid, so the search never loses under its own metric). Both K and V behind a sliding fp16 window + sink filter; bit-for-bit path-independent. Measured: reordering −16.9% key MSE on top of clip search under channel heterogeneity, −0.3% (nothing) under the homogeneous control — both reported.</span></li>
         <li><span class="wn-ver">0.29.0</span><span class="wn-body"><strong>L2Norm-adapted</strong> — first <em>intrinsic-signal</em> eviction cache. Token importance is read directly off the stored key's L2 norm (EMNLP 2024 finding: <em>low</em> norm ⇒ high attention in trained LMs) — no attention scores, no key-as-query proxy. Zero per-step scoring cost (~100–800× faster than H2O at prefill on the committed harness) and bit-for-bit path-independent kept sets: prefill and token-by-token decode yield identical caches.</span></li>
         <li><span class="wn-ver">0.28.0</span><span class="wn-body"><strong>NSNQuant-adapted</strong> — first calibration-free <em>distribution-matching</em> VQ. Instead of fitting a codebook to the data, a Normalize-Shift-Normalize transform + Hadamard rotation reshapes K/V tokens onto the standard normal, so <em>one universal codebook</em> built offline from synthetic Gaussian samples quantizes any model at 1–2 bits/element. Both keys and values; chunk-flush fp16 residual buffer; +0.04–0.11 reconstruction cosine over the same VQ without NSN on channel-biased inputs, collapsing to ~0 when input is already centered.</span></li>
@@ -228,7 +229,7 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (31)</button>
+      <button class="filter-btn active" data-filter="all">All (32)</button>
       <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal">Metal kernel</button>
@@ -319,6 +320,11 @@
           <div class="picker-method" style="color:#fb7185">SKVQ</div>
           <div class="picker-detail">Channel reordering + per-group clip search · sliding fp16 window + sink filter · COLM 2024 → see details ↓</div>
         </a>
+        <a href="#algo-qfilters" class="picker-card picker-card-link" style="border-color:rgba(52,211,153,0.35);">
+          <div class="picker-goal">Importance eviction keyed to head geometry</div>
+          <div class="picker-method" style="color:#34d399">Q-Filters</div>
+          <div class="picker-detail">Projection onto a frozen per-head direction · no attention, no proxy · key-SVD substitute, sign-ambiguous · preprint → see details ↓</div>
+        </a>
       </div>
     </div>
 
@@ -328,7 +334,7 @@
         <div class="cat-header" style="--chip:#2dd4bf">
           <h3 class="cat-title">Token Eviction</h3>
           <span class="cat-blurb">Constant-memory caches that drop (or merge) low-value tokens</span>
-          <span class="cat-count">9</span>
+          <span class="cat-count">10</span>
         </div>
         <div class="algo-grid">
       <div id="algo-cam" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
@@ -428,6 +434,52 @@
           </div>
         </details>
         <div class="card-meta">v0.29.0 · EMNLP 2024</div>
+      </div>
+      <div id="algo-qfilters" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">Q-Filters-adapted</div>
+        <div class="card-subtitle">query-agnostic projection eviction</div>
+        <div class="algo-desc card-summary">Scores each key by its projection onto a frozen per-head direction — attention-quality importance with no attention, no proxy, no per-step cost.</div>
+        <div class="card-headline"><span class="headline-stat">query-agnostic projection · no attention, no proxy · 27/27 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from "Q-Filters: Leveraging QK Geometry for Efficient KV Cache Compression" (<a href="https://arxiv.org/abs/2503.02812" target="_blank" rel="noopener" style="color:#34d399">arXiv:2503.02812</a>, <strong style="color:var(--text)">preprint</strong>). The library's <strong style="color:#34d399">fourth eviction scorer class</strong> — after attention/proxy, structural, and intrinsic-norm. The paper's premise: trained heads have an anisotropic QK geometry, so a single per-head direction predicts attention.
+              <br><br>
+              <strong style="color:var(--text)">① Calibrate</strong> — freeze a per-head filter as the top singular vector of the first observed keys<br>
+              <strong style="color:var(--text)">② Project</strong> — score every key by <code>sign · (key · filter)</code>, computed once at insertion<br>
+              <strong style="color:var(--text)">③ Top-k</strong> — over budget, keep the highest-scoring tokens (sinks always survive), in original order<br>
+              <br>
+              <strong style="color:#34d399">The honest crux:</strong> the paper derives the filter from <em>query</em> SVD offline, but a cache never sees queries — so we substitute the SVD of observed <em>keys</em>. That recovers the dominant <em>axis</em> but not which <em>end</em> is important (the sign a query would fix), making <code>qfilters_sign</code> a genuine ablation and the kept set path-dependent. Measured: key-SVD recovers the planted axis at filter_cosine ≈ 0.97; correct-sign beats random by +0.16 under paper-like geometry, ~nothing under the isotropic control — both reported. Nothing here is claimed equivalent to the paper's query-derived filter.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Scorer class</span>
+                <span class="value" style="color:#34d399">projection (frozen key-SVD direction)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">key · per-head filter (preprint)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Per-step scoring cost</span>
+                <span class="value" style="color:#34d399">none (after calibration)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Filter source</span>
+                <span class="value">observed keys, not queries — sign-ambiguous</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Path-independent kept set</span>
+                <span class="value">no (path-dependent)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None (online first-chunk key-SVD)</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.31.0 · preprint</div>
       </div>
       <div id="algo-chunkkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
         <div class="card-head">
@@ -1728,6 +1780,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="nsnquant" style="border-color:rgba(167,139,250,0.4);color:#a78bfa">NSNQuant · universal VQ</button>
       <button class="tab-btn" data-tab="knorm" style="border-color:rgba(52,211,153,0.4);color:#34d399">L2Norm · eviction</button>
       <button class="tab-btn" data-tab="skvq" style="border-color:rgba(251,113,133,0.4);color:#fb7185">SKVQ · reorder + clip</button>
+      <button class="tab-btn" data-tab="qfilters" style="border-color:rgba(52,211,153,0.4);color:#34d399">Q-Filters · projection eviction</button>
     </div>
 
     <!-- RVQ tab -->
@@ -2069,6 +2122,39 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <span class="at">skvq_bits_key</span><span class="op">=</span><span class="nu">2</span><span class="op">,</span>   <span class="cm"># paper setting</span>
     <span class="at">skvq_window</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>   <span class="cm"># fp16 sliding window</span>
     <span class="at">skvq_n_sink</span><span class="op">=</span><span class="nu">5</span><span class="op">,</span>     <span class="cm"># attention-sink filter, kept fp16</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize this 20k-token document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- Q-Filters tab -->
+    <div class="code-panel" id="tab-qfilters">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — Q-Filters · query-agnostic projection eviction (preprint)</span>
+          <button class="code-copy" data-target="code-qfilters">Copy</button>
+        </div>
+        <pre id="code-qfilters"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Projection eviction: score each key by its projection onto a frozen</span>
+<span class="cm"># per-head direction (top singular vector of the first observed keys —</span>
+<span class="cm"># a documented deviation from the paper's query-SVD; sign is a real knob).</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"qfilters"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">qfilters_budget</span><span class="op">=</span><span class="nu">512</span><span class="op">,</span>       <span class="cm"># max tokens kept</span>
+    <span class="at">qfilters_calib_tokens</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span> <span class="cm"># before the filter freezes</span>
+    <span class="at">qfilters_sign</span><span class="op">=</span><span class="nu">1</span><span class="op">,</span>           <span class="cm"># -1 = inverted ablation</span>
 <span class="op">)</span>
 <span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
 

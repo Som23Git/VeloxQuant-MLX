@@ -7,6 +7,57 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.31.0] — 2026-07-09
+
+### Added — Q-Filters-adapted query-agnostic projection eviction (`method="qfilters"`)
+
+The library's 34th method and its **fourth eviction scorer class** — after
+attention/proxy (SnapKV, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV,
+CaM), structural (StreamingLLM, sink), and intrinsic-norm (L2Norm). Each
+cached key is scored by its projection onto a single frozen per-head
+direction (the *Q-Filter*); over budget, the highest-scoring tokens are kept,
+with sinks and an optional recent window protected. Inspired by "Q-Filters:
+Leveraging QK Geometry for Efficient KV Cache Compression" (arXiv:2503.02812,
+**preprint**) — documented as "Q-Filters-adapted (VeloxQuant-MLX
+implementation)," not a faithful port.
+
+- `veloxquant_mlx/quantizers/qfilters.py` — `QFiltersState`,
+  `estimate_filter_dir` (top singular vector of the observed keys, frozen
+  after `qfilters_calib_tokens`), `qfilters_update`, `qfilters_get_kv`, byte
+  helpers (K+V fp16 plus the float32 filter direction).
+- `veloxquant_mlx/cache/qfilters_cache.py` — `QFiltersKVCache`, single-layer,
+  no coordinator, modeled on `L2NormKVCache`.
+- `veloxquant_mlx/cache/base.py` — `method="qfilters"` config fields
+  (`qfilters_budget` 512, `qfilters_n_sink` 4, `qfilters_recent` 0,
+  `qfilters_calib_tokens` 128, `qfilters_sign` 1), factory dispatch.
+- 27 tests (12 quantizer + 15 cache), all passing.
+- `benchmark_scripts/benchmark_qfilters.py` + committed
+  `qfilters_benchmark_results.json` (deterministic; sign±1, best-of-sign,
+  KNorm/H2O/random arms, two geometries, `filter_cosine` field).
+- Docs: `docs-site/docs/algorithms/qfilters.md`, sidebar/overview entries,
+  cross-links from `knorm.md` and `h2o.md`.
+
+**Honest scope.**
+
+- **The filter is key-SVD-derived, not query-SVD-derived.** The paper
+  estimates the direction offline from a sample of *query* vectors; a
+  cache-side library never sees queries, so we substitute the SVD of the
+  first observed *keys*. This recovers the dominant *axis* but not which
+  *end* is important — the sign a query would disambiguate. The committed
+  benchmark shows the key-SVD recovering the planted axis
+  (`filter_cosine ≈ 0.97`) while which raw sign arm wins flips row to row, so
+  `qfilters_sign` is a **genuine ablation**. Nothing here is claimed
+  equivalent to the paper's query-derived filter.
+- **Path-dependent** (unlike L2Norm): prefill-in-one-block and
+  token-by-token decode can freeze different filters and diverge — no
+  prefill/decode bit-for-bit equivalence guarantee (deliberately not tested).
+- Preprint, no venue. No RoPE remapping after eviction. Uniform budget across
+  heads. `qfilters_recent` is an extension, off by default. No model-level
+  perplexity/throughput benchmark — offline-synthetic output-perturbation and
+  byte-accounting only.
+
+---
+
 ## [0.30.1] — 2026-07-08
 
 ### Fixed — PyPI package metadata (no code changes)

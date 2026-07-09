@@ -57,7 +57,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.30.0 — SKVQ-adapted sliding-window reorder + clip quantization shipped";
+  const text = "v0.31.0 — Q-Filters-adapted query-agnostic projection eviction shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;

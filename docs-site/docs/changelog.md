@@ -11,7 +11,22 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.30.1 — Latest
+## v0.31.0 — Latest
+
+### New
+- **Q-Filters-adapted** (`method="qfilters"`) — query-agnostic projection eviction, the library's fourth eviction scorer class (after attention/proxy, structural, and intrinsic-norm). Each cached key is scored by its projection onto a single frozen per-head direction; over budget, the highest-scoring tokens are kept (sinks and an optional recent window protected). Inspired by "Q-Filters: Leveraging QK Geometry for Efficient KV Cache Compression" (arXiv:2503.02812, **preprint**) — documented as "Q-Filters-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `QFiltersKVCache` (`veloxquant_mlx/cache/qfilters_cache.py`); primitives in `veloxquant_mlx/quantizers/qfilters.py`: `estimate_filter_dir` (top singular vector of the observed keys, frozen after `qfilters_calib_tokens`), `qfilters_update`/`qfilters_get_kv`, byte helpers (K+V fp16 plus the float32 filter direction).
+  - Config: `qfilters_budget` (512), `qfilters_n_sink` (4), `qfilters_recent` (0, extension), `qfilters_calib_tokens` (128), `qfilters_sign` (1; -1 = inverted ablation).
+  - 27 tests (12 quantizer + 15 cache) and a deterministic offline benchmark (`benchmark_scripts/benchmark_qfilters.py`).
+
+### Honest scope
+- **The filter is key-SVD-derived, not query-SVD-derived.** The paper estimates the direction offline from a sample of query vectors; a cache-side library never sees queries, so we substitute the SVD of the first observed *keys*. This recovers the dominant *axis* but not which *end* is important — the sign a query would disambiguate. The committed benchmark shows the key-SVD recovering the planted axis (`filter_cosine ≈ 0.97`) while which raw sign arm wins flips row to row, so `qfilters_sign` is a **genuine ablation**. Nothing here is claimed equivalent to the paper's filter.
+- **Path-dependent** (unlike L2Norm): prefill-in-one-block and token-by-token decode can freeze different filters and diverge; there is deliberately no prefill/decode bit-for-bit equivalence guarantee.
+- Preprint, no venue. No RoPE remapping after eviction. Uniform budget across heads. `qfilters_recent` is an extension, off by default. No model-level perplexity/throughput benchmark — offline-synthetic output-perturbation and byte-accounting only.
+
+---
+
+## v0.30.1
 
 ### Fixed
 - **PyPI package metadata only — no code changes.** PyPI mirrors such as pepy.tech showed no summary/version/license/author because the published metadata was malformed for downstream consumers: the Summary was a ~700-character method list (now a one-line summary), the License field embedded the entire MIT license text via `license = { file = "LICENSE" }` (now a PEP 639 SPDX expression, `License-Expression: MIT`), and the `Author:` field was empty (now populated alongside `Author-email:`). Wheel/sdist contents are otherwise identical to 0.30.0.

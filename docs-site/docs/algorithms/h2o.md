@@ -124,4 +124,4 @@ criterion for retention.
 **merges** the loser into a similar survivor instead of dropping it, recovering a
 share of the lost mass at high compression. `cam_merge="drop"` is exactly H2O.
 
-See also: [L2Norm](../algorithms/knorm) — the same keep/evict machinery with an *intrinsic* scorer (key L2 norm, computed once at insertion): no per-step softmax over the cache, and path-independent kept sets, at the price of trusting the paper's low-norm ⇒ high-attention finding rather than reacting to the query stream.
+See also: [L2Norm](../algorithms/knorm) — the same keep/evict machinery with an *intrinsic* scorer (key L2 norm, computed once at insertion): no per-step softmax over the cache, and path-independent kept sets, at the price of trusting the paper's low-norm ⇒ high-attention finding rather than reacting to the query stream. And [Q-Filters](../algorithms/qfilters) — the same machinery again with a *projection* scorer (a frozen per-head key-SVD direction): also no per-step softmax, but path-dependent and sign-ambiguous, since the direction is estimated from keys rather than the paper's queries.
