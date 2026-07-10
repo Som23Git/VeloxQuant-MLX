@@ -37,7 +37,7 @@ class KVCacheConfig:
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
-        "nsnquant", "knorm", "skvq", "qfilters", "keyformer",
+        "nsnquant", "knorm", "skvq", "qfilters", "keyformer", "morphkv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -199,6 +199,10 @@ class KVCacheConfig:
     keyformer_recent: int = 0            # trailing protected window (extension, off)
     keyformer_tau: float = 1.0           # Gumbel temperature; 0 = H2O-adapted (ablation)
     keyformer_seed: int = 0              # base seed for the frozen per-position noise
+    # --- MorphKV-adapted configuration (recent-window correlation retention) --
+    morphkv_budget: int = 512            # max tokens kept (incl. sinks)
+    morphkv_n_sink: int = 4              # leading positions never evicted
+    morphkv_window: int = 8              # trailing recent-attention window; 1 = latest-token
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -273,6 +277,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.skvq_cache import SKVQKVCache
         from veloxquant_mlx.cache.qfilters_cache import QFiltersKVCache
         from veloxquant_mlx.cache.keyformer_cache import KeyformerKVCache
+        from veloxquant_mlx.cache.morphkv_cache import MorphKVKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -400,13 +405,18 @@ class KVCacheFactory:
             # per-layer per-head state; the default for_model path (one
             # KeyformerKVCache per layer) is all it needs.
             cache = KeyformerKVCache(config)
+        elif config.method == "morphkv":
+            # No coordinator: recent-window correlation retention is per-layer
+            # per-head state recomputed each step; the default for_model path
+            # (one MorphKVKVCache per layer) is all it needs.
+            cache = MorphKVKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv."
             )
 
         if config.sliding_window is not None:

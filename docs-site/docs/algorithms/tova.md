@@ -144,6 +144,11 @@ in the past. It complements H2O: pick TOVA when context shifts within a long
 sequence and stale heavy hitters should be released; pick H2O when consistently
 attended tokens should be protected against transient dips in attention.
 
+See also [MorphKV](../algorithms/morphkv) — it generalizes TOVA's single-latest-token
+signal to a **sliding window** of recent tokens, so retention averages over recent
+context instead of reacting to one (possibly noisy) latest query. Setting
+`morphkv_window=1` collapses MorphKV back onto this TOVA cache, bit-for-bit.
+
 | Scenario | Recommended method |
 |----------|-------------------|
 | Compress all tokens uniformly | KIVI-2bit |

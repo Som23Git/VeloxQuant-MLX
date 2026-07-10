@@ -11,7 +11,23 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.32.0 — Latest
+## v0.33.0 — Latest
+
+### New
+- **MorphKV-adapted** (`method="morphkv"`) — recent-window correlation retention. Keeps a constant-size cache by ranking stored tokens against the attention pattern of a **sliding window of recent tokens**, eliminating the "early-token bias" of cumulative (H2O) scoring — where tokens that were heavy hitters early crowd out what the model is *currently* attending to. Inspired by "Dialogue Without Limits: Constant-Sized KV Caches for Extended Responses in LLMs" (Ghadia et al., **ICML 2025**, arXiv:2503.00979) — documented as "MorphKV-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `MorphKVKVCache` (`veloxquant_mlx/cache/morphkv_cache.py`); primitives in `veloxquant_mlx/quantizers/morphkv.py`: `morphkv_update` (recent-window relevance ranking + protected-sink/recent eviction), `morphkv_get_kv`, byte helpers, and `_recent_relevance` (mean proxy-attention over the recent window).
+  - Config: `morphkv_budget` (512), `morphkv_n_sink` (4), `morphkv_window` (8; **1 = TOVA-adapted**).
+  - 32 tests (19 quantizer + 13 cache) and a deterministic offline benchmark (`benchmark_scripts/benchmark_morphkv.py`).
+
+### Honest scope
+- **`morphkv_window=1` collapses onto TOVA-adapted, bit-for-bit** — with a single recent token the recent-relevance is just the latest key's attention over the keep set (the latest-token ranking); a test asserts the `window=1` kept set equals TOVA's. **No H2O collapse is claimed** — MorphKV recomputes from the live window each step, it never becomes H2O's cumulative-forever rule.
+- **Constant-size, recomputed — not accumulated.** No cumulative score array is stored; retention is recomputed each step from the live keep set and the last `morphkv_window` keys.
+- **Key-as-query proxy** (same as H2O/TOVA/Keyformer-adapted): the incoming key stands in for the unseen query.
+- **Mechanism evidence is the recent-relevant retention rate.** Under a constructed topic shift, cumulative H2O scoring retains ~0% of the recent-relevant region (captured by stale early heavy hitters) while MorphKV re-targets toward it; the recent signal is made deliberately noisy so a wider window materially beats the `window=1` (TOVA) reference. A "stable" control shows no advantage. Downstream probe perturbation is a noisier secondary effect, reported as-is. The paper's accuracy/memory numbers are the paper's, on trained models — not reproduced. No RoPE remapping. Uniform budget/window across heads. No model-level perplexity/throughput benchmark — offline-synthetic only.
+
+---
+
+## v0.32.0
 
 ### New
 - **Keyformer-adapted** (`method="keyformer"`) — Gumbel-regularized heavy-hitter eviction. Structurally H2O's proxy-attention accumulator plus **Gumbel noise** on the eviction logits, so a "late riser" (a token that reads low early, before the queries that attend to it arrive) is not deterministically pruned before it can recover. Inspired by "Keyformer: KV Cache Reduction through Key Tokens Selection for Efficient Generative Inference" (Adnan et al., **MLSys 2024**, arXiv:2403.09054) — documented as "Keyformer-adapted (VeloxQuant-MLX implementation)," not a faithful port.
