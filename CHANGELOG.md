@@ -7,6 +7,65 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.32.0] — 2026-07-10
+
+### Added — Keyformer-adapted Gumbel-regularized heavy-hitter eviction (`method="keyformer"`)
+
+The library's 35th method, joining the proxy-attention eviction family
+(SnapKV, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV, CaM). Structurally it
+**is** H2O-adapted — additive key-as-query proxy-attention accumulation with a
+protected-sink top-budget eviction — plus **one** new ingredient: **Gumbel
+noise** on the eviction logits. The noise stops a "late riser" (a token that
+reads low early, before the queries that attend to it arrive) from being
+greedily pruned before it can recover. Inspired by "Keyformer: KV Cache
+Reduction through Key Tokens Selection for Efficient Generative Inference"
+(Adnan et al., **MLSys 2024**, arXiv:2403.09054) — documented as
+"Keyformer-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+
+- **`veloxquant_mlx/quantizers/keyformer.py`** — `KeyformerState`,
+  `init_keyformer_state` (validates `tau >= 0` and evictable room),
+  `keyformer_update` (proxy-attention accumulation + `score + tau·gumbel`
+  eviction ranking), `keyformer_get_kv`, `keyformer_fp16_bytes`,
+  `full_keyformer_fp16_bytes`, and `_gumbel_at` (a deterministic Gumbel(0,1)
+  draw keyed by `(seed, position)` via inverse-CDF).
+- **`veloxquant_mlx/cache/keyformer_cache.py`** — `KeyformerKVCache`, a
+  single-layer wrapper (no coordinator) modeled on `H2OKVCache`; per-head
+  states seeded with a per-head offset so heads' frozen noise is independent.
+- **`cache/base.py`** — `method="keyformer"`, config fields, factory branch.
+- Config: `keyformer_budget` (512), `keyformer_n_sink` (4), `keyformer_recent`
+  (0, extension), `keyformer_tau` (1.0; **0 = H2O-adapted**), `keyformer_seed`
+  (0).
+- **Tests (29):** `tests/quantizers/test_keyformer.py` (17) and
+  `tests/cache/test_keyformer_cache.py` (12) — incl. the `tau=0`==H2O collapse,
+  `tau=0` seed-invariance, Gumbel determinism, and the late-riser survival
+  mechanism.
+- **Benchmark:** `benchmark_scripts/benchmark_keyformer.py` +
+  `keyformer_benchmark_results.json` (deterministic in all non-timing fields).
+
+### Honest scope
+
+- **`keyformer_tau=0` collapses onto H2O-adapted, bit-for-bit.** The only thing
+  Keyformer adds over H2O is the Gumbel regularizer; a test asserts the `tau=0`
+  kept set equals H2O's over an identical stream, and the benchmark prints an
+  `h2o` cross-check column.
+- **Frozen per-position Gumbel, not the paper's annealed schedule.** The paper
+  redraws Gumbel noise and anneals a temperature across generation; a cache has
+  no trustworthy global step, so we draw one deterministic Gumbel value per
+  token position (seeded by `keyformer_seed` + a per-head running position) and
+  freeze it. Preserves the "don't doom a borderline token on one low reading"
+  intent; **not** claimed equivalent to the schedule.
+- **Key-as-query proxy** (same as H2O/SnapKV-adapted): the incoming key stands
+  in for the unseen query, not the model's real attention logits.
+- **Mechanism evidence is the survival rate.** Under constructed late-riser
+  geometry, greedy `tau=0` evicts the planted riser 100% of the time while
+  `tau=6` rescues it ~75% of the time. The downstream probe-attention
+  perturbation is a noisier, regime-dependent secondary effect, reported as-is
+  rather than cherry-picked. No RoPE remapping after eviction. Uniform
+  budget/tau across heads. No model-level perplexity/throughput benchmark —
+  offline-synthetic survival-rate, output-perturbation and byte-accounting only.
+
+---
+
 ## [0.31.0] — 2026-07-09
 
 ### Added — Q-Filters-adapted query-agnostic projection eviction (`method="qfilters"`)

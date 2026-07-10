@@ -54,6 +54,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/cam',
         'algorithms/knorm',
         'algorithms/qfilters',
+        'algorithms/keyformer',
         'algorithms/xkv',
       ],
     },

@@ -11,7 +11,23 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.31.0 — Latest
+## v0.32.0 — Latest
+
+### New
+- **Keyformer-adapted** (`method="keyformer"`) — Gumbel-regularized heavy-hitter eviction. Structurally H2O's proxy-attention accumulator plus **Gumbel noise** on the eviction logits, so a "late riser" (a token that reads low early, before the queries that attend to it arrive) is not deterministically pruned before it can recover. Inspired by "Keyformer: KV Cache Reduction through Key Tokens Selection for Efficient Generative Inference" (Adnan et al., **MLSys 2024**, arXiv:2403.09054) — documented as "Keyformer-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `KeyformerKVCache` (`veloxquant_mlx/cache/keyformer_cache.py`); primitives in `veloxquant_mlx/quantizers/keyformer.py`: `keyformer_update` (additive proxy-attention accumulation + `score + tau·gumbel` eviction ranking), `keyformer_get_kv`, byte helpers, and a deterministic per-position Gumbel draw.
+  - Config: `keyformer_budget` (512), `keyformer_n_sink` (4), `keyformer_recent` (0, extension), `keyformer_tau` (1.0; **0 = H2O-adapted**), `keyformer_seed` (0).
+  - 29 tests (17 quantizer + 12 cache) and a deterministic offline benchmark (`benchmark_scripts/benchmark_keyformer.py`).
+
+### Honest scope
+- **`keyformer_tau=0` collapses onto H2O-adapted, bit-for-bit** — the only thing Keyformer adds over H2O is the Gumbel regularizer, and a test asserts the `tau=0` kept set equals H2O's; the benchmark prints an `h2o` cross-check column.
+- **Frozen per-position Gumbel, not the paper's annealed schedule.** The paper redraws Gumbel noise and anneals a temperature across generation; a cache has no trustworthy global step, so we draw one deterministic Gumbel value per token position (seeded by `keyformer_seed` + a per-head running position) and freeze it. Preserves the "don't doom a borderline token on one low reading" intent; not claimed equivalent to the schedule.
+- **Key-as-query proxy** (same as H2O/SnapKV-adapted): the incoming key stands in for the unseen query.
+- **Mechanism evidence is the survival rate.** Under constructed late-riser geometry, greedy `tau=0` evicts the planted riser 100% of the time while `tau=6` rescues it ~75% of the time; the downstream probe perturbation is a noisier, regime-dependent secondary effect, reported as-is. No RoPE remapping. Uniform budget/tau across heads. No model-level perplexity/throughput benchmark — offline-synthetic survival-rate, output-perturbation and byte-accounting only.
+
+---
+
+## v0.31.0
 
 ### New
 - **Q-Filters-adapted** (`method="qfilters"`) — query-agnostic projection eviction, the library's fourth eviction scorer class (after attention/proxy, structural, and intrinsic-norm). Each cached key is scored by its projection onto a single frozen per-head direction; over budget, the highest-scoring tokens are kept (sinks and an optional recent window protected). Inspired by "Q-Filters: Leveraging QK Geometry for Efficient KV Cache Compression" (arXiv:2503.02812, **preprint**) — documented as "Q-Filters-adapted (VeloxQuant-MLX implementation)," not a faithful port.
