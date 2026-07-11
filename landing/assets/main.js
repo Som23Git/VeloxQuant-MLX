@@ -3,6 +3,14 @@
 // Zero-build static JS — served as-is by Netlify (cp -r landing/* dist/)
 // ============================================================
 
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.length === 3 ? h[0] + h[0] : h.slice(0, 2), 16);
+  const g = parseInt(h.length === 3 ? h[1] + h[1] : h.slice(2, 4), 16);
+  const b = parseInt(h.length === 3 ? h[2] + h[2] : h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // ── COPY-TO-CLIPBOARD ──
 function copyText(text, btn) {
   navigator.clipboard.writeText(text).then(() => {
@@ -37,8 +45,12 @@ function initCodeTabs() {
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
-      tabBtns.forEach(b => b.classList.remove('active', 'active-purple', 'active-green', 'active-teal'));
+      tabBtns.forEach(b => {
+        b.classList.remove('active', 'active-purple', 'active-green', 'active-teal');
+        b.setAttribute('aria-selected', 'false');
+      });
       tabPanels.forEach(p => p.classList.remove('active'));
+      btn.setAttribute('aria-selected', 'true');
       btn.classList.add(
         tab === 'vecinfer' ? 'active-purple' :
         (tab === 'spectral' || tab === 'chunkkv') ? 'active-green' :
@@ -104,10 +116,19 @@ function initMatrixRain() {
   resize();
   new ResizeObserver(resize).observe(hero);
 
+  function themeColors() {
+    const styles = getComputedStyle(document.documentElement);
+    return {
+      bg: styles.getPropertyValue('--bg').trim() || '#08080f',
+      accent: styles.getPropertyValue('--accent').trim() || '#00d4ff',
+    };
+  }
+
   function draw() {
-    ctx.fillStyle = 'rgba(8,8,15,0.05)';
+    const { bg, accent } = themeColors();
+    ctx.fillStyle = hexToRgba(bg, 0.05);
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#00d4ff';
+    ctx.fillStyle = accent;
     ctx.font = fontSize + 'px JetBrains Mono, monospace';
     for (let i = 0; i < cols; i++) {
       const ch = chars[Math.floor(Math.random() * chars.length)];
@@ -274,8 +295,12 @@ function initAlgorithmFilter() {
 
   filterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      filterBtns.forEach(b => b.classList.remove('active'));
+      filterBtns.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
       const filter = btn.dataset.filter;
       let visible = 0;
       algoCards.forEach(card => {
@@ -322,6 +347,27 @@ function initHamburgerMenu() {
   });
 }
 
+// ── THEME TOGGLE (light / dark, persisted in localStorage) ──
+function initThemeToggle() {
+  const toggle = document.getElementById('theme-toggle');
+  if (!toggle) return;
+
+  function currentTheme() {
+    return document.documentElement.getAttribute('data-theme')
+      || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('vq-theme', theme); } catch (e) { /* storage unavailable */ }
+    toggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+  }
+
+  toggle.addEventListener('click', () => {
+    applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+  });
+}
+
 // ── MAGNETIC BUTTONS (desktop hover only — mousemove never fires on touch) ──
 function initMagneticButtons() {
   document.querySelectorAll('.btn').forEach(btn => {
@@ -353,4 +399,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initAlgorithmFilter();
   initHamburgerMenu();
   initMagneticButtons();
+  initThemeToggle();
 });

@@ -15,7 +15,55 @@
   --muted:     #94a3b8;
   --code-bg:   #1e1e2e;
   --code-text: #cdd6f4;
+  --nav-bg:    rgba(8,8,15,0.75);
+  --grid-line: rgba(0,212,255,0.04);
   --radius:    12px;
+}
+
+/* Light theme — applied when the OS prefers light, or when the user
+   picks "light" via the nav toggle (data-theme wins either way). */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:        #f7f8fb;
+    --surface:   #ffffff;
+    --border:    #e2e5ec;
+    --accent:    #0086ad;
+    --purple:    #6d28d9;
+    --text:      #14141f;
+    --muted:     #5b6270;
+    --code-bg:   #eef0f6;
+    --code-text: #1f2430;
+    --nav-bg:    rgba(247,248,251,0.8);
+    --grid-line: rgba(0,134,173,0.06);
+  }
+}
+
+:root[data-theme="light"] {
+  --bg:        #f7f8fb;
+  --surface:   #ffffff;
+  --border:    #e2e5ec;
+  --accent:    #0086ad;
+  --purple:    #6d28d9;
+  --text:      #14141f;
+  --muted:     #5b6270;
+  --code-bg:   #eef0f6;
+  --code-text: #1f2430;
+  --nav-bg:    rgba(247,248,251,0.8);
+  --grid-line: rgba(0,134,173,0.06);
+}
+
+:root[data-theme="dark"] {
+  --bg:        #08080f;
+  --surface:   #12121e;
+  --border:    #1e1e35;
+  --accent:    #00d4ff;
+  --purple:    #7c3aed;
+  --text:      #e2e8f0;
+  --muted:     #94a3b8;
+  --code-bg:   #1e1e2e;
+  --code-text: #cdd6f4;
+  --nav-bg:    rgba(8,8,15,0.75);
+  --grid-line: rgba(0,212,255,0.04);
 }
 
 html { scroll-behavior: smooth; }
@@ -27,6 +75,7 @@ body {
   font-size: 16px;
   line-height: 1.6;
   overflow-x: hidden;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 /* ===== SCROLLBAR ===== */
@@ -44,7 +93,7 @@ nav {
   justify-content: space-between;
   padding: 0 2rem;
   height: 60px;
-  background: rgba(8,8,15,0.75);
+  background: var(--nav-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
@@ -117,6 +166,40 @@ nav {
 .nav-toggle.open span:nth-child(2) { opacity: 0; }
 .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); background: var(--accent); }
 
+/* ===== THEME TOGGLE ===== */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.theme-toggle:hover { border-color: var(--accent); }
+
+.theme-icon { font-size: 0.95rem; line-height: 1; }
+.theme-icon-moon { display: none; }
+
+/* Dark theme: show the moon (click to go light). Light theme: show the sun. */
+:root[data-theme="dark"] .theme-icon-sun,
+:root:not([data-theme="light"]):not([data-theme="dark"]) .theme-icon-sun { display: none; }
+:root[data-theme="dark"] .theme-icon-moon,
+:root:not([data-theme="light"]):not([data-theme="dark"]) .theme-icon-moon { display: block; }
+:root[data-theme="light"] .theme-icon-sun { display: block; }
+:root[data-theme="light"] .theme-icon-moon { display: none; }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]):not([data-theme="light"]) .theme-icon-sun { display: block; }
+  :root:not([data-theme="dark"]):not([data-theme="light"]) .theme-icon-moon { display: none; }
+}
+
 /* ===== HERO ===== */
 #hero {
   position: relative;
@@ -135,8 +218,8 @@ nav {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 48px 48px;
   animation: gridShift 20s linear infinite;
   pointer-events: none;

@@ -12,6 +12,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/styles.css" />
+  <script>
+    // Set the theme before first paint to avoid a flash of the wrong theme.
+    (function () {
+      try {
+        var saved = localStorage.getItem('vq-theme');
+        if (saved === 'light' || saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (e) { /* storage unavailable */ }
+    })();
+  </script>
 </head>
 <body>
 
@@ -30,6 +41,12 @@
       <li><a href="/docs/" rel="noopener">Docs</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX" target="_blank" rel="noopener">GitHub</a></li>
       <li><a href="https://pypi.org/project/VeloxQuant-MLX/" target="_blank" rel="noopener">PyPI</a></li>
+      <li>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Switch to light theme" title="Toggle light / dark theme">
+          <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
+          <span class="theme-icon theme-icon-moon" aria-hidden="true">☾</span>
+        </button>
+      </li>
     </ul>
   </nav>
 
@@ -57,13 +74,13 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">37 algorithms</span>
+        <span class="hero-pill">35 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 37 algorithms</summary>
+        <summary>See all 35 algorithms</summary>
         TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters · Keyformer · MorphKV · KVzip
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
@@ -206,7 +223,7 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Thirty compression strategies</h2>
+    <h2 class="section-title">Thirty-five compression strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
 
     <details class="whats-new">
@@ -237,11 +254,11 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all">All (32)</button>
-      <button class="filter-btn" data-filter="zero-cal">Zero calibration</button>
-      <button class="filter-btn" data-filter="full-kv">Full KV (keys + values)</button>
-      <button class="filter-btn" data-filter="metal">Metal kernel</button>
-      <button class="filter-btn" data-filter="extreme">Highest compression</button>
+      <button class="filter-btn active" data-filter="all" aria-pressed="true">All (35)</button>
+      <button class="filter-btn" data-filter="zero-cal" aria-pressed="false">Zero calibration</button>
+      <button class="filter-btn" data-filter="full-kv" aria-pressed="false">Full KV (keys + values)</button>
+      <button class="filter-btn" data-filter="metal" aria-pressed="false">Metal kernel</button>
+      <button class="filter-btn" data-filter="extreme" aria-pressed="false">Highest compression</button>
     </div>
 
     <!-- ── METHOD PICKER (inline — choose before you scroll) ── -->
@@ -1855,7 +1872,7 @@
 
     <!-- Headline benchmark figure -->
     <div class="fade-in" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:2rem;">
-      <img src="assets/metal_summary.png" alt="Metal kernel benchmark — quantize latency, speedup, and peak memory" style="width:100%;display:block;border-radius:8px;" />
+      <img src="assets/metal_summary.png" alt="Metal kernel benchmark — quantize latency, speedup, and peak memory" loading="lazy" style="width:100%;display:block;border-radius:8px;" />
       <p style="font-size:0.78rem;color:var(--muted);margin-top:0.75rem;text-align:center;">
         Benchmarked on Apple Silicon GPU.
       </p>
@@ -1926,22 +1943,22 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
 
     <p class="quickstart-hint fade-in">New here? See the <a href="#install">Installation guide →</a></p>
 
-    <div class="code-tabs">
-      <button class="tab-btn active" data-tab="rvq">RVQ-1bit · recommended</button>
-      <button class="tab-btn" data-tab="vecinfer" style="border-color:rgba(124,58,237,0.4);color:#a78bfa">VecInfer-1bit · 16×</button>
-      <button class="tab-btn" data-tab="ratequant">RateQuant · mixed-precision</button>
-      <button class="tab-btn" data-tab="spectral" style="border-color:rgba(34,197,94,0.4);color:#22c55e">SpectralQuant</button>
-      <button class="tab-btn" data-tab="squeeze" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">SqueezeAttention · eviction</button>
-      <button class="tab-btn" data-tab="chunkkv" style="border-color:rgba(34,197,94,0.4);color:#22c55e">ChunkKV · eviction</button>
-      <button class="tab-btn" data-tab="cam" style="border-color:rgba(56,189,248,0.4);color:#38bdf8">CaM · merging</button>
-      <button class="tab-btn" data-tab="xkv" style="border-color:rgba(244,114,182,0.4);color:#f472b6">xKV · shared subspace</button>
-      <button class="tab-btn" data-tab="nsnquant" style="border-color:rgba(167,139,250,0.4);color:#a78bfa">NSNQuant · universal VQ</button>
-      <button class="tab-btn" data-tab="knorm" style="border-color:rgba(52,211,153,0.4);color:#34d399">L2Norm · eviction</button>
-      <button class="tab-btn" data-tab="skvq" style="border-color:rgba(251,113,133,0.4);color:#fb7185">SKVQ · reorder + clip</button>
-      <button class="tab-btn" data-tab="qfilters" style="border-color:rgba(52,211,153,0.4);color:#34d399">Q-Filters · projection eviction</button>
-      <button class="tab-btn" data-tab="keyformer" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">Keyformer · Gumbel eviction</button>
-      <button class="tab-btn" data-tab="morphkv" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">MorphKV · recent-window eviction</button>
-      <button class="tab-btn" data-tab="kvzip" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">KVzip · reconstruction eviction</button>
+    <div class="code-tabs" role="tablist" aria-label="Quickstart example">
+      <button class="tab-btn active" data-tab="rvq" role="tab" aria-selected="true" aria-controls="tab-rvq">RVQ-1bit · recommended</button>
+      <button class="tab-btn" data-tab="vecinfer" role="tab" aria-selected="false" aria-controls="tab-vecinfer" style="border-color:rgba(124,58,237,0.4);color:#a78bfa">VecInfer-1bit · 16×</button>
+      <button class="tab-btn" data-tab="ratequant" role="tab" aria-selected="false" aria-controls="tab-ratequant">RateQuant · mixed-precision</button>
+      <button class="tab-btn" data-tab="spectral" role="tab" aria-selected="false" aria-controls="tab-spectral" style="border-color:rgba(34,197,94,0.4);color:#22c55e">SpectralQuant</button>
+      <button class="tab-btn" data-tab="squeeze" role="tab" aria-selected="false" aria-controls="tab-squeeze" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">SqueezeAttention · eviction</button>
+      <button class="tab-btn" data-tab="chunkkv" role="tab" aria-selected="false" aria-controls="tab-chunkkv" style="border-color:rgba(34,197,94,0.4);color:#22c55e">ChunkKV · eviction</button>
+      <button class="tab-btn" data-tab="cam" role="tab" aria-selected="false" aria-controls="tab-cam" style="border-color:rgba(56,189,248,0.4);color:#38bdf8">CaM · merging</button>
+      <button class="tab-btn" data-tab="xkv" role="tab" aria-selected="false" aria-controls="tab-xkv" style="border-color:rgba(244,114,182,0.4);color:#f472b6">xKV · shared subspace</button>
+      <button class="tab-btn" data-tab="nsnquant" role="tab" aria-selected="false" aria-controls="tab-nsnquant" style="border-color:rgba(167,139,250,0.4);color:#a78bfa">NSNQuant · universal VQ</button>
+      <button class="tab-btn" data-tab="knorm" role="tab" aria-selected="false" aria-controls="tab-knorm" style="border-color:rgba(52,211,153,0.4);color:#34d399">L2Norm · eviction</button>
+      <button class="tab-btn" data-tab="skvq" role="tab" aria-selected="false" aria-controls="tab-skvq" style="border-color:rgba(251,113,133,0.4);color:#fb7185">SKVQ · reorder + clip</button>
+      <button class="tab-btn" data-tab="qfilters" role="tab" aria-selected="false" aria-controls="tab-qfilters" style="border-color:rgba(52,211,153,0.4);color:#34d399">Q-Filters · projection eviction</button>
+      <button class="tab-btn" data-tab="keyformer" role="tab" aria-selected="false" aria-controls="tab-keyformer" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">Keyformer · Gumbel eviction</button>
+      <button class="tab-btn" data-tab="morphkv" role="tab" aria-selected="false" aria-controls="tab-morphkv" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">MorphKV · recent-window eviction</button>
+      <button class="tab-btn" data-tab="kvzip" role="tab" aria-selected="false" aria-controls="tab-kvzip" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">KVzip · reconstruction eviction</button>
     </div>
 
     <!-- RVQ tab -->
