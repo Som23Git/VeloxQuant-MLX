@@ -11,7 +11,27 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.33.0 — Latest
+## v0.34.0 — Latest
+
+### New
+- **KVzip-adapted** (`method="kvzip"`) — context-reconstruction reliance retention. Keeps a constant-size cache by ranking stored tokens according to how much the model relies on them to **reconstruct its own context** — a *query-agnostic* importance profile computed once and reused across all future queries — then evicting the least-relied-upon pairs. This is a new eviction axis: every other proxy scorer ranks a token by the attention it receives *from a query* (cumulative/latest/windowed); KVzip ranks by reconstruction reliance. Inspired by "KVzip: Query-Agnostic KV Cache Compression with Context Reconstruction" (Kim et al., **NeurIPS 2025 Oral**, arXiv:2505.23416) — documented as "KVzip-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `KVzipKVCache` (`veloxquant_mlx/cache/kvzip_cache.py`); primitives in `veloxquant_mlx/quantizers/kvzip.py`: `kvzip_update` (reconstruction-reliance ranking + protected-sink eviction), `kvzip_get_kv`, byte helpers, and `_reconstruction_importance` (max proxy-attention over the reconstruction probe).
+  - Config: `kvzip_budget` (512), `kvzip_n_sink` (4), `kvzip_probe` ("context"; **"latest" = TOVA-adapted**).
+  - 32 tests (19 quantizer + 13 cache) and a deterministic offline benchmark (`benchmark_scripts/benchmark_kvzip.py`).
+
+### Honest scope
+- **`kvzip_probe="latest"` collapses onto TOVA-adapted, bit-for-bit** (pinned by a test). **No H2O collapse is claimed** — KVzip recomputes reconstruction reliance from the live keep set each step, it never accumulates.
+- **Key-as-reconstruction-probe proxy** (a cache never runs the model to reconstruct text), same substitution family as H2O/TOVA/MorphKV-adapted.
+- **Mechanism observable = reconstruction-critical retention under a reconstruction shift.** Cumulative H2O retains ~0.017 of the reconstruction-critical region while the context probe retains ~0.609, beating the `probe="latest"` (TOVA) reference (~0.248); a flat control shows no advantage. Downstream perturbation reported as-is.
+- The paper's accuracy/memory numbers (3–4× reduction, ~2× decode, negligible loss up to 170K on LLaMA3.1/Qwen2.5/Gemma3) are the paper's, on trained models — not reproduced here.
+
+### Meta
+- Funding links updated: the dead Buy Me a Coffee handle is replaced with **GitHub Sponsors** across the README, landing page, and `.github/FUNDING.yml`.
+- JOSS paper (`paper/joss/paper.md`) refreshed to the current 37-method suite and the token-eviction family.
+
+---
+
+## v0.33.0
 
 ### New
 - **MorphKV-adapted** (`method="morphkv"`) — recent-window correlation retention. Keeps a constant-size cache by ranking stored tokens against the attention pattern of a **sliding window of recent tokens**, eliminating the "early-token bias" of cumulative (H2O) scoring — where tokens that were heavy hitters early crowd out what the model is *currently* attending to. Inspired by "Dialogue Without Limits: Constant-Sized KV Caches for Extended Responses in LLMs" (Ghadia et al., **ICML 2025**, arXiv:2503.00979) — documented as "MorphKV-adapted (VeloxQuant-MLX implementation)," not a faithful port.

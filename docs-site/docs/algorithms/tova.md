@@ -149,6 +149,12 @@ signal to a **sliding window** of recent tokens, so retention averages over rece
 context instead of reacting to one (possibly noisy) latest query. Setting
 `morphkv_window=1` collapses MorphKV back onto this TOVA cache, bit-for-bit.
 
+See also [KVzip](../algorithms/kvzip) — it replaces TOVA's latest-**query** signal
+with a **query-agnostic reconstruction probe**: rank a stored token by how much the
+model relies on it to reconstruct its own context, so one compressed cache serves
+diverse future queries. Setting `kvzip_probe="latest"` collapses KVzip back onto
+this TOVA cache, bit-for-bit.
+
 | Scenario | Recommended method |
 |----------|-------------------|
 | Compress all tokens uniformly | KIVI-2bit |

@@ -7,6 +7,55 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.34.0] — 2026-07-11
+
+### Added — KVzip-adapted context-reconstruction reliance retention (`method="kvzip"`)
+
+The library's 37th method, joining the proxy-attention eviction family
+(SnapKV, H2O, TOVA, PyramidKV, SqueezeAttention, ChunkKV, CaM, Keyformer,
+MorphKV). It shares the H2O/TOVA/MorphKV scaffolding but introduces a **new
+ranking axis**: every other proxy scorer ranks a stored token by the attention it
+receives *from a query* (cumulative for H2O, latest for TOVA, windowed for
+MorphKV); KVzip ranks by **reconstruction reliance** — how much the model relies
+on a KV pair to *reconstruct its own context* — a **query-agnostic** importance
+profile computed once and reused across all future queries. Inspired by "KVzip:
+Query-Agnostic KV Cache Compression with Context Reconstruction" (Kim, Kim, Kwon,
+Lee, Yun & Song, **NeurIPS 2025 Oral**, arXiv:2505.23416,
+github.com/snu-mllab/KVzip) — shipped as "KVzip-adapted (VeloxQuant-MLX
+implementation)," **not a faithful port**.
+
+- `veloxquant_mlx/quantizers/kvzip.py` — `KVzipState`, `init_kvzip_state`,
+  `kvzip_update` (reconstruction-reliance ranking + protected-sink eviction),
+  `kvzip_get_kv`, byte helpers, `_reconstruction_importance` (max proxy-attention
+  over the reconstruction probe).
+- `veloxquant_mlx/cache/kvzip_cache.py` — `KVzipKVCache`, single-layer, no
+  coordinator, no `.bits`, fp16, lazy per-head state, byte-accounting properties.
+- `veloxquant_mlx/cache/base.py` — `"kvzip"` method, `kvzip_budget` (512) /
+  `kvzip_n_sink` (4) / `kvzip_probe` ("context") config, factory branch.
+
+**Honest scope:**
+- `kvzip_probe="latest"` collapses onto TOVA-adapted **bit-for-bit** (pinned by a
+  test); **no H2O collapse is claimed** — KVzip recomputes reconstruction reliance
+  from the live keep set each step, it never accumulates.
+- Key-as-reconstruction-probe proxy (a cache never runs the model to reconstruct
+  text), same substitution family as H2O/TOVA/MorphKV-adapted.
+- Mechanism observable = reconstruction-critical retention under a reconstruction
+  shift: cumulative H2O retains ~0.017 of the reconstruction-critical region while
+  the context probe retains ~0.609, beating the `probe="latest"` (TOVA) reference
+  (~0.248); a flat control shows no advantage. Downstream perturbation reported
+  as-is.
+- The paper's numbers (3–4× reduction, ~2× decode, negligible loss up to 170K on
+  LLaMA3.1/Qwen2.5/Gemma3) are the paper's, on trained models — not reproduced.
+
+32 new tests (19 quantizer + 13 cache) and a deterministic offline benchmark
+(`benchmark_scripts/benchmark_kvzip.py`).
+
+### Changed — meta
+- Replaced the dead Buy Me a Coffee handle with **GitHub Sponsors** across the
+  README, landing page, and `.github/FUNDING.yml`.
+- Refreshed the JOSS paper (`paper/joss/paper.md`) to the current 37-method suite
+  and the token-eviction family.
+
 ## [0.33.0] — 2026-07-10
 
 ### Added — MorphKV-adapted recent-window correlation retention (`method="morphkv"`)

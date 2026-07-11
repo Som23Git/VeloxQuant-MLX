@@ -57,7 +57,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.33.0 — MorphKV-adapted recent-window correlation retention shipped";
+  const text = "v0.34.0 — KVzip-adapted context-reconstruction reliance eviction shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;

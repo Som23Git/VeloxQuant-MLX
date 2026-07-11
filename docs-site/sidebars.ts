@@ -56,6 +56,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/qfilters',
         'algorithms/keyformer',
         'algorithms/morphkv',
+        'algorithms/kvzip',
         'algorithms/xkv',
       ],
     },

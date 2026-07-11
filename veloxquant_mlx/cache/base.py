@@ -37,7 +37,7 @@ class KVCacheConfig:
         "polar", "qjl", "vecinfer", "spectral", "kivi", "kivi_sink", "svdq", "kitty",
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
-        "nsnquant", "knorm", "skvq", "qfilters", "keyformer", "morphkv",
+        "nsnquant", "knorm", "skvq", "qfilters", "keyformer", "morphkv", "kvzip",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -203,6 +203,10 @@ class KVCacheConfig:
     morphkv_budget: int = 512            # max tokens kept (incl. sinks)
     morphkv_n_sink: int = 4              # leading positions never evicted
     morphkv_window: int = 8              # trailing recent-attention window; 1 = latest-token
+    # --- KVzip-adapted configuration (context-reconstruction reliance eviction) --
+    kvzip_budget: int = 512              # max tokens kept (incl. sinks)
+    kvzip_n_sink: int = 4                # leading positions never evicted
+    kvzip_probe: str = "context"         # reconstruction probe; "latest" == TOVA-adapted latest-token
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -278,6 +282,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.qfilters_cache import QFiltersKVCache
         from veloxquant_mlx.cache.keyformer_cache import KeyformerKVCache
         from veloxquant_mlx.cache.morphkv_cache import MorphKVKVCache
+        from veloxquant_mlx.cache.kvzip_cache import KVzipKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -410,13 +415,18 @@ class KVCacheFactory:
             # per-head state recomputed each step; the default for_model path
             # (one MorphKVKVCache per layer) is all it needs.
             cache = MorphKVKVCache(config)
+        elif config.method == "kvzip":
+            # No coordinator: context-reconstruction reliance is per-layer
+            # per-head state recomputed each step; the default for_model path
+            # (one KVzipKVCache per layer) is all it needs.
+            cache = KVzipKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip."
             )
 
         if config.sliding_window is not None:

@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted, Q-Filters-adapted, Keyformer-adapted, MorphKV-adapted — all in MLX. New in 0.33.0: MorphKV-adapted recent-window correlation retention (ICML 2025) — ranks stored tokens by a sliding window of recent attention, dropping stale early heavy-hitters; morphkv_window=1 collapses onto TOVA bit-for-bit. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted, Q-Filters-adapted, Keyformer-adapted, MorphKV-adapted, KVzip-adapted — all in MLX. New in 0.34.0: KVzip-adapted context-reconstruction reliance eviction (NeurIPS 2025) — keeps the KV pairs the model most relies on to reconstruct its own context; kvzip_probe=latest collapses onto TOVA bit-for-bit. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -57,14 +57,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">36 algorithms</span>
+        <span class="hero-pill">37 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 36 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters · Keyformer · MorphKV
+        <summary>See all 37 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters · Keyformer · MorphKV · KVzip
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -116,6 +116,7 @@
       <span class="provenance-item">MLSys 2024 <em>Keyformer</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">ICML 2025 <em>MorphKV</em></span>
+      <span class="provenance-item">NeurIPS 2025 <em>KVzip</em></span>
       <span class="provenance-dot">·</span>
       <span class="provenance-item">NeurIPS 2024 <em>KVQuant · MiniCache · ZipCache</em></span>
       <span class="provenance-dot">·</span>
@@ -211,6 +212,7 @@
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.34.0</span><span class="wn-body"><strong>KVzip-adapted</strong> — context-reconstruction reliance retention (NeurIPS 2025 Oral). Every other proxy scorer ranks a stored token by the attention it receives <em>from a query</em> (cumulative for H2O, latest for TOVA, windowed for MorphKV); KVzip ranks by <em>reconstruction reliance</em> — how much the model relies on a KV pair to <em>reconstruct its own context</em> — a <strong>query-agnostic</strong> profile computed once and reused across all future queries. The honest crux: key-as-reconstruction-probe proxy (a cache never runs the model to reconstruct text), and only the <code>kvzip_probe="latest"</code> reduction is pinned — it <em>is</em> TOVA-adapted, bit-for-bit; no H2O collapse is claimed. Measured: under a constructed reconstruction shift, cumulative H2O retains ~0.017 of the reconstruction-critical region while the context probe retains ~0.609, beating the probe=latest (TOVA) reference (~0.248); a flat control shows no advantage. The paper's accuracy/memory numbers are the paper's, on trained models — not reproduced.</span></li>
         <li><span class="wn-ver">0.33.0</span><span class="wn-body"><strong>MorphKV-adapted</strong> — recent-window correlation retention (ICML 2025). Where H2O ranks a stored token by <em>cumulative</em> attention (inertial — early heavy hitters crowd out the current topic) and TOVA by the <em>single latest</em> query, MorphKV ranks by correlation with a <em>sliding window</em> of the most recent tokens, so a constant-size cache re-targets toward what the recent context actually reads — eliminating the "early-token bias." The honest crux: key-as-query proxy (a cache never sees the true query), and only the <code>morphkv_window=1</code> reduction is pinned — it <em>is</em> TOVA-adapted, bit-for-bit; no H2O collapse is claimed. Measured: under a constructed topic shift, cumulative H2O retains ~0% of the recent-relevant region while wider windows retain ~0.39–0.74, beating the window=1 (TOVA) reference; a stable control shows no advantage. The paper's accuracy/memory numbers are the paper's, on trained models — not reproduced.</span></li>
         <li><span class="wn-ver">0.32.0</span><span class="wn-body"><strong>Keyformer-adapted</strong> — Gumbel-regularized heavy-hitter eviction (MLSys 2024). Structurally H2O's proxy-attention accumulator plus one new ingredient: <em>Gumbel noise</em> on the eviction logits, so a "late riser" — a token that reads low early, before the queries that attend to it arrive — is not deterministically pruned before it can recover. The honest crux: the paper redraws and anneals the noise across generation, but a cache has no trustworthy global step, so we draw one <em>deterministic per-position</em> Gumbel value and freeze it (<code>keyformer_seed</code>) — the intent, not the schedule. Setting <code>keyformer_tau=0</code> removes the noise and this cache <em>is</em> H2O-adapted, bit-for-bit — the honest ablation. Measured: under late-riser geometry greedy tau=0 evicts the planted riser 100% of the time while tau=6 rescues it ~75%; the downstream perturbation is a noisier, regime-dependent secondary effect, reported as-is.</span></li>
         <li><span class="wn-ver">0.31.0</span><span class="wn-body"><strong>Q-Filters-adapted</strong> — query-agnostic projection eviction (preprint), the library's fourth eviction scorer class. Score each key by its projection onto a frozen per-head direction. The honest crux: the paper derives that direction from <em>query</em> SVD offline, but a cache never sees queries, so we substitute the SVD of the first observed <em>keys</em> — which recovers the dominant axis but not which end is important, making <code>qfilters_sign</code> a genuine ablation and the kept set path-dependent. Measured: key-SVD recovers the planted axis at filter_cosine ≈ 0.97; the correct-sign arm beats random by +0.16 mean perturbation under paper-like geometry, ~nothing under the isotropic control — both reported.</span></li>
@@ -341,6 +343,11 @@
           <div class="picker-method" style="color:#2dd4bf">MorphKV</div>
           <div class="picker-detail">Ranks tokens by a sliding window of recent attention · drops stale early heavy-hitters · <code>morphkv_window=1</code> == TOVA · ICML 2025 → see details ↓</div>
         </a>
+        <a href="#algo-kvzip" class="picker-card picker-card-link" style="border-color:rgba(45,212,191,0.35);">
+          <div class="picker-goal">One compressed cache that serves many future queries</div>
+          <div class="picker-method" style="color:#2dd4bf">KVzip</div>
+          <div class="picker-detail">Keeps the KV pairs the model most relies on to reconstruct its own context · query-agnostic · <code>kvzip_probe=latest</code> == TOVA · NeurIPS 2025 → see details ↓</div>
+        </a>
       </div>
     </div>
 
@@ -350,7 +357,7 @@
         <div class="cat-header" style="--chip:#2dd4bf">
           <h3 class="cat-title">Token Eviction</h3>
           <span class="cat-blurb">Constant-memory caches that drop (or merge) low-value tokens</span>
-          <span class="cat-count">12</span>
+          <span class="cat-count">13</span>
         </div>
         <div class="algo-grid">
       <div id="algo-cam" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
@@ -544,7 +551,6 @@
       <div id="algo-morphkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
         <div class="card-head">
           <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
-          <span class="new-pill">NEW</span>
         </div>
         <div class="algo-title">MorphKV-adapted</div>
         <div class="card-subtitle">Recent-window correlation retention</div>
@@ -586,6 +592,52 @@
           </div>
         </details>
         <div class="card-meta">v0.33.0 · ICML 2025</div>
+      </div>
+      <div id="algo-kvzip" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">KVzip-adapted</div>
+        <div class="card-subtitle">Context-reconstruction reliance retention</div>
+        <div class="algo-desc card-summary">Keeps the KV pairs the model most relies on to reconstruct its own context — a query-agnostic profile, so one compressed cache serves diverse future queries.</div>
+        <div class="card-headline"><span class="headline-stat">reconstruction-reliance retention · probe=latest == TOVA bit-for-bit · 32/32 tests</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from "KVzip: Query-Agnostic KV Cache Compression with Context Reconstruction" (Kim et al., <strong style="color:var(--text)">NeurIPS 2025 Oral</strong>, <a href="https://arxiv.org/abs/2505.23416" target="_blank" rel="noopener" style="color:#2dd4bf">arXiv:2505.23416</a>). It shares the H2O/TOVA/MorphKV scaffolding but introduces a <strong style="color:var(--text)">new ranking axis</strong>: reconstruction reliance — attention received from a fixed reconstruction probe — not attention received from a query (cumulative for H2O, latest for TOVA, windowed for MorphKV).
+              <br><br>
+              <strong style="color:var(--text)">① Probe</strong> — use the kept set as a reconstruction probe (reconstruct the context from itself)<br>
+              <strong style="color:var(--text)">② Score</strong> — rank each stored token by the max proxy-attention it receives across the probe<br>
+              <strong style="color:var(--text)">③ Evict</strong> — drop the least reconstruction-critical non-sink token (constant-size)<br>
+              <br>
+              <strong style="color:#2dd4bf">Why reconstruction:</strong> the importance profile is <em>query-agnostic</em> — computed once and reused across all future queries — so a compressed cache keeps what any downstream question is likely to need, not what happened to be a heavy hitter early. <strong style="color:#2dd4bf">The honest crux:</strong> key-as-reconstruction-probe proxy (a cache never runs the model to reconstruct text), and reliance is recomputed each step from the live keep set — not accumulated. Only <code>kvzip_probe="latest"</code> is pinned: it <em>is</em> TOVA-adapted, bit-for-bit; no H2O collapse is claimed. Measured: under a constructed reconstruction shift, cumulative H2O retains ~0.017 of the reconstruction-critical region while the context probe retains ~0.609, beating the probe=latest (TOVA) reference (~0.248); a flat control shows no advantage. The paper's accuracy/memory numbers are the paper's, on trained models — not reproduced.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Scorer class</span>
+                <span class="value" style="color:#2dd4bf">reconstruction-probe reliance (max over probe)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Signal</span>
+                <span class="value">max key-as-reconstruction-probe attention over the keep set (NeurIPS 2025)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">probe=latest behaviour</span>
+                <span class="value" style="color:#2dd4bf">== TOVA-adapted, bit-for-bit</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">vs H2O</span>
+                <span class="value">query-agnostic, recomputed from live keep set — no cumulative accumulator (no H2O collapse claimed)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Path-independent kept set</span>
+                <span class="value">no (reconstruction-probe dependent)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.34.0 · NeurIPS 2025</div>
       </div>
       <div id="algo-chunkkv" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
         <div class="card-head">
@@ -1889,6 +1941,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="qfilters" style="border-color:rgba(52,211,153,0.4);color:#34d399">Q-Filters · projection eviction</button>
       <button class="tab-btn" data-tab="keyformer" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">Keyformer · Gumbel eviction</button>
       <button class="tab-btn" data-tab="morphkv" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">MorphKV · recent-window eviction</button>
+      <button class="tab-btn" data-tab="kvzip" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">KVzip · reconstruction eviction</button>
     </div>
 
     <!-- RVQ tab -->
@@ -2337,6 +2390,37 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
 <span class="op">)</span></pre>
       </div>
     </div>
+    <div class="code-panel" id="tab-kvzip">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — KVzip · context-reconstruction reliance retention (NeurIPS 2025)</span>
+          <button class="code-copy" data-target="code-kvzip">Copy</button>
+        </div>
+        <pre id="code-kvzip"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Keep the KV pairs the model most relies on to reconstruct its own</span>
+<span class="cm"># context — a query-agnostic profile, so one compressed cache serves</span>
+<span class="cm"># diverse future queries. probe="latest" == TOVA.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"kvzip"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">kvzip_budget</span><span class="op">=</span><span class="nu">512</span><span class="op">,</span>   <span class="cm"># max tokens kept</span>
+    <span class="at">kvzip_n_sink</span><span class="op">=</span><span class="nu">4</span><span class="op">,</span>     <span class="cm"># leading sinks never evicted</span>
+    <span class="at">kvzip_probe</span><span class="op">=</span><span class="st">"context"</span><span class="op">,</span>  <span class="cm"># reconstruction probe; "latest" == TOVA</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Answer many questions about this long document."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
   </section>
 
   <div class="divider"></div>
@@ -2522,7 +2606,7 @@ pip install -e ".[dev]"</span></pre>
       <li><a href="https://medium.com/@rajveer.rathod1301/stop-losing-80-of-your-macs-memory-to-llm-inference-here-s-how-00b6d4d7a0d0" target="_blank" rel="noopener">Blog: 10-model study</a></li>
       <li><a href="https://medium.com/@rajveer.rathod1301/i-wrote-a-30-line-metal-shader-that-fixed-an-oom-bug-and-made-kv-cache-quantization-13-faster-4840a2bd6347" target="_blank" rel="noopener">Blog: Metal kernels</a></li>
       <li><a href="https://github.com/rajveer43/VeloxQuant-MLX/issues" target="_blank" rel="noopener">Issues</a></li>
-      <li><a href="https://buymeacoffee.com/rajveer43" target="_blank" rel="noopener">☕ Buy me a coffee</a></li>
+      <li><a href="https://github.com/sponsors/rajveer43" target="_blank" rel="noopener">💜 Sponsor on GitHub</a></li>
     </ul>
     <p class="footer-copy">© 2026 Rajveer Rathod · MIT License</p>
     <p class="footer-tagline">BUILT FOR APPLE SILICON. ENGINEERED FOR SPEED.</p>
