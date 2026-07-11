@@ -275,3 +275,54 @@ The benchmark script is at [`benchmark_kv.py`](benchmark_kv.py). It runs all fou
 - QJL (AAAI 2025) — Zandieh et al., *"QJL: 1-Bit Quantized JL Transform for KV Cache Quantization"*
 - PolarQuant (AISTATS 2026) — *"PolarQuant: Quantizing KV Caches with Polar Transformation"*
 - Apple MLX — [ml-explore/mlx](https://github.com/ml-explore/mlx)
+
+---
+
+## Historical benchmark snapshots
+
+Point-in-time results from earlier releases, preserved for reference. See the
+[README's benchmark section](README.md#benchmark-results) for the current
+10-model comparative study.
+
+### Throughput optimisation journey (v0.3.0)
+
+Four sequential changes to lift quantized throughput to fp16 parity:
+
+| Stage | Mistral-7B RVQ-2bit | Qwen3-4B RVQ-2bit |
+|---|---|---|
+| 0. Original (per-head Python loop) | 17.7 tok/s | 24.8 tok/s |
+| 1. Batch heads `(B,H,S,D) → (B·H·S,D)` | 21.5 tok/s | 34.0 tok/s |
+| 2. Hadamard rotation by default | 20.0 tok/s | — |
+| 3. Boundary-sum quantize (replaces argmin) | 22.4 tok/s | — |
+| 4. Drop redundant fp32↔fp16 casts | **22.3 tok/s** | **36.0 tok/s** |
+
+Full writeup: [OPTIMIZATION_FINDINGS.md](OPTIMIZATION_FINDINGS.md)
+
+Figure: `figures/updated_tests/optimization_journey.png`
+
+### RateQuant V2 mixed-precision results (v0.3.5)
+
+Per-layer allocation at target b̄=1.5, measured on Apple M4 24 GB.
+
+| Model | fp16 | RVQ-1bit | RVQ + RateQuant V2 | Sens. ratio |
+|---|---|---|---|---|
+| Falcon3-7B | 22.9 | 23.1 (101%) | **22.8 (100%)** at 5.22× | 6.48× |
+| Gemma3-4B | 39.8 | 37.8 (95%) | **36.3 (91%)** at 5.22× | 14.39× |
+
+Source figures: [`figures/2026-05-16/`](figures/2026-05-16/)
+
+### RVQ 1-bit 8-model sweep (v0.3.4)
+
+All on Apple M4 MacBook 16/24 GB. Prompt: 200-token explanation of relativity.
+
+| Model | fp16 tok/s | RVQ-1bit tok/s | vs fp16 |
+|---|---|---|---|
+| Mistral-7B v0.3 | 23.3 | 22.2 | 95% |
+| Falcon3-7B | 24.0 | 23.1 | 96% |
+| Phi-4 | 11.9 | 11.8 | **99%** |
+| Qwen3-4B | 40.2 | 34.3 | 85% |
+| Qwen3-8B | 20.5 | 21.1 | **103%** |
+| Llama-3.1-8B | 22.0 | 21.5 | 98% |
+| Gemma3-4B | 32.5 | 30.5 | 94% |
+
+Source figures: [`figures/outlier_token_ratequant/`](figures/outlier_token_ratequant/)

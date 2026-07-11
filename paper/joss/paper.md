@@ -15,7 +15,7 @@ authors:
 affiliations:
   - name: Independent researcher
     index: 1
-date: 11 June 2026
+date: 11 July 2026
 bibliography: paper.bib
 ---
 
@@ -35,10 +35,14 @@ long a document a Mac can handle before it runs out of memory.
 that the same Mac can handle longer inputs. It works with models loaded through
 `mlx_lm`, Apple's library for running LLMs on its own hardware, and it can be
 switched on by changing three lines of code; the normal text-generation call is
-left untouched. The library offers several interchangeable compression
+left untouched. The library offers thirty-seven interchangeable compression
 strategies, so a user can trade a little accuracy for a lot of memory savings, or
-the reverse, by selecting a different option. Some of the heavy numerical work is
-implemented as small programs ("kernels") written for Apple's Metal graphics
+the reverse, by selecting a different option. These span several families:
+low-bit *quantization*, *vector quantization* against learned or fixed codebooks,
+*cross-layer* sharing that exploits redundancy between network depths, and a
+*token-eviction* family that keeps a constant-size cache by dropping (or merging)
+the tokens a scoring rule judges least important. Some of the heavy numerical work
+is implemented as small programs ("kernels") written for Apple's Metal graphics
 interface and compiled on the fly, with a slower but portable pure-Python path
 available as a fallback.
 
@@ -69,17 +73,35 @@ result files so that every reported number is reproducible.
 
 # State of the field
 
-Several KV-cache compression methods have been published, each targeting a
-different point on the compression–quality–speed trade-off: KIVI's tuning-free
-asymmetric 2-bit quantization [@liu2024kivi]; KVQuant's non-uniform, outlier-aware
-quantization [@hooper2024kvquant]; GEAR's quantization-plus-low-rank-residual
-recipe [@kang2024gear]; the rotation-and-sketch approaches of TurboQuant
-[@zandieh2026turboquant] and QJL [@zandieh2024qjl]; vector-quantization methods
-such as VecInfer [@yao2025vecinfer], CommVQ [@commvq2025], and the
-nearest-neighbor code RaBitQ [@gao2024rabitq]; and per-layer mixed-precision
-allocation as in RateQuant [@ratequant2026]. These are almost all distributed as
-separate research repositories, each with its own interface and assumptions, and
-each targeting CUDA.
+Published KV-cache compression methods cluster into four families, each
+targeting a different point on the compression–quality–speed trade-off.
+*Scalar quantization* methods store keys and values at reduced bit-width:
+KIVI's tuning-free asymmetric 2-bit quantization [@liu2024kivi], KVQuant's
+non-uniform, outlier-aware quantization [@hooper2024kvquant], GEAR's
+quantization-plus-low-rank-residual recipe [@kang2024gear], SKVQ's
+sliding-window channel reordering [@duanmu2024skvq], and the rotation-and-sketch
+approaches of TurboQuant [@zandieh2026turboquant] and QJL [@zandieh2024qjl].
+*Vector quantization* methods encode keys or values against a codebook: VecInfer
+[@yao2025vecinfer], CommVQ [@commvq2025], the calibration-free universal codebook
+of NSNQuant [@son2025nsnquant], and the nearest-neighbor code RaBitQ
+[@gao2024rabitq]. *Cross-layer and low-rank* methods exploit redundancy between
+network depths or within a head's dimensions instead of within a single token:
+PALU's low-rank latent projection [@chang2025palu], MiniCache's cross-layer
+SLERP merge of adjacent layers [@liu2024minicache], and xKV's shared-subspace
+SVD fit jointly across a layer group [@chang2025xkv]; RateQuant instead
+allocates bit-width per layer by rate-distortion theory [@ratequant2026]. A
+fourth family keeps the cache at full precision but bounds its *length*,
+evicting or merging the tokens a scoring rule deems least useful: from
+StreamingLLM's sink-plus-recency window [@xiao2024streamingllm] and the
+cumulative-attention heavy-hitter rule of H2O [@zhang2023h2o], through
+SnapKV's prefill-window scoring [@yuan2025snapkv], PyramidKV's and
+SqueezeAttention's layer-adaptive budgets [@cai2024pyramidkv;
+@wang2024squeezeattention], CaM's merge-instead-of-drop rule
+[@zhang2024cam], and Keyformer's and MorphKV's refinements to the eviction
+signal itself [@adnan2024keyformer; @ghadia2025morphkv], to query-agnostic
+reconstruction-reliance scoring as in KVzip [@kim2025kvzip]. These are almost
+all distributed as separate research repositories, each with its own interface
+and assumptions, and each targeting CUDA.
 
 The build-versus-contribute justification for `VeloxQuant-MLX` is that no existing
 package brings these methods to Apple's MLX backend under a common interface, and
@@ -111,9 +133,17 @@ port to Metal, on Apple Silicon the realized benefit of these methods is reduced
 about this: it reports measured throughput alongside compression so users can see
 the actual cost, and it provides a pure-MLX reference path for every accelerated
 kernel so that the fast and slow paths can be checked against each other. The
-newest addition, a re-implementation of KIVI, was chosen specifically because it
-is deterministic (plain minimum/maximum group quantization with no learned
-codebook and no randomness), which keeps its behavior reproducible run to run.
+suite deliberately mixes *deterministic* methods — for example KIVI's plain
+minimum/maximum group quantization, with no learned codebook and no randomness,
+which is reproducible run to run — with *path-dependent* token-eviction methods
+whose kept set depends on the order tokens arrive. For the latter the library
+documents, and tests, the exact reductions that pin each new scoring rule to an
+existing one: KVzip's single-token reconstruction probe reduces bit-for-bit to
+the memoryless latest-token TOVA rule, and CaM's cache-merging rule reduces
+bit-for-bit to H2O's cumulative-attention eviction when its merge step is
+disabled (`cam_merge="drop"`). Each new eviction method added to the suite is
+required to state and test such a reduction against an existing method where
+one exists, so that a method's behavior is characterized rather than asserted.
 
 # Research impact statement
 
