@@ -25,7 +25,8 @@
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.34.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
-  <a href="https://github.com/sponsors/rajveer43"><img src="https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"/></a>
+  <a href="https://ko-fi.com/rajveer43"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi"/></a>
+  <a href="https://buymeachai.in/rajveer43"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Chai-support-fbb034?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me a Chai"/></a>
 </p>
 
 </div>
@@ -630,7 +631,8 @@ All blog posts live in the [`blogs/`](blogs/) directory and are published at
 VeloxQuant-MLX has passed **15,000+ downloads** on PyPI. It's free, MIT-licensed,
 and built nights-and-weekends — if it saves your Mac some memory (or you just
 want to see the 38th method land), you can
-[**sponsor on GitHub** 💜](https://github.com/sponsors/rajveer43). Stars, issues, and
+[**buy me a chai** ☕](https://buymeachai.in/rajveer43) or
+[**tip on Ko-fi** 💜](https://ko-fi.com/rajveer43). Stars, issues, and
 PRs are equally appreciated.
 
 ---

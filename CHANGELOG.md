@@ -51,8 +51,8 @@ implementation)," **not a faithful port**.
 (`benchmark_scripts/benchmark_kvzip.py`).
 
 ### Changed — meta
-- Replaced the dead Buy Me a Coffee handle with **GitHub Sponsors** across the
-  README, landing page, and `.github/FUNDING.yml`.
+- Replaced the dead Buy Me a Coffee handle with working **Ko-fi** and **Buy Me a
+  Chai** links across the README, landing page, and `.github/FUNDING.yml`.
 - Refreshed the JOSS paper (`paper/joss/paper.md`) to the current 37-method suite
   and the token-eviction family.
 

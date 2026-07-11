@@ -26,7 +26,7 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 - The paper's accuracy/memory numbers (3–4× reduction, ~2× decode, negligible loss up to 170K on LLaMA3.1/Qwen2.5/Gemma3) are the paper's, on trained models — not reproduced here.
 
 ### Meta
-- Funding links updated: the dead Buy Me a Coffee handle is replaced with **GitHub Sponsors** across the README, landing page, and `.github/FUNDING.yml`.
+- Funding links updated: the dead Buy Me a Coffee handle is replaced with **Ko-fi** and **Buy Me a Chai** across the README, landing page, and `.github/FUNDING.yml`.
 - JOSS paper (`paper/joss/paper.md`) refreshed to the current 37-method suite and the token-eviction family.
 
 ---
