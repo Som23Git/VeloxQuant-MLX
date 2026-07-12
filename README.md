@@ -22,7 +22,7 @@
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.34.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.35.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
   <a href="https://ko-fi.com/rajveer43"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi"/></a>
@@ -186,6 +186,7 @@ the [documentation site](https://veloxquant-mlx.netlify.app/docs/algorithms/over
 | [MiniCache](https://veloxquant-mlx.netlify.app/docs/algorithms/minicache) | `minicache` | Cross-layer SLERP merge — deep layer pairs cost one | ~2× on deep layers | 0.16.0 |
 | [xKV-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/xkv) | `xkv` | Cross-layer shared-subspace SVD — one basis jointly fit across a layer group | varies | 0.27.0 |
 | [AdaKV-proxy](https://veloxquant-mlx.netlify.app/docs/algorithms/adakv) | `adakv` | Per-head adaptive bit budget, layered on KIVI | varies | 0.13.0 |
+| [KVTC-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/kvtc) | `kvtc` | Local PCA + DP-optimal per-component bit allocation + entropy coding (ICLR 2026) — beats fixed-split mixed-precision at matched byte budget on skewed variance | varies | 0.35.0 |
 
 ### Token eviction & merging — drop or merge low-value tokens
 
@@ -380,7 +381,7 @@ Deep-dive writeups live in [`blogs/`](blogs/) and are also published on the docs
 full bibliography (implemented methods, related work, and survey papers):
 **[CITATIONS.md](CITATIONS.md)**.
 
-Headline references: [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874), [VecInfer (2024)](https://arxiv.org/abs/2510.06175), [RaBitQ (SIGMOD 2024)](https://arxiv.org/abs/2402.02855), [CommVQ (ICML 2025)](https://arxiv.org/abs/2506.18879), [KVzip (NeurIPS 2025)](https://arxiv.org/abs/2505.23416). Built on [Apple MLX](https://github.com/ml-explore/mlx).
+Headline references: [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874), [VecInfer (2024)](https://arxiv.org/abs/2510.06175), [RaBitQ (SIGMOD 2024)](https://arxiv.org/abs/2402.02855), [CommVQ (ICML 2025)](https://arxiv.org/abs/2506.18879), [KVzip (NeurIPS 2025)](https://arxiv.org/abs/2505.23416), [KVTC (ICLR 2026)](https://arxiv.org/abs/2511.01815). Built on [Apple MLX](https://github.com/ml-explore/mlx).
 
 ---
 

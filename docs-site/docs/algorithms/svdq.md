@@ -130,8 +130,15 @@ start of each sequence. It is complementary to [KIVI](../algorithms/kivi)
 [RaBitQ](../algorithms/rabitq) (which uses 1-bit vector quantization for both
 tensors).
 
+SVDq's mixed-bit latent split is a **fixed** top-25%/75% rule chosen by hand.
+[KVTC-adapted](../algorithms/kvtc) uses the same local-PCA-then-latent-quantize
+shape but replaces that fixed split with a **dynamic-programming-optimal**
+per-component bit allocation (which can drop a component to exactly 0 bits)
+plus an entropy-coding stage — and compresses **both** K and V, not keys-only.
+
 | Method | Key bits | Value bits | Prefill cost |
 |--------|----------|------------|--------------|
 | KIVI-2bit | 2 | 2 | none |
 | RaBitQ | ~1 (VQ) | ~4 (MSE) | k-means |
 | SVDq (default) | ~1.25 | 16 (fp16) | SVD once |
+| [KVTC-adapted](../algorithms/kvtc) | DP-optimal (0–8) | DP-optimal (0–8) | local PCA once |

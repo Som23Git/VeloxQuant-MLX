@@ -139,6 +139,13 @@ print(per_dim_bits)  # e.g. [8, 8, 6, 4, 2, 1, 1, ...]
 - Maximum compression is the goal → [VecInfer](../algorithms/vecinfer)
 - Best quality per bit across all lengths → [RateQuant](../algorithms/ratequant)
 
+SpectralQuant's signal/noise split is a **binary** cutoff (participation-ratio
+derived) with **uniform bits within each half**. [KVTC-adapted](../algorithms/kvtc)
+takes the same local-PCA starting point but replaces the binary cutoff with a
+**dynamic-programming-optimal** bit-width *per individual component* (not just
+two tiers) — including exactly 0 bits for a component — and adds a
+zero-calibration entropy-coding stage on top.
+
 ## Benchmark results
 
 On Qwen2.5-7B at 16k context, M3 Max (source: BENCHMARK_RESULTS.md):
