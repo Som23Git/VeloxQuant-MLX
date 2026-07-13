@@ -168,8 +168,16 @@ not just keys. It is complementary to [SVDq](../algorithms/svdq) (keys-only
 low-rank, values fp16), [KIVI](../algorithms/kivi) (group quantization on both),
 and [RaBitQ](../algorithms/rabitq) (1-bit vector quantization).
 
+PALU's mixed-bit latent split is **fixed** (top-25%/75% by singular value, on
+both K and V). [KVTC-adapted](../algorithms/kvtc) shares PALU's full-KV,
+local-basis-at-prefill shape, but replaces the fixed split with a
+**dynamic-programming-optimal** per-component bit allocation (may drop a
+component to exactly 0 bits) and adds an entropy-coding stage on top of the
+quantized codes.
+
 | Method | Key bits | Value bits | Stores | Prefill cost |
 |--------|----------|------------|--------|--------------|
 | KIVI-2bit | 2 | 2 | full fp16 (dequant) | none |
 | SVDq (default) | ~1.25 | 16 (fp16) | full fp16 keys | SVD once |
 | **PALU (default)** | **~0.6** | **~0.6** | **latent `[S, r]`** | group SVD once |
+| [KVTC-adapted](../algorithms/kvtc) | DP-optimal (0–8) | DP-optimal (0–8) | latent codes + entropy-coded payload | local PCA once |

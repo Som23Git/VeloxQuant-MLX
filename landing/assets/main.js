@@ -69,7 +69,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.34.0 — KVzip-adapted context-reconstruction reliance eviction shipped";
+  const text = "v0.35.0 — KVTC-adapted local PCA + DP-optimal bit allocation + entropy coding shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;

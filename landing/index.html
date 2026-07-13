@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted, Q-Filters-adapted, Keyformer-adapted, MorphKV-adapted, KVzip-adapted — all in MLX. New in 0.34.0: KVzip-adapted context-reconstruction reliance eviction (NeurIPS 2025) — keeps the KV pairs the model most relies on to reconstruct its own context; kvzip_probe=latest collapses onto TOVA bit-for-bit. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted, Q-Filters-adapted, Keyformer-adapted, MorphKV-adapted, KVzip-adapted, KVTC-adapted — all in MLX. New in 0.35.0: KVTC-adapted local-PCA + DP-optimal bit allocation + entropy coding (ICLR 2026) — beats fixed-split mixed-precision at matched byte budget. Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -74,14 +74,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">35 algorithms</span>
+        <span class="hero-pill">37 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 35 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters · Keyformer · MorphKV · KVzip
+        <summary>See all 37 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters · Keyformer · MorphKV · KVzip · KVTC
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -223,12 +223,13 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Thirty-five compression strategies</h2>
+    <h2 class="section-title">Thirty-seven compression strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
 
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.35.0</span><span class="wn-body"><strong>KVTC-adapted</strong> — local PCA + DP-optimal per-component bit allocation + entropy coding (ICLR 2026). Palu/SVDq/SpectralQuant all use a <em>fixed</em> mixed-bit split (a hand-chosen top-25%/75% tier, or a binary signal/noise cutoff); KVTC computes a <em>dynamic-programming-optimal</em> integer bit-width per principal component under a hard total-bit budget — including exactly <strong>0 bits</strong> (dropping a component entirely) — then entropy-codes the resulting codes. The honest crux: local per-sequence PCA (not the paper's pre-calibrated global basis), an analytic Gaussian distortion proxy reused from <code>ratequant.py</code> (not a real-activation-fit rate-distortion model), and a plain order-0 Huffman coder (not the paper's possibly more sophisticated scheme, never the Shannon-entropy bound). Measured: at a matched total byte budget on planted skewed-variance geometry, the DP allocator reaches mean MSE ≈0.027 vs ≈87.6 (fixed-uniform) and ≈84.4 (SVDq-fixed-split); on a flat control it is roughly competitive with the uniform baseline, not a dramatic win. The paper's up-to-20×/40×, under-1pp-accuracy-loss numbers are the paper's, on trained models — not reproduced.</span></li>
         <li><span class="wn-ver">0.34.0</span><span class="wn-body"><strong>KVzip-adapted</strong> — context-reconstruction reliance retention (NeurIPS 2025 Oral). Every other proxy scorer ranks a stored token by the attention it receives <em>from a query</em> (cumulative for H2O, latest for TOVA, windowed for MorphKV); KVzip ranks by <em>reconstruction reliance</em> — how much the model relies on a KV pair to <em>reconstruct its own context</em> — a <strong>query-agnostic</strong> profile computed once and reused across all future queries. The honest crux: key-as-reconstruction-probe proxy (a cache never runs the model to reconstruct text), and only the <code>kvzip_probe="latest"</code> reduction is pinned — it <em>is</em> TOVA-adapted, bit-for-bit; no H2O collapse is claimed. Measured: under a constructed reconstruction shift, cumulative H2O retains ~0.017 of the reconstruction-critical region while the context probe retains ~0.609, beating the probe=latest (TOVA) reference (~0.248); a flat control shows no advantage. The paper's accuracy/memory numbers are the paper's, on trained models — not reproduced.</span></li>
         <li><span class="wn-ver">0.33.0</span><span class="wn-body"><strong>MorphKV-adapted</strong> — recent-window correlation retention (ICML 2025). Where H2O ranks a stored token by <em>cumulative</em> attention (inertial — early heavy hitters crowd out the current topic) and TOVA by the <em>single latest</em> query, MorphKV ranks by correlation with a <em>sliding window</em> of the most recent tokens, so a constant-size cache re-targets toward what the recent context actually reads — eliminating the "early-token bias." The honest crux: key-as-query proxy (a cache never sees the true query), and only the <code>morphkv_window=1</code> reduction is pinned — it <em>is</em> TOVA-adapted, bit-for-bit; no H2O collapse is claimed. Measured: under a constructed topic shift, cumulative H2O retains ~0% of the recent-relevant region while wider windows retain ~0.39–0.74, beating the window=1 (TOVA) reference; a stable control shows no advantage. The paper's accuracy/memory numbers are the paper's, on trained models — not reproduced.</span></li>
         <li><span class="wn-ver">0.32.0</span><span class="wn-body"><strong>Keyformer-adapted</strong> — Gumbel-regularized heavy-hitter eviction (MLSys 2024). Structurally H2O's proxy-attention accumulator plus one new ingredient: <em>Gumbel noise</em> on the eviction logits, so a "late riser" — a token that reads low early, before the queries that attend to it arrive — is not deterministically pruned before it can recover. The honest crux: the paper redraws and anneals the noise across generation, but a cache has no trustworthy global step, so we draw one <em>deterministic per-position</em> Gumbel value and freeze it (<code>keyformer_seed</code>) — the intent, not the schedule. Setting <code>keyformer_tau=0</code> removes the noise and this cache <em>is</em> H2O-adapted, bit-for-bit — the honest ablation. Measured: under late-riser geometry greedy tau=0 evicts the planted riser 100% of the time while tau=6 rescues it ~75%; the downstream perturbation is a noisier, regime-dependent secondary effect, reported as-is.</span></li>
@@ -254,7 +255,7 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all" aria-pressed="true">All (35)</button>
+      <button class="filter-btn active" data-filter="all" aria-pressed="true">All (37)</button>
       <button class="filter-btn" data-filter="zero-cal" aria-pressed="false">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv" aria-pressed="false">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal" aria-pressed="false">Metal kernel</button>
@@ -364,6 +365,11 @@
           <div class="picker-goal">One compressed cache that serves many future queries</div>
           <div class="picker-method" style="color:#2dd4bf">KVzip</div>
           <div class="picker-detail">Keeps the KV pairs the model most relies on to reconstruct its own context · query-agnostic · <code>kvzip_probe=latest</code> == TOVA · NeurIPS 2025 → see details ↓</div>
+        </a>
+        <a href="#algo-kvtc" class="picker-card picker-card-link" style="border-color:rgba(251,191,36,0.35);">
+          <div class="picker-goal">Skewed component variance — let the allocator decide, not a hand-picked split</div>
+          <div class="picker-method" style="color:#fbbf24">KVTC-adapted</div>
+          <div class="picker-detail">Local PCA + DP-optimal per-component bit allocation (can drop a component to 0 bits) + order-0 entropy coding · beats fixed-split mixed-precision at matched byte budget · ICLR 2026 → see details ↓</div>
         </a>
       </div>
     </div>
@@ -613,7 +619,7 @@
       <div id="algo-kvzip" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="evict">
         <div class="card-head">
           <span class="cat-chip" style="--chip:#2dd4bf">Token Eviction</span>
-          <span class="new-pill">NEW</span>
+
         </div>
         <div class="algo-title">KVzip-adapted</div>
         <div class="card-subtitle">Context-reconstruction reliance retention</div>
@@ -1579,7 +1585,7 @@
         <div class="cat-header" style="--chip:#fbbf24">
           <h3 class="cat-title">Low-rank & Latent</h3>
           <span class="cat-blurb">SVD / latent projection compression</span>
-          <span class="cat-count">3</span>
+          <span class="cat-count">4</span>
         </div>
         <div class="algo-grid">
       <div id="algo-palu" class="algo-card fade-in" data-tags="full-kv zero-cal extreme" data-cat="lowrank">
@@ -1710,6 +1716,49 @@
           </div>
         </details>
         <div class="card-meta">v0.17.0</div>
+      </div>
+      <div id="algo-kvtc" class="algo-card fade-in" data-tags="zero-cal full-kv" data-cat="lowrank">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#fbbf24">Low-rank & Latent</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">KVTC-adapted</div>
+        <div class="card-subtitle">Local PCA + DP-optimal bit allocation + entropy coding</div>
+        <div class="algo-desc card-summary">DP-optimal per-component bit allocation (can drop a component to 0 bits) + order-0 entropy coding.</div>
+        <div class="card-headline"><span class="headline-stat">DP-optimal, may drop to 0-bit</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from "KV Cache Transform Coding for Compact Storage in LLM Inference" (NVIDIA, <strong style="color:var(--text)">ICLR 2026</strong>, accepted poster, <a href="https://arxiv.org/abs/2511.01815" target="_blank" rel="noopener" style="color:#fbbf24">arXiv:2511.01815</a>). Palu/SVDq/SpectralQuant all use a <strong style="color:var(--text)">fixed</strong> mixed-bit split (a hand-chosen top-25%/75% tier, or a binary signal/noise cutoff); KVTC computes a <strong style="color:#22c55e">dynamic-programming-optimal</strong> integer bit-width per principal component under a hard total-bit budget — including exactly <strong style="color:#22c55e">0 bits</strong> (dropping a component entirely) — then <strong style="color:#22c55e">entropy-codes</strong> the resulting codes. Both K and V compressed (mirrors Palu, not SVDq's keys-only scope). Zero calibration.
+              <br><br>
+              <strong style="color:var(--text)">① Local PCA at prefill</strong> — truncated SVD of the prefill batch, no fixed-energy truncation (r = min(S, D))<br>
+              <strong style="color:var(--text)">② DP-optimal bit allocation</strong> — dynamic programming over (component, cumulative budget) minimizes total distortion under the budget, may assign 0 bits<br>
+              <strong style="color:var(--text)">③ Entropy coding</strong> — order-0 Huffman coder over the quantized codes, realized bytes measured and reported (never the Shannon bound)<br>
+              <strong style="color:var(--text)">④ Frozen basis</strong> — the PCA basis and bit allocation are fixed once at prefill and reused unchanged for every decode step (not path-dependent, unlike the eviction family)<br>
+              <br>
+              <strong style="color:#22c55e">The honest crux:</strong> local per-sequence PCA (not the paper's pre-calibrated global basis), an analytic Gaussian distortion proxy reused from <code>ratequant.py</code> (not a real-activation-fit rate-distortion model), and a plain order-0 Huffman coder (not the paper's possibly more sophisticated scheme). Measured: at a matched total byte budget on planted skewed-variance geometry, the DP allocator reaches mean MSE ≈0.027 vs ≈87.6 (fixed-uniform) and ≈84.4 (SVDq-fixed-split); on a flat control it is roughly competitive with the uniform baseline, not a dramatic win. The paper's up-to-20×/40×, under-1pp-accuracy-loss numbers on LLaMA 3/Mistral NeMo/R1-Qwen2.5 are the paper's, on trained models — not reproduced.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Bit allocation</span>
+                <span class="value" style="color:#22c55e">DP-optimal per component (0–8)</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Value compression</span>
+                <span class="value">Yes — same pipeline as K</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Entropy coding</span>
+                <span class="value" style="color:#22c55e">order-0 Huffman, realized bytes</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Calibration</span>
+                <span class="value">None — local PCA at prefill</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Path-dependence</span>
+                <span class="value">None — basis/allocation frozen after prefill</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.35.0 · ICLR 2026</div>
       </div>
         </div>
       </div>
@@ -1959,6 +2008,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="keyformer" role="tab" aria-selected="false" aria-controls="tab-keyformer" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">Keyformer · Gumbel eviction</button>
       <button class="tab-btn" data-tab="morphkv" role="tab" aria-selected="false" aria-controls="tab-morphkv" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">MorphKV · recent-window eviction</button>
       <button class="tab-btn" data-tab="kvzip" role="tab" aria-selected="false" aria-controls="tab-kvzip" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">KVzip · reconstruction eviction</button>
+      <button class="tab-btn" data-tab="kvtc" role="tab" aria-selected="false" aria-controls="tab-kvtc" style="border-color:rgba(251,191,36,0.4);color:#fbbf24">KVTC · DP bit allocation</button>
     </div>
 
     <!-- RVQ tab -->
@@ -2434,6 +2484,37 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
     <span class="at">prompt</span><span class="op">=</span><span class="st">"Answer many questions about this long document."</span><span class="op">,</span>
     <span class="at">max_tokens</span><span class="op">=</span><span class="nu">1000</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- KVTC tab -->
+    <div class="code-panel" id="tab-kvtc">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — KVTC-adapted · local PCA + DP-optimal bit allocation + entropy coding (ICLR 2026)</span>
+          <button class="code-copy" data-target="code-kvtc">Copy</button>
+        </div>
+        <pre id="code-kvtc"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Local PCA + DP-optimal per-component bit allocation (may drop a</span>
+<span class="cm"># component to 0 bits) + order-0 entropy coding. Both K and V compressed.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"kvtc"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">kvtc_bit_budget</span><span class="op">=</span><span class="nu">512</span><span class="op">,</span>   <span class="cm"># total bits/token across all components</span>
+    <span class="at">kvtc_bit_choices</span><span class="op">=</span><span class="op">(</span><span class="nu">0</span><span class="op">,</span> <span class="nu">1</span><span class="op">,</span> <span class="nu">2</span><span class="op">,</span> <span class="nu">3</span><span class="op">,</span> <span class="nu">4</span><span class="op">,</span> <span class="nu">6</span><span class="op">,</span> <span class="nu">8</span><span class="op">)</span><span class="op">,</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize the key findings from this research paper."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">500</span><span class="op">,</span>
     <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
 <span class="op">)</span></pre>
       </div>

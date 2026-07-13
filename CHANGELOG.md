@@ -7,6 +7,80 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.35.0] — 2026-07-12
+
+### Added — KVTC-adapted local PCA + DP-optimal bit allocation + entropy coding (`method="kvtc"`)
+
+The library's 37th method, joining the low-rank / spectral family (Palu,
+SVDq, SpectralQuant). All three existing low-rank methods use a **fixed**
+mixed-bit split (a hand-chosen top-25%/75% tier, or a binary signal/noise
+cutoff via participation ratio) — none compute a **provably optimal**
+allocation for a given total-bit budget, and none can assign **zero bits**
+to an individual low-variance component while another component gets more
+than the "high" tier. KVTC's axis: given a vector of per-component
+variances from a local PCA and a total bit budget, use **dynamic
+programming** to choose an integer bit-width per component (including
+**0**, i.e. drop the component entirely) that minimizes total expected
+distortion — then **entropy-code** the resulting codes for a further
+lossless size reduction. Inspired by "KV Cache Transform Coding for
+Compact Storage in LLM Inference" (NVIDIA, **ICLR 2026**, accepted poster,
+arXiv:2511.01815) — shipped as "KVTC-adapted (VeloxQuant-MLX
+implementation)," **not a faithful port**.
+
+- `veloxquant_mlx/allocators/kvtc_dp.py` — `dp_allocate_bits`: DP over
+  (component, cumulative budget), reusing `ratequant.py`'s analytic
+  `D(v,b) = v·β^(-b)` distortion curve instead of inventing a new one.
+- `veloxquant_mlx/quantizers/_entropy_coding.py` — `entropy_encode`/
+  `entropy_decode`: dependency-free order-0 Huffman coder (stdlib `heapq`),
+  lossless round-trip, code-table cost counted in byte accounting.
+- `veloxquant_mlx/quantizers/kvtc.py` — `kvtc_compress`/`kvtc_decompress`:
+  local per-sequence PCA (reusing `_quant_utils.py::_truncated_svd`, the
+  same helper SVDq/Palu/GEAR share), no fixed-energy truncation (the DP
+  allocator decides survivors), `kvtc_fp16_bytes` (realized entropy-coded
+  payload) / `kvtc_pre_entropy_bytes` (pre-entropy-coding size).
+- `veloxquant_mlx/cache/kvtc_cache.py` — `KVTCKVCache`, fits the PCA basis
+  and DP allocation once at prefill and reuses them unchanged for every
+  decode step; compresses **both K and V** (mirrors Palu's scope, not
+  SVDq's keys-only scope).
+- `veloxquant_mlx/cache/base.py` — `"kvtc"` method, `kvtc_bit_budget` (512),
+  `kvtc_bit_choices` ((0,1,2,3,4,6,8)), `kvtc_beta` (3.5) config, factory
+  branch.
+
+**Honest scope:**
+- Local (per-sequence) PCA, not the paper's pre-calibrated global basis —
+  the same "fit-locally, no calibration set" limitation SVDq/Palu already
+  document.
+- The DP allocator optimizes an analytic distortion proxy, not a
+  real-activation-fit rate-distortion model — the DP itself is exact; the
+  objective it minimizes is the repo's existing Gaussian-quantization
+  distortion curve, not one fit on real LLM activation statistics.
+- Entropy coding is a real, measured, lossless order-0 Huffman coder — not
+  the paper's (possibly more sophisticated) scheme, and never the
+  theoretical Shannon-entropy bound.
+- **Uniform-variance collapse (pinned):** with equal per-component variance
+  and a contiguous `bit_choices` range, the DP-optimal allocation is exactly
+  `floor(budget/n)` per component (remainder to the first components) — the
+  same allocation a naive uniform splitter would produce. No other collapse
+  is claimed — the DP should and does *beat* SVDq's fixed 25/75 split
+  whenever variance is non-uniform.
+- Mechanism observable = reconstruction MSE/cosine at a matched total byte
+  budget: on planted skewed-variance geometry, KVTC's DP allocator reaches
+  mean MSE ≈0.027 vs ≈87.6 (fixed-uniform) and ≈84.4 (SVDq-fixed-split); on
+  a flat (isotropic) control it is roughly competitive with the
+  fixed-uniform baseline, not a dramatic win. Entropy-coding's realized gain
+  is modest (≈0.15–0.50 across the sweep), reported plainly.
+- Not path-dependent (contrast with the eviction family
+  H2O/TOVA/MorphKV/KVzip): the PCA basis and DP allocation are fixed once
+  at prefill and reused for every subsequent token — pinned by a
+  determinism test.
+- The paper's numbers (up to 20×, up to 40× in some regimes, under 1pp
+  accuracy loss on LLaMA 3/Mistral NeMo/R1-Qwen2.5 1.5B–70B across
+  AIME25/GSM8K/LiveCodeBench/LongBench/MATH-500/MMLU/Qasper/RULER) are the
+  paper's, on trained models — not reproduced.
+
+73 new tests (32 allocator + 15 entropy coder + 12 quantizer + 14 cache) and
+a deterministic offline benchmark (`benchmark_scripts/benchmark_kvtc.py`).
+
 ## [0.34.0] — 2026-07-11
 
 ### Added — KVzip-adapted context-reconstruction reliance retention (`method="kvzip"`)
