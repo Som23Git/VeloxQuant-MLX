@@ -38,7 +38,7 @@ class KVCacheConfig:
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
         "nsnquant", "knorm", "skvq", "qfilters", "keyformer", "morphkv", "kvzip",
-        "kvtc",
+        "kvtc", "curdkv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -212,6 +212,10 @@ class KVCacheConfig:
     kvtc_bit_budget: int = 512           # total bits per token across all components (K, V independently); default = 4 * head_dim(128)
     kvtc_bit_choices: tuple = (0, 1, 2, 3, 4, 6, 8)  # allowed per-component bit-widths (0 = drop)
     kvtc_beta: float = 3.5               # distortion decay constant D(v,b) = v * beta**(-b), shared with ratequant.py
+    # --- CurDKV-adapted configuration (value-aware leverage-score eviction) --
+    curdkv_budget: int = 512             # max tokens kept at any time (sinks + non-sinks)
+    curdkv_n_sink: int = 4               # initial positions protected from eviction (attention sinks)
+    curdkv_rank_cap: int = 16            # SVD rank cap for leverage-score estimation
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -289,6 +293,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.morphkv_cache import MorphKVKVCache
         from veloxquant_mlx.cache.kvzip_cache import KVzipKVCache
         from veloxquant_mlx.cache.kvtc_cache import KVTCKVCache
+        from veloxquant_mlx.cache.curdkv_cache import CurDKVKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -432,13 +437,18 @@ class KVCacheFactory:
             # default for_model path (one KVTCKVCache per layer) is all it
             # needs.
             cache = KVTCKVCache(config)
+        elif config.method == "curdkv":
+            # No coordinator: value-aware leverage-score eviction is per-layer
+            # per-head state recomputed each step; the default for_model path
+            # (one CurDKVKVCache per layer) is all it needs.
+            cache = CurDKVKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc, curdkv."
             )
 
         if config.sliding_window is not None:

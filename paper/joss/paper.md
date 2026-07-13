@@ -35,7 +35,7 @@ long a document a Mac can handle before it runs out of memory.
 that the same Mac can handle longer inputs. It works with models loaded through
 `mlx_lm`, Apple's library for running LLMs on its own hardware, and it can be
 switched on by changing three lines of code; the normal text-generation call is
-left untouched. The library offers thirty-seven interchangeable compression
+left untouched. The library offers thirty-eight interchangeable compression
 strategies, so a user can trade a little accuracy for a lot of memory savings, or
 the reverse, by selecting a different option. These span several families:
 low-bit *quantization*, *vector quantization* against learned or fixed codebooks,

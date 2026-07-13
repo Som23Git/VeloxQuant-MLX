@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "VeloxQuant-MLX"
-version = "0.35.0"
-description = "Fast KV-cache quantization for Apple Silicon (MLX) — 37 research-adapted compression methods, from TurboQuant and KIVI to KVTC, with Metal kernels"
+version = "0.36.0"
+description = "Fast KV-cache quantization for Apple Silicon (MLX) — 38 research-adapted compression methods, from TurboQuant and KIVI to CurDKV, with Metal kernels"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

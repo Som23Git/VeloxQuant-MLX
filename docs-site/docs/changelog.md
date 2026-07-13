@@ -11,7 +11,25 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.35.0 — Latest
+## v0.36.0 — Latest
+
+### New
+- **CurDKV-adapted** (`method="curdkv"`) — value-aware leverage-score eviction via approximated CUR decomposition. Every eviction method already in the repo (H2O, SnapKV, TOVA, PyramidKV, Keyformer, MorphKV, KVzip, ...) scores a token using only its **key** side (attention-mass, norm, key-SVD projection, reconstruction reliance); CurDKV derives a **leverage score** from the joint key-and-value structure of the proxy attention output, so a token's value contribution — not just its key/attention profile — decides whether it survives. Two tokens with identical keys but different values now provably receive different retention scores, something no existing eviction method in the repo can do. Inspired by "Value-Guided KV Compression for LLMs via Approximated CUR Decomposition" (Sengupta, Chaudhary, Chakraborty; **NeurIPS 2025**, confirmed poster, arXiv:2509.15038) — documented as "CurDKV-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `CurDKVState`/`curdkv_update`/`curdkv_get_kv` (`veloxquant_mlx/quantizers/curdkv.py`) — modeled on H2O's per-head sliding state and eviction loop; the new `_leverage_scores` helper estimates row-leverage via an **energy-weighted** sum over the proxy attention-weighted value block's leading singular vectors.
+  - `CurDKVKVCache` (`veloxquant_mlx/cache/curdkv_cache.py`) — mirrors `H2OKVCache`'s structure line-for-line; both prefill and decode go through the same eviction loop.
+  - Config: `curdkv_budget` (512), `curdkv_n_sink` (4), `curdkv_rank_cap` (16).
+  - 39 tests (23 quantizer + 16 cache) and a deterministic offline benchmark (`benchmark_scripts/benchmark_curdkv.py`).
+
+### Honest scope
+- **Key-as-query proxy, not the true query vector** — the same limitation H2O/SnapKV/Keyformer/MorphKV/KVzip already document.
+- **An SVD-based, energy-weighted leverage-score estimator, not the paper's own CUR sampling algorithm.** Weighting each singular direction by its own energy (rather than a hard top-k/bottom-(n−k) split) is load-bearing: a hard rank cutoff degenerates to uniform leverage whenever the retained rank reaches the block size, since the left singular vectors of a full-rank block then form a complete orthogonal basis and every row trivially has unit norm — silently erasing the magnitude signal this estimator exists to capture.
+- **Newly-appended tokens are seeded with their own leverage score, not a flat 0** — unlike H2O's softmax weights (never exactly 0), CurDKV's leverage scores can legitimately be exactly 0 for a genuinely negligible-value token, so a flat-0 seed would let a negligible-value newcomer tie forever with an already-negligible survivor and let arrival order, not value, decide the outcome.
+- **Mechanism observable:** on a planted geometry (near-identical keys, sharply divergent values), CurDKV retains value-relevant tokens preferentially in 8/8 trials across seeds, while H2O — given the identical keys — cannot tell the classes apart and evicts near-uniformly. The benchmark also reports, honestly, that CurDKV retains fewer value-irrelevant tokens than H2O on a "correlated" control geometry too — not the initially expected null result — attributed to H2O's own tie-break dynamics in this small-N regime, not overclaimed as general CurDKV dominance.
+- The paper's headline numbers (up to 9.6% higher accuracy than SOTA baselines, up to 40% latency reduction under aggressive compression) are the paper's, on trained models — not reproduced here.
+
+---
+
+## v0.35.0
 
 ### New
 - **KVTC-adapted** (`method="kvtc"`) — local PCA + DP-optimal per-component bit allocation + order-0 entropy coding. Palu/SVDq/SpectralQuant all use a **fixed** mixed-bit split (a hand-chosen top-25%/75% tier, or a binary signal/noise cutoff via participation ratio); KVTC computes a **dynamic-programming-optimal** integer bit-width per principal component under a hard total-bit budget — including exactly **0 bits** (dropping a component entirely) — then entropy-codes the resulting quantized codes. Neither the DP-optimal discrete allocation nor the entropy-coding stage existed anywhere in the repo before this. Inspired by "KV Cache Transform Coding for Compact Storage in LLM Inference" (NVIDIA, **ICLR 2026**, accepted poster, arXiv:2511.01815) — documented as "KVTC-adapted (VeloxQuant-MLX implementation)," not a faithful port.
