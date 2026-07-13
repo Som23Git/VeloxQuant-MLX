@@ -7,6 +7,81 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.36.0] — 2026-07-13
+
+### Added — CurDKV-adapted value-aware leverage-score eviction (`method="curdkv"`)
+
+The library's 38th method, joining the token-eviction family (H2O, SnapKV,
+TOVA, PyramidKV, Keyformer, MorphKV, KVzip, and more). Every existing
+eviction method scores a token using only its **key** side (attention-mass,
+norm, key-SVD projection, reconstruction reliance) — none of them fold the
+**value** vector's own contribution into the retention decision. CurDKV's
+axis: build the proxy attention-weighted value block and derive a
+**leverage score** from its dominant singular directions, energy-weighted
+by singular value, so a token's value contribution — not just its key or
+attention-mass profile — decides whether it survives. Inspired by
+"Value-Guided KV Compression for LLMs via Approximated CUR Decomposition"
+(Sengupta, Chaudhary, Chakraborty; **NeurIPS 2025**, confirmed poster,
+arXiv:2509.15038) — shipped as "CurDKV-adapted (VeloxQuant-MLX
+implementation)," **not a faithful port**.
+
+- `veloxquant_mlx/quantizers/curdkv.py` — `CurDKVState`, `curdkv_update`,
+  `curdkv_get_kv`, byte helpers, and the internal `_leverage_scores`
+  estimator, modeled on `quantizers/h2o.py`'s per-head sliding state and
+  eviction loop.
+- `veloxquant_mlx/cache/curdkv_cache.py` — `CurDKVKVCache`, mirroring
+  `H2OKVCache`'s structure line-for-line; prefill and decode go through the
+  same eviction loop.
+- `veloxquant_mlx/cache/base.py` — `"curdkv"` added to the method
+  `Literal`; `curdkv_budget` (512), `curdkv_n_sink` (4), `curdkv_rank_cap`
+  (16) config fields; factory branch; unknown-method error string extended.
+- 39 tests (23 quantizer + 16 cache,
+  `veloxquant_mlx/tests/quantizers/test_curdkv.py` +
+  `veloxquant_mlx/tests/cache/test_curdkv_cache.py`) and a deterministic
+  offline benchmark (`benchmark_scripts/benchmark_curdkv.py` +
+  `curdkv_benchmark_results.json`).
+- Docs: `docs-site/docs/algorithms/curdkv.md`, sidebar entry, overview
+  table/bullet, changelog entry, cross-link from `h2o.md`.
+
+### Honest scope
+
+- **Key-as-query proxy, not the true query vector** — the same limitation
+  H2O/SnapKV/Keyformer/MorphKV/KVzip already document; the cache wrapper
+  never sees the model's real query, so the incoming key vector stands in
+  for it.
+- **An SVD-based, energy-weighted leverage-score estimator, not the
+  paper's own CUR sampling algorithm.** Energy-weighting (`l_i = Σⱼ (sⱼ² /
+  Σs²) · U[i,j]²`) rather than a hard top-k/bottom-(n−k) split is
+  load-bearing: a hard rank cutoff degenerates to uniform leverage whenever
+  the retained rank reaches the block size `n` — the left singular vectors
+  of a full-rank `[n, k]` block with `k ≥ n` form a complete orthogonal
+  basis, and every row of an orthogonal matrix has unit norm by
+  construction, erasing the magnitude signal regardless of how small the
+  tail singular values actually are.
+- **Newly-appended tokens are seeded with their own leverage score, not a
+  flat 0.** Unlike H2O's softmax weights (never exactly 0), CurDKV's
+  leverage scores can legitimately be exactly 0 for a genuinely
+  negligible-value token; a flat-0 seed would let such a token tie forever
+  with an already-negligible survivor and let arrival order, not value,
+  decide the outcome.
+- **Mechanism observable:** on a planted geometry (near-identical keys,
+  sharply divergent values), CurDKV retains value-relevant tokens
+  preferentially in 8/8 trials across seeds; H2O, given the identical keys,
+  cannot tell the classes apart and evicts near-uniformly. Two tokens with
+  identical keys but different values provably receive different CurDKV
+  scores (`test_identical_keys_different_values_diverge`).
+- The benchmark also reports, honestly, that CurDKV retains fewer
+  value-irrelevant tokens than H2O on a "correlated" control geometry too —
+  not the initially expected null result. This is attributed to H2O's own
+  tie-break dynamics in this small-N synthetic regime, not overclaimed as
+  general CurDKV dominance; the always-true claim stays scoped to
+  planted_value_divergence and the direct same-key/divergent-value test.
+- The paper's headline numbers (up to 9.6% higher accuracy than SOTA
+  baselines, up to 40% latency reduction under aggressive compression) are
+  the paper's, on trained models — not reproduced here.
+
+---
+
 ## [0.35.0] — 2026-07-12
 
 ### Added — KVTC-adapted local PCA + DP-optimal bit allocation + entropy coding (`method="kvtc"`)
