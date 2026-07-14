@@ -38,7 +38,7 @@ class KVCacheConfig:
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
         "nsnquant", "knorm", "skvq", "qfilters", "keyformer", "morphkv", "kvzip",
-        "kvtc", "curdkv", "nestedkv",
+        "kvtc", "curdkv", "nestedkv", "amc",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -224,6 +224,16 @@ class KVCacheConfig:
     nestedkv_tau: float = 0.60            # surprise gate threshold (paper Appendix A default)
     nestedkv_kappa: float = 10.0          # surprise gate sharpness (paper Appendix A default)
     nestedkv_safeguard_alpha: float = 0.20  # per-head guaranteed-floor fraction (paper Appendix A default)
+    # --- AMC-adapted configuration (saliency-driven tiered rank+precision; no verified venue) --
+    amc_k_high: float = 0.20              # top percentile -> High tier (rank/bits per Algorithm 1)
+    amc_k_mid: float = 0.30               # next percentile -> Mid tier
+    amc_use_query_saliency: bool = False  # Eq. 3 query-aware blend (off = pure magnitude, Eq. 1-2)
+    amc_query_alpha: float = 0.5          # Eq. 3 balance coefficient (magnitude vs. query cosine)
+    amc_adaptive_thresholds: bool = False # Eq. 4-5 sequence-adaptive closed-loop threshold adjustment
+    amc_threshold_window: int = 64        # trailing window size for closed-loop variance tracking
+    amc_gamma: float = 0.1                # threshold attenuation scaling factor (Eq. 4-5)
+    amc_calib_variance: Optional[float] = None  # offline calibration variance; required if amc_adaptive_thresholds=True
+    amc_group_size: int = 32              # token-axis group size for tier quantization
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -303,6 +313,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.kvtc_cache import KVTCKVCache
         from veloxquant_mlx.cache.curdkv_cache import CurDKVKVCache
         from veloxquant_mlx.cache.nestedkv_cache import NestedKVKVCache
+        from veloxquant_mlx.cache.amc_cache import AMCKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -458,13 +469,19 @@ class KVCacheFactory:
             # default for_model path (one NestedKVKVCache per layer) is all
             # it needs.
             cache = NestedKVKVCache(config)
+        elif config.method == "amc":
+            # No coordinator: per-token saliency scoring, tier assignment, rank
+            # masking, and quantization all run independently every step
+            # (prefill and decode alike); the default for_model path (one
+            # AMCKVCache per layer) is all it needs.
+            cache = AMCKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc, curdkv, nestedkv."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc, curdkv, nestedkv, amc."
             )
 
         if config.sliding_window is not None:

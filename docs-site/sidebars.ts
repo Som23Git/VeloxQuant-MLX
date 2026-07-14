@@ -60,6 +60,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/kvtc',
         'algorithms/curdkv',
         'algorithms/nestedkv',
+        'algorithms/amc',
         'algorithms/xkv',
       ],
     },

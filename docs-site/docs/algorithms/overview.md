@@ -7,7 +7,7 @@ slug: /algorithms/overview
 
 # Algorithm Overview
 
-VeloxQuant-MLX implements thirty-nine KV cache compression algorithms. This page helps you pick the right one for your workload.
+VeloxQuant-MLX implements forty KV cache compression algorithms. This page helps you pick the right one for your workload.
 
 :::warning Apple Silicon required
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
@@ -52,6 +52,7 @@ All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 | [KVTC-adapted](../algorithms/kvtc) | DP-optimal (0–8, may drop) | DP-optimal (0–8, may drop) | None (local PCA at prefill) | budget-matched | ★★★★ | Local PCA + DP-optimal per-component bit allocation + order-0 entropy coding (ICLR 2026) — beats fixed-split mixed-precision at matched byte budget on skewed variance |
 | [CurDKV-adapted](../algorithms/curdkv) | fp16 (kept tokens) | fp16 (kept tokens) | None | token count | ★★★★ | Value-aware leverage-score eviction via approximated CUR decomposition (NeurIPS 2025) — evicts key-similar but value-irrelevant tokens that key-only eviction (H2O) cannot distinguish |
 | [NestedKV-adapted](../algorithms/nestedkv) | fp16 (kept tokens) | fp16 (kept tokens) | None | token count | ★★★ | Multi-scale ensembled prefill eviction — stable + episodic + current key anomaly, combined by a head-adaptive blend and surprise-gated route (no verified venue — one-time exception) |
+| [AMC-adapted](../algorithms/amc) | adaptive (4/8/16) | adaptive (4/8/16) | SVD/PCA channel order (offline) | tiered, no eviction | ★★★ | Saliency-driven tiered rank + precision — one L1-norm score drives both rank and bit-width per token; compression-only, never evicts (no verified venue — second exception; hardware/RTL half of paper out of scope) |
 
 *Compression ratios measured on Llama-3.1-8B at 4096 context. Source: [BENCHMARK_RESULTS.md](https://github.com/rajveer43/veloxquant-mlx/blob/master/BENCHMARK_RESULTS.md).*
 
@@ -132,6 +133,7 @@ These require a one-time calibration step, but deliver significantly better accu
 - **[VecInfer](../algorithms/vecinfer)** — Product VQ with Metal-accelerated codebook lookup. Smooth scaling handles outlier dimensions. The fastest method at inference time due to fused SDPA kernels.
 - **[RateQuant](../algorithms/ratequant)** — Mixed-precision allocation via reverse-waterfilling. Probes per-layer sensitivity and allocates more bits to layers that contribute most to output quality. Best accuracy per average bit.
 - **[SpectralQuant](../algorithms/spectral)** — SVD rotation aligns key dimensions with high-variance directions. Separate signal/noise codebooks. Best for very long contexts (8k+).
+- **[AMC-adapted](../algorithms/amc)** — Saliency-driven tiered rank + precision (arXiv:2607.10109 — **no verified peer-reviewed venue, a second one-time exception to this repo's standing rule**; the paper's hardware/RTL half, roughly Sections IV-V, is entirely out of scope for this software port). Every rank-adaptive method above (Palu) and every bit-width-adaptive method (KIVI, SKVQ, RateQuant) picks one axis; AMC is the first to drive **both** rank and bit-width from a **single** per-token L1-norm saliency score, via three discrete tiers (High: rank 128/16-bit, Mid: rank 43/8-bit, Low: rank 8/4-bit at head_dim=128). Requires an offline SVD/PCA channel-order calibration pass so the rank mask truncates the lowest-variance channels, not arbitrary ones. Unlike every eviction method above, AMC never drops a token — compression-only.
 
 ## Mixing methods
 
