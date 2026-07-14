@@ -1,0 +1,34 @@
+[
+  {
+    "seq_len": 200,
+    "geometry": "sparse_outlier",
+    "amc_mse": 0.00152,
+    "uniform_mse": 0.012299,
+    "amc_avg_bytes_per_token": 16.6,
+    "ms_amc": 9.853
+  },
+  {
+    "seq_len": 200,
+    "geometry": "uniform_magnitude",
+    "amc_mse": 0.587012,
+    "uniform_mse": 0.005818,
+    "amc_avg_bytes_per_token": 16.6,
+    "ms_amc": 8.502
+  },
+  {
+    "seq_len": 400,
+    "geometry": "sparse_outlier",
+    "amc_mse": 0.001556,
+    "uniform_mse": 0.013256,
+    "amc_avg_bytes_per_token": 16.6,
+    "ms_amc": 16.979
+  },
+  {
+    "seq_len": 400,
+    "geometry": "uniform_magnitude",
+    "amc_mse": 0.600112,
+    "uniform_mse": 0.005962,
+    "amc_avg_bytes_per_token": 16.6,
+    "ms_amc": 16.363
+  }
+]

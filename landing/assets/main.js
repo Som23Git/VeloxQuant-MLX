@@ -69,7 +69,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.37.0 — NestedKV-adapted multi-scale ensembled prefill eviction shipped";
+  const text = "v0.38.0 — AMC-adapted saliency-driven tiered rank + precision shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;

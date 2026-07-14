@@ -7,12 +7,111 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.38.0] — 2026-07-14
+
+### Venue exception (read first)
+
+**AMC-adapted is the second method in VeloxQuant-MLX (2 of 40) that does not
+trace to a verified peer-reviewed venue** — the first was NestedKV-adapted
+(v0.37.0, below). AMC (arXiv:2607.10109) is a bare single-revision preprint
+(submitted 2026-07-11, no Comments/journal-ref field), live-verified 3 days
+later on 2026-07-14. It ships anyway as a **second one-time, user-directed
+exception** to this repo's standing venue-verification rule. The next method
+survey reverts to requiring a verified venue — this is not a new standing
+precedent. The paper is also filed under `cs.IR` (Information Retrieval), an
+unusual category for what is fundamentally a hardware architecture paper —
+noted as a minor oddity, not a disqualifier.
+
+### Scope cut (read first)
+
+**Roughly half of AMC's source paper (Sections IV-V: 45nm CMOS RTL, Verilog
+clock-gating, the Precision-Gated Systolic Array, the Narrow-Width SRAM
+write-back buffer, all pJ/µJ energy figures, the EDAP/Pareto silicon
+comparisons) is entirely out of scope for this software port.**
+VeloxQuant-MLX is a pure-software MLX library with no RTL/silicon layer to
+target — none of that half is implemented. Only Section II-A (the software
+saliency engine) and Section III (rank/precision scaling math), plus
+Algorithm 1 Phase I's offline SVD/PCA channel-order calibration, are ported.
+
+### Added — AMC-adapted saliency-driven tiered rank + precision (`method="amc"`)
+
+The library's 40th method, and the first whose family is "adaptive
+rank+precision" rather than "eviction" — no token is ever dropped. Every
+rank-adaptive method already in the repo (Palu) and every bit-width-adaptive
+method (KIVI, SKVQ, RateQuant) adapts **one** axis; AMC is the first to drive
+**both** rank and bit-width from a **single** per-token L1-norm saliency
+score, via three discrete tiers (High: rank 128/16-bit, Mid: rank 43/8-bit,
+Low: rank 8/4-bit at head_dim=128). Inspired by "Adaptive Model Compression
+(AMC): Saliency-Driven Resource Allocation for Ultra-Low-Power Transformer
+Inference" (Hu, Yuan, Hu, Yin, Li, Suchter — Apple; arXiv:2607.10109) —
+shipped as "AMC-adapted (VeloxQuant-MLX implementation)," **not a faithful
+port**.
+
+- `veloxquant_mlx/quantizers/amc_calibration.py` — `amc_calibrate_channel_order`
+  (offline, one-time SVD-based variance-descending channel permutation,
+  Algorithm 1 Phase I, reusing the same `mx.linalg.svd` pattern as
+  Palu/SVDq), `amc_permute_weights`.
+- `veloxquant_mlx/quantizers/amc.py` — `amc_saliency`/`amc_query_aware_saliency`
+  (Eq. 1-3), `amc_assign_tiers` (percentile tiering via `dsa.MaxHeap` top-k
+  selection), `amc_adaptive_thresholds` (Eq. 4-5, `dsa.RingBuffer`-backed
+  trailing-window variance tracking), `amc_apply_rank_mask` (Eq. 6),
+  `amc_quantize_tier` (Eq. 7, reuses the shared group quantizer),
+  `amc_pack_low_tier` (`dsa.BitPackBuffer`-backed dense 4-bit packing), byte
+  helpers.
+- `veloxquant_mlx/cache/amc_cache.py` — `AMCKVCache`; every call (prefill or
+  decode) scores, tiers, rank-masks, and quantizes every token — no
+  eviction ever, stored sequence length always equals tokens seen.
+- `veloxquant_mlx/cache/base.py` — `"amc"` added to the method `Literal`;
+  `amc_k_high` (0.20), `amc_k_mid` (0.30), `amc_use_query_saliency` (False),
+  `amc_query_alpha` (0.5), `amc_adaptive_thresholds` (False),
+  `amc_threshold_window` (64), `amc_gamma` (0.1), `amc_calib_variance`
+  (None), `amc_group_size` (32) config fields; factory branch;
+  unknown-method error string extended.
+- 51 tests (9 calibration + 23 quantizer + 19 cache,
+  `veloxquant_mlx/tests/quantizers/test_amc_calibration.py` +
+  `veloxquant_mlx/tests/quantizers/test_amc.py` +
+  `veloxquant_mlx/tests/cache/test_amc_cache.py`) and a deterministic
+  offline benchmark (`benchmark_scripts/benchmark_amc.py` +
+  `amc_benchmark_results.json`).
+- Docs: `docs-site/docs/algorithms/amc.md`, sidebar entry, overview
+  table/bullet, changelog entry.
+
+### Honest scope
+
+- **No verified peer-reviewed venue** and **hardware/RTL half of the paper
+  out of scope** — see the two sections above.
+- **Compression-only, never eviction** — a structurally different family
+  from every other eviction method in the repo (H2O, SnapKV, CurDKV,
+  NestedKV, and more all drop tokens; AMC never does).
+- **Query-aware saliency (Eq. 3) and closed-loop adaptive thresholds (Eq.
+  4-5) are opt-in, off by default.** The default path is pure
+  magnitude-only scoring (Eq. 1-2), matching the paper's primary reported
+  configuration.
+- **Offline SVD/PCA channel-order calibration required** for the rank mask
+  to be meaningful — `AMCKVCache` does not auto-invoke it; callers must run
+  `amc_calibrate_channel_order` themselves before deployment, the same
+  category of requirement as Palu/SVDq's calibration step.
+- **A real, honestly-reported weakness found during benchmark
+  construction**: on activation distributions with no genuine saliency
+  signal (uniform magnitude), AMC's fixed percentile tiering comes out
+  roughly 100x **worse** in reconstruction MSE than a matched-budget
+  uniform baseline — not merely neutral. On the geometry the mechanism is
+  designed for (sparse outliers), AMC beats the same baseline by roughly
+  8x. Both reported plainly in `benchmark_scripts/benchmark_amc.py`'s
+  closing summary, not hidden.
+- The paper's own energy/throughput/accuracy numbers (59.2% energy
+  reduction, 2.24x throughput, 3.6% accuracy trade-off) are hardware-measured
+  on the paper's own 45nm RTL simulation and a specific 3-layer synthetic
+  transformer setup (`num-samples=4000, seq-len=32, vocab-size=16`) — not
+  reproduced here.
+
 ## [0.37.0] — 2026-07-14
 
 ### Venue exception (read first)
 
-**NestedKV-adapted is the only method in VeloxQuant-MLX (1 of 39) that does
-not trace to a verified peer-reviewed venue.** Every one of the prior 38
+**NestedKV-adapted is the first method in VeloxQuant-MLX (1 of 39 at the
+time) that did not trace to a verified peer-reviewed venue.** Every one of
+the prior 38
 methods required a live-verified venue before implementation; NestedKV
 (arXiv:2605.26678) is still a bare single-revision preprint (submitted
 2026-05-26, no Comments/journal-ref field) as of 2026-07-14. It ships anyway
