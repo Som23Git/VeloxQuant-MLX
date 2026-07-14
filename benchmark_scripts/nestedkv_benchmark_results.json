@@ -1,0 +1,98 @@
+[
+  {
+    "seq_len": 320,
+    "budget": 16,
+    "geometry": "global_outlier_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 8.006
+  },
+  {
+    "seq_len": 320,
+    "budget": 16,
+    "geometry": "local_episodic_only",
+    "anomaly_retention_nestedkv": 0.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 5.631
+  },
+  {
+    "seq_len": 320,
+    "budget": 16,
+    "geometry": "recency_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 5.632
+  },
+  {
+    "seq_len": 320,
+    "budget": 24,
+    "geometry": "global_outlier_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 5.581
+  },
+  {
+    "seq_len": 320,
+    "budget": 24,
+    "geometry": "local_episodic_only",
+    "anomaly_retention_nestedkv": 0.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 5.759
+  },
+  {
+    "seq_len": 320,
+    "budget": 24,
+    "geometry": "recency_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 5.741
+  },
+  {
+    "seq_len": 512,
+    "budget": 16,
+    "geometry": "global_outlier_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 7.647
+  },
+  {
+    "seq_len": 512,
+    "budget": 16,
+    "geometry": "local_episodic_only",
+    "anomaly_retention_nestedkv": 0.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 7.244
+  },
+  {
+    "seq_len": 512,
+    "budget": 16,
+    "geometry": "recency_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 7.272
+  },
+  {
+    "seq_len": 512,
+    "budget": 24,
+    "geometry": "global_outlier_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 7.271
+  },
+  {
+    "seq_len": 512,
+    "budget": 24,
+    "geometry": "local_episodic_only",
+    "anomaly_retention_nestedkv": 0.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 7.263
+  },
+  {
+    "seq_len": 512,
+    "budget": 24,
+    "geometry": "recency_only",
+    "anomaly_retention_nestedkv": 1.0,
+    "anomaly_retention_h2o": 0.0,
+    "ms_nestedkv": 7.283
+  }
+]
