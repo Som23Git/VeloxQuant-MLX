@@ -255,3 +255,10 @@ correct for.
 | [KNorm](../algorithms/knorm) | key-vector norm | No |
 | [Q-Filters](../algorithms/qfilters) | frozen key-SVD projection | No |
 | **CurDKV-adapted** | **leverage score over joint (key, value)** | **Yes** |
+
+See also [NestedKV-adapted](../algorithms/nestedkv), which takes the
+*ensembling* axis CurDKV doesn't: instead of one joint (key, value) score,
+NestedKV combines **three** independent key-only signals (stable/episodic/
+current) via a head-adaptive blend and surprise-gated route. The two axes
+are orthogonal — value-awareness (CurDKV) vs. multi-scale ensembling
+(NestedKV) — and neither subsumes the other.

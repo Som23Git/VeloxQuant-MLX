@@ -7,6 +7,92 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.37.0] — 2026-07-14
+
+### Venue exception (read first)
+
+**NestedKV-adapted is the only method in VeloxQuant-MLX (1 of 39) that does
+not trace to a verified peer-reviewed venue.** Every one of the prior 38
+methods required a live-verified venue before implementation; NestedKV
+(arXiv:2605.26678) is still a bare single-revision preprint (submitted
+2026-05-26, no Comments/journal-ref field) as of 2026-07-14. It ships anyway
+as a **one-time, user-directed exception** to this repo's standing
+venue-verification rule. The next method survey reverts to requiring a
+verified venue — this is not a new precedent. See
+`paper/research/surveys/NEW_METHOD_SURVEY_V21.md` for the full rationale,
+including why two prior candidates (KVP/Apple/ICML 2026, KQ-SVD) were
+rejected first — one for requiring shipped pretrained weights, one for a
+venue claim that failed independent re-verification.
+
+### Added — NestedKV-adapted multi-scale ensembled prefill eviction (`method="nestedkv"`)
+
+The library's 39th method, joining the token-eviction family (H2O, SnapKV,
+CurDKV, PyramidKV, Keyformer, MorphKV, KVzip, and more). Every existing
+eviction method scores a token from **one** importance signal. NestedKV's
+axis: keep **three** parallel key-only continuum-memory statistics —
+stable/global, episodic/block-local, current/recent-window — score every
+token's anomaly against each independently, and combine the three rankings
+via a training-free **head-adaptive blend** (which scale is most
+discriminative on this head) and a per-token **surprise-gated route** (route
+to the single strongest scale when the three disagree, instead of
+averaging). Inspired by "NestedKV: Nested Memory Routing for Long-Context KV
+Cache Compression" (Chen, Liu, Gao, Fan, Wang, Chu, Lin, Hu; arXiv:2605.26678)
+— shipped as "NestedKV-adapted (VeloxQuant-MLX implementation)," **not a
+faithful port**.
+
+- `veloxquant_mlx/quantizers/nestedkv.py` — `NestedKVState`, `nestedkv_score`
+  (one-shot per-head anomaly scoring over the full prefill sequence),
+  `nestedkv_allocate_head_budgets` (cross-head budget competition, the
+  paper's component 5), `nestedkv_compress_prefill`, `nestedkv_append_decode`,
+  byte helpers.
+- `veloxquant_mlx/cache/nestedkv_cache.py` — `NestedKVKVCache`, mirroring
+  `SnapKVKVCache`'s prefill-once/decode-append phase split (not H2O's/
+  CurDKV's per-step loop); zero-pads ragged per-head outputs (the first
+  method here with legitimately unequal per-head token counts, found while
+  fixing an `mx.stack` shape-mismatch during test-writing) purely for
+  tensor-stacking — byte accounting is computed from each head's true,
+  unpadded state.
+- `veloxquant_mlx/cache/base.py` — `"nestedkv"` added to the method
+  `Literal`; `nestedkv_budget` (512), `nestedkv_n_sink` (4),
+  `nestedkv_window` (64), `nestedkv_beta` (3.0), `nestedkv_tau` (0.60),
+  `nestedkv_kappa` (10.0), `nestedkv_safeguard_alpha` (0.20) config fields;
+  factory branch; unknown-method error string extended.
+- 47 tests (30 quantizer + 17 cache,
+  `veloxquant_mlx/tests/quantizers/test_nestedkv.py` +
+  `veloxquant_mlx/tests/cache/test_nestedkv_cache.py`) and a deterministic
+  offline benchmark (`benchmark_scripts/benchmark_nestedkv.py` +
+  `nestedkv_benchmark_results.json`).
+- Docs: `docs-site/docs/algorithms/nestedkv.md`, sidebar entry, overview
+  table/bullet, changelog entry, cross-link from `curdkv.md`.
+
+### Honest scope
+
+- **No verified peer-reviewed venue** — see the venue exception above.
+- **One-shot prefill compression; the cache is NOT bounded during decode.**
+  The paper's own design (Appendix A) computes scores, blend weights, and
+  surprise gates once at the end of prefill; decoded tokens are appended
+  normally, never rescored or evicted. A faithful port of the paper's actual
+  design, not a shortcut — but a real structural difference from every
+  other eviction method in the repo (H2O, CurDKV, StreamingLLM all stay
+  bounded through decode).
+- **Gate/blend constants are the paper's own Appendix A defaults**
+  (`beta=3.0`, `tau=0.60`, `kappa=10.0`, log-prior `(0.4,0.4,0.2)`,
+  `safeguard_alpha=0.20`), not guessed — a stronger fidelity point than most
+  adapted methods in this repo get to claim.
+- **A structural finding from benchmark construction, not a bug**: at small
+  synthetic scale, the head-adaptive blend's min-max normalization can make
+  the stable scale's discriminative gap come out near-maximal almost by
+  construction regardless of whether it's the actually-relevant signal for
+  a given token, and the surprise gate's mean-centered threshold does not
+  always fully compensate at that scale. The benchmark's
+  `local_episodic_only` geometry shows 0% retention for both NestedKV and
+  H2O — reported honestly rather than re-engineered until it matched the
+  initial hypothesis. `global_outlier_only` and `recency_only` both show
+  NestedKV at 100% retention vs H2O's 0%.
+- The paper's own RULER/LongBench/LooGLE/InfiniteBench/MMLU-Pro numbers
+  (Qwen3, Llama-3.2 family, NVIDIA L20 GPUs) are the paper's — not
+  reproduced here.
+
 ## [0.36.0] — 2026-07-13
 
 ### Added — CurDKV-adapted value-aware leverage-score eviction (`method="curdkv"`)

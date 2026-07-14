@@ -38,7 +38,7 @@ class KVCacheConfig:
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
         "nsnquant", "knorm", "skvq", "qfilters", "keyformer", "morphkv", "kvzip",
-        "kvtc", "curdkv",
+        "kvtc", "curdkv", "nestedkv",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -216,6 +216,14 @@ class KVCacheConfig:
     curdkv_budget: int = 512             # max tokens kept at any time (sinks + non-sinks)
     curdkv_n_sink: int = 4               # initial positions protected from eviction (attention sinks)
     curdkv_rank_cap: int = 16            # SVD rank cap for leverage-score estimation
+    # --- NestedKV-adapted configuration (multi-scale ensembled prefill eviction; no verified venue) --
+    nestedkv_budget: int = 512            # per-head-equivalent budget (total layer budget = this * n_heads)
+    nestedkv_n_sink: int = 4              # initial positions protected from eviction (attention sinks)
+    nestedkv_window: int = 64             # W, current-memory trailing window
+    nestedkv_beta: float = 3.0            # head-adaptive blend temperature (paper Appendix A default)
+    nestedkv_tau: float = 0.60            # surprise gate threshold (paper Appendix A default)
+    nestedkv_kappa: float = 10.0          # surprise gate sharpness (paper Appendix A default)
+    nestedkv_safeguard_alpha: float = 0.20  # per-head guaranteed-floor fraction (paper Appendix A default)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -294,6 +302,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.kvzip_cache import KVzipKVCache
         from veloxquant_mlx.cache.kvtc_cache import KVTCKVCache
         from veloxquant_mlx.cache.curdkv_cache import CurDKVKVCache
+        from veloxquant_mlx.cache.nestedkv_cache import NestedKVKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -442,13 +451,20 @@ class KVCacheFactory:
             # per-head state recomputed each step; the default for_model path
             # (one CurDKVKVCache per layer) is all it needs.
             cache = CurDKVKVCache(config)
+        elif config.method == "nestedkv":
+            # No coordinator: multi-scale ensembled scoring, head-adaptive
+            # blend, and cross-head budget competition all run once per
+            # (batch, layer) at prefill end and freeze thereafter; the
+            # default for_model path (one NestedKVKVCache per layer) is all
+            # it needs.
+            cache = NestedKVKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc, curdkv."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc, curdkv, nestedkv."
             )
 
         if config.sliding_window is not None:

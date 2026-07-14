@@ -59,6 +59,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/kvzip',
         'algorithms/kvtc',
         'algorithms/curdkv',
+        'algorithms/nestedkv',
         'algorithms/xkv',
       ],
     },
