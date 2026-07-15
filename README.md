@@ -22,7 +22,7 @@
 
 <p>
   <a href="https://veloxquant-mlx.netlify.app/"><img src="https://img.shields.io/badge/landing%20page-veloxquant--mlx.netlify.app-7c3aed?style=flat-square" alt="Landing"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.38.0-64748b?style=flat-square" alt="Changelog"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-0.39.0-64748b?style=flat-square" alt="Changelog"/></a>
   <a href="blogs/metal-kernels.md"><img src="https://img.shields.io/badge/blog-Metal%20kernels%20v1-f97316?style=flat-square" alt="Blog"/></a>
   <a href="blogs/turboquant-metal-kernels.md"><img src="https://img.shields.io/badge/blog-TurboQuant%20Metal%20kernels-f97316?style=flat-square" alt="Blog v2"/></a>
   <a href="https://ko-fi.com/rajveer43"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi"/></a>
@@ -33,10 +33,10 @@
 
 ---
 
-**VeloxQuant-MLX** compresses the KV cache of any `mlx_lm` model on Apple Silicon — up to **16× smaller** with near-lossless quality, in three lines of code. It ships **40 research-adapted compression methods**, from zero-calibration 1-bit quantizers to token-eviction caches to cross-layer merging, plus hand-written Metal kernels that make the hottest path **up to 14.7× faster**.
+**VeloxQuant-MLX** compresses the KV cache of any `mlx_lm` model on Apple Silicon — up to **16× smaller** with near-lossless quality, in three lines of code. It ships **41 research-adapted compression methods**, from zero-calibration 1-bit quantizers to token-eviction caches to cross-layer merging, plus hand-written Metal kernels that make the hottest path **up to 14.7× faster**.
 
 **Why VeloxQuant-MLX:**
-- 40 methods behind one identical 3-line API — swap `method="..."` and go
+- 41 methods behind one identical 3-line API — swap `method="..."` and go
 - Metal-accelerated hot paths: 6.9–14.7× faster quantize, 98% less peak memory at the OOM-trigger shape
 - Every "-adapted" method documents its honest deviation from the source paper — no silent approximations
 - Validated end-to-end on 12 production models: Llama, Mistral, Qwen, Phi, Gemma 3/4, Falcon
@@ -79,7 +79,7 @@ response = mlx_lm.generate(model, tokenizer, prompt="Explain relativity simply."
 
 1. [Installation](#installation)
 2. [Quickstart](#quickstart)
-3. [Method library](#method-library) — all 40 methods at a glance
+3. [Method library](#method-library) — all 41 methods at a glance
 4. [Metal kernels](#metal-kernels--new-in-051)
 5. [Benchmark results](#benchmark-results)
 6. [What's inside](#whats-inside)
@@ -142,7 +142,7 @@ More examples, walked through step by step:
 
 ## Method library
 
-All 40 methods share the same 3-line integration (`method="<id>"` in `KVCacheConfig`).
+All 41 methods share the same 3-line integration (`method="<id>"` in `KVCacheConfig`).
 Each links to its full page — mechanism, config, evidence, and honest limitations — on
 the [documentation site](https://veloxquant-mlx.netlify.app/docs/algorithms/overview).
 
@@ -177,6 +177,7 @@ the [documentation site](https://veloxquant-mlx.netlify.app/docs/algorithms/over
 | [GEAR](https://veloxquant-mlx.netlify.app/docs/algorithms/gear) | `gear` | Error-feedback: low-rank + sparse residual correction | varies | 0.17.0 |
 | [CacheGen](https://veloxquant-mlx.netlify.app/docs/algorithms/cachegen) | `cachegen` | Entropy-coded cache — storage win on correlated KV | varies | 0.16.0 |
 | [AMC-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/amc) | `amc` | Saliency-driven tiered rank + precision — one L1-norm score drives both rank and bit-width per token, never evicts (**no verified venue** — second exception; hardware/RTL half of paper out of scope) | varies | 0.38.0 |
+| [A2ATS-adapted](https://veloxquant-mlx.netlify.app/docs/algorithms/a2ats) | `a2ats` | Windowed RoPE + query-aware retrieval VQ — exact RoPE within a trailing window, shared approximate rotation outside it; query-aware codebook assignment for a retrieval-fraction subset (ACL 2025 Findings) | ~4× | 0.39.0 |
 
 ### Low-rank & cross-layer — compress across dimensions or depth
 
@@ -380,13 +381,13 @@ Deep-dive writeups live in [`blogs/`](blogs/) and are also published on the docs
 
 ## References
 
-40 methods, each adapted from a published paper with documented deviations
-(38 from a verified peer-reviewed venue; 2, NestedKV-adapted and AMC-adapted,
+41 methods, each adapted from a published paper with documented deviations
+(39 from a verified peer-reviewed venue; 2, NestedKV-adapted and AMC-adapted,
 from unpublished preprints as one-time, stated exceptions — see
 [CITATIONS.md](CITATIONS.md)) — full bibliography (implemented methods,
 related work, and survey papers): **[CITATIONS.md](CITATIONS.md)**.
 
-Headline references: [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874), [VecInfer (2024)](https://arxiv.org/abs/2510.06175), [RaBitQ (SIGMOD 2024)](https://arxiv.org/abs/2402.02855), [CommVQ (ICML 2025)](https://arxiv.org/abs/2506.18879), [KVzip (NeurIPS 2025)](https://arxiv.org/abs/2505.23416), [KVTC (ICLR 2026)](https://arxiv.org/abs/2511.01815), [CurDKV (NeurIPS 2025)](https://arxiv.org/abs/2509.15038), [NestedKV (preprint, arXiv:2605.26678)](https://arxiv.org/abs/2605.26678), [AMC (preprint, arXiv:2607.10109)](https://arxiv.org/abs/2607.10109). Built on [Apple MLX](https://github.com/ml-explore/mlx).
+Headline references: [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874), [VecInfer (2024)](https://arxiv.org/abs/2510.06175), [RaBitQ (SIGMOD 2024)](https://arxiv.org/abs/2402.02855), [CommVQ (ICML 2025)](https://arxiv.org/abs/2506.18879), [KVzip (NeurIPS 2025)](https://arxiv.org/abs/2505.23416), [KVTC (ICLR 2026)](https://arxiv.org/abs/2511.01815), [CurDKV (NeurIPS 2025)](https://arxiv.org/abs/2509.15038), [NestedKV (preprint, arXiv:2605.26678)](https://arxiv.org/abs/2605.26678), [AMC (preprint, arXiv:2607.10109)](https://arxiv.org/abs/2607.10109), [A2ATS (ACL 2025 Findings)](https://aclanthology.org/2025.findings-acl.644/). Built on [Apple MLX](https://github.com/ml-explore/mlx).
 
 ---
 
@@ -394,7 +395,7 @@ Headline references: [TurboQuant (ICLR 2026)](https://arxiv.org/abs/2504.19874),
 
 VeloxQuant-MLX has passed **15,000+ downloads** on PyPI. It's free, MIT-licensed,
 and built nights-and-weekends — if it saves your Mac some memory (or you just
-want to see the 41st method land), you can
+want to see the 42nd method land), you can
 [**buy me a chai** ☕](https://buymeachai.in/rajveer43) or
 [**tip on Ko-fi** 💜](https://ko-fi.com/rajveer43). Stars, issues, and
 PRs are equally appreciated.

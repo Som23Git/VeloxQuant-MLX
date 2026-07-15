@@ -293,3 +293,19 @@ def test_determinism():
     np.testing.assert_array_equal(
         np.array(v_out1.tolist()), np.array(v_out2.tolist())
     )
+
+
+# ---------------------------------------------------------------------------
+# Config validation — kitty_hi_fraction must be in [0, 1]
+# ---------------------------------------------------------------------------
+
+def test_hi_fraction_above_one_rejected() -> None:
+    """kitty_hi_fraction > 1.0 makes n_hi > D, so n_lo = D - n_hi goes
+    negative and silently corrupts byte accounting instead of erroring."""
+    with pytest.raises(ValueError, match="kitty_hi_fraction"):
+        KittyKVCache(_make_cfg(kitty_hi_fraction=1.5))
+
+
+def test_hi_fraction_negative_rejected() -> None:
+    with pytest.raises(ValueError, match="kitty_hi_fraction"):
+        KittyKVCache(_make_cfg(kitty_hi_fraction=-0.2))

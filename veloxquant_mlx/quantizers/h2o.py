@@ -59,7 +59,18 @@ def init_h2o_state(n_sink: int, budget: int, head_dim: int) -> H2OState:  # noqa
         budget:   Maximum total tokens kept (sinks + non-sinks).
         head_dim: Head dimension D (unused here; accepted for API symmetry
                   with StreamingLLM's init_streaming_window).
+
+    Raises:
+        ValueError: if there are sink positions to protect but they leave no
+            evictable room within ``budget`` (``n_sink=0, budget=0`` remains
+            a valid "disabled cache" configuration).
     """
+    if n_sink > 0 and n_sink >= budget:
+        raise ValueError(
+            f"h2o: n_sink ({n_sink}) must be < budget ({budget}) — no "
+            "evictable positions remain, so sinks would be evicted once "
+            "the cache fills"
+        )
     return H2OState(keys=None, values=None, scores=None, n_sink=n_sink, budget=budget)
 
 

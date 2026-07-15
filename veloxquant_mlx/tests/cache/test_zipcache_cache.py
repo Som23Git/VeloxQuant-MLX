@@ -178,3 +178,17 @@ def test_build_via_for_model_propagates_config() -> None:
     assert caches[0]._hi_bits == 4
     assert caches[0]._lo_bits == 2
     assert caches[0]._hi_fraction == pytest.approx(0.25)
+
+
+# ---------------------------------------------------------------------------
+# Config validation — zipcache_hi_fraction must be in [0, 1]
+# ---------------------------------------------------------------------------
+
+def test_hi_fraction_above_one_rejected() -> None:
+    with pytest.raises(ValueError, match="zipcache_hi_fraction"):
+        _make(zipcache_hi_fraction=1.5)
+
+
+def test_hi_fraction_negative_rejected() -> None:
+    with pytest.raises(ValueError, match="zipcache_hi_fraction"):
+        _make(zipcache_hi_fraction=-0.2)

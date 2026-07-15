@@ -7,7 +7,7 @@
   <title>VeloxQuant-MLX — Fast KV Cache Quantization for Apple Silicon</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=2" />
   <link rel="shortcut icon" href="assets/favicon.svg?v=2" />
-  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted, Q-Filters-adapted, Keyformer-adapted, MorphKV-adapted, KVzip-adapted, KVTC-adapted, CurDKV-adapted, NestedKV-adapted, AMC-adapted — all in MLX. New in 0.38.0: AMC-adapted saliency-driven tiered rank + precision — one L1-norm score drives both rank and bit-width per token, compression-only, never evicts. Benchmarked across 12 production models." />
+  <meta name="description" content="VeloxQuant-MLX delivers up to 16× key cache compression on Apple M-series chips. TurboQuant, RVQ, VecInfer, RateQuant, PolarQuant, QJL, SpectralQuant, CommVQ, RaBitQ, KIVI-Sink, SVDq, Kitty, AdaKV-proxy, XQuant, KVQuant-NUQ, PALU, CacheGen, MiniCache, GEAR, ZipCache-adapted, SnapKV-adapted, StreamingLLM-adapted, H2O-adapted, TOVA-adapted, PyramidKV-adapted, SqueezeAttention-adapted, ChunkKV-adapted, CaM-adapted, xKV-adapted, NSNQuant-adapted, L2Norm-adapted, SKVQ-adapted, Q-Filters-adapted, Keyformer-adapted, MorphKV-adapted, KVzip-adapted, KVTC-adapted, CurDKV-adapted, NestedKV-adapted, AMC-adapted, A2ATS-adapted — all in MLX. New in 0.39.0: A2ATS-adapted windowed RoPE + query-aware retrieval VQ — exact RoPE within a trailing window, shared approximate rotation outside it, query-aware codebook assignment for a retrieval-fraction subset (ACL 2025 Findings). Benchmarked across 12 production models." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -74,14 +74,14 @@
         Plug in with <strong style="color:#a78bfa">three lines of code</strong>.
       </p>
       <div class="hero-pills">
-        <span class="hero-pill">40 algorithms</span>
+        <span class="hero-pill">41 algorithms</span>
         <span class="hero-pill">3-line setup</span>
         <span class="hero-pill">Zero-calibration options</span>
         <span class="hero-pill">Apple Silicon only</span>
       </div>
       <details class="hero-algo-details">
-        <summary>See all 40 algorithms</summary>
-        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters · Keyformer · MorphKV · KVzip · KVTC · CurDKV · NestedKV · AMC
+        <summary>See all 41 algorithms</summary>
+        TurboQuant · RVQ · VecInfer · RateQuant · PolarQuant · QJL · SpectralQuant · CommVQ · RaBitQ · KIVI · KIVI-Sink · SVDq · Kitty · AdaKV · XQuant · KVQuant-NUQ · PALU · CacheGen · MiniCache · GEAR · ZipCache · SnapKV · StreamingLLM · H2O · TOVA · PyramidKV · SqueezeAttention · ChunkKV · CaM · xKV · NSNQuant · L2Norm · SKVQ · Q-Filters · Keyformer · MorphKV · KVzip · KVTC · CurDKV · NestedKV · AMC · A2ATS
       </details>
       <div class="install-block" id="hero-install" title="Click to copy">
         <span class="dollar">$</span>
@@ -223,12 +223,13 @@
   <!-- ── ALGORITHMS ── -->
   <section id="algorithms">
     <p class="section-label">Algorithms</p>
-    <h2 class="section-title">Thirty-seven compression strategies</h2>
+    <h2 class="section-title">Forty-one compression strategies</h2>
     <p class="section-desc">Each method targets a different point on the compression–quality–throughput tradeoff curve. All are zero-calibration and mix-and-match per layer with RateQuant. Filter by trait below, or expand the release history.</p>
 
     <details class="whats-new">
       <summary>What's new — recent releases</summary>
       <ul class="whats-new-list">
+        <li><span class="wn-ver">0.39.0</span><span class="wn-body"><strong>A2ATS-adapted</strong> — windowed RoPE + query-aware retrieval VQ (ACL 2025 Findings). Every VQ method already here applies RoPE uniformly (VecInfer: no RoPE-awareness at all; CommVQ-adapted: codebook-constrained, one exact rotation per position regardless of distance); A2ATS instead gates RoPE precision by each token's <em>distance</em> from the current decode position — exact within a trailing window, a single shared fixed-offset approximation outside it — combined with <em>query-aware</em> codebook assignment for a retrieval-fraction subset of tokens. This is a normal-track method: a live-verified peer-reviewed venue, no exception needed. The honest crux: no query is visible at cache level (the incoming key is used as a proxy query, same category as H2O/SnapKV/AMC); requires an offline codebook calibration pass, not auto-invoked. Measured, reported plainly rather than softened: windowed RoPE is <strong>worse</strong> than always-exact RoPE in <em>every</em> geometry tested — ~2.8× higher reconstruction MSE on a positional-locality-favorable geometry, ~4.4× higher on a long-range-dependent one; query-aware VQ assignment has <strong>higher</strong> reconstruction MSE than plain nearest-centroid VQ in every row measured (mathematically expected — the intended downstream retrieval-quality payoff isn't something this benchmark can show).</span></li>
         <li><span class="wn-ver">0.38.0</span><span class="wn-body"><strong>AMC-adapted</strong> — saliency-driven tiered rank + precision (<em>no verified peer-reviewed venue — a second one-time, stated exception; the paper's hardware/RTL half is entirely out of scope</em>). Every rank-adaptive method already here (Palu) and every bit-width-adaptive method (KIVI, SKVQ, RateQuant) adapts <em>one</em> axis; AMC is the first to drive <em>both</em> rank and bit-width from a <em>single</em> per-token L1-norm saliency score, via three tiers (High: rank 128/16-bit, Mid: rank 43/8-bit, Low: rank 8/4-bit). The honest crux: <strong>compression-only, never eviction</strong> (every token retained, unlike every eviction method here); query-aware saliency and closed-loop adaptive thresholds are opt-in, off by default; requires an offline SVD/PCA calibration pass, not auto-invoked. Measured: on a planted sparse-outlier geometry, AMC beats a matched-byte-budget uniform baseline by ~8× lower reconstruction MSE; honestly, on a uniform-magnitude (no-signal) geometry AMC is ~100× <strong>worse</strong> than the same baseline — reported plainly. The paper's own 59.2%-energy/2.24×-throughput/3.6%-accuracy numbers are hardware-measured on the paper's own 45nm RTL simulation — not reproduced.</span></li>
         <li><span class="wn-ver">0.37.0</span><span class="wn-body"><strong>NestedKV-adapted</strong> — multi-scale ensembled prefill eviction (<em>no verified peer-reviewed venue — a one-time, stated exception</em>). Every eviction method already here (H2O, SnapKV, CurDKV, PyramidKV, Keyformer, MorphKV, KVzip, ...) scores a token from <em>one</em> importance signal; NestedKV keeps <em>three</em> parallel key-only continuum-memory statistics — stable/global, episodic/block-local, current/recent-window — and combines them via a training-free head-adaptive blend and a per-token surprise-gated route. The honest crux: a one-shot prefill compressor (unlike every other eviction method here, the cache is <strong>not bounded during decode</strong> — new tokens are simply appended, never rescored), and all gate/blend constants (beta=3.0, tau=0.60, kappa=10.0, safeguard_alpha=0.20) are taken directly from the paper's own Appendix A. Measured: on planted single-scale anomaly geometries, NestedKV retains the anomaly in 100% of trials vs H2O's 0% for both the global and recency cases; on the local-episodic case, honestly, <strong>neither method</strong> protects it at this benchmark's synthetic scale — a structural finding about how the blend/gate constants interact at small N, not a bug. The paper's own RULER/LongBench/LooGLE/InfiniteBench/MMLU-Pro numbers are the paper's, on trained models — not reproduced.</span></li>
         <li><span class="wn-ver">0.36.0</span><span class="wn-body"><strong>CurDKV-adapted</strong> — value-aware leverage-score eviction via approximated CUR decomposition (NeurIPS 2025). Every eviction method already here (H2O, SnapKV, TOVA, PyramidKV, Keyformer, MorphKV, KVzip, ...) scores a token using only its <em>key</em> side; CurDKV derives a <em>leverage score</em> from the joint key-and-value structure of the proxy attention output, so a token's value contribution — not just its key/attention profile — decides whether it survives. The honest crux: key-as-query proxy (same as H2O/SnapKV), an SVD-based <em>energy-weighted</em> leverage-score estimator (not the paper's own CUR sampling routine — a hard top-k cutoff degenerates to uniform leverage whenever the retained rank reaches the block size), and newly-appended tokens are seeded with their own leverage score rather than a flat 0. Measured: on a planted geometry (near-identical keys, sharply divergent values), CurDKV retains value-relevant tokens preferentially in 8/8 trials across seeds, while H2O — given the identical keys — cannot tell the classes apart. Two tokens with <strong>identical keys but different values</strong> provably receive different CurDKV scores. The paper's up-to-9.6%-higher-accuracy and up-to-40%-latency-reduction numbers are the paper's, on trained models — not reproduced.</span></li>
@@ -258,7 +259,7 @@
 
     <!-- ── FILTER BAR ── -->
     <div class="algo-filter-bar fade-in" role="group" aria-label="Filter algorithms">
-      <button class="filter-btn active" data-filter="all" aria-pressed="true">All (40)</button>
+      <button class="filter-btn active" data-filter="all" aria-pressed="true">All (41)</button>
       <button class="filter-btn" data-filter="zero-cal" aria-pressed="false">Zero calibration</button>
       <button class="filter-btn" data-filter="full-kv" aria-pressed="false">Full KV (keys + values)</button>
       <button class="filter-btn" data-filter="metal" aria-pressed="false">Metal kernel</button>
@@ -388,6 +389,11 @@
           <div class="picker-goal">Want every token retained but want to spend precision where it matters</div>
           <div class="picker-method" style="color:#7c3aed">AMC-adapted</div>
           <div class="picker-detail">Saliency-driven tiered rank + precision — one L1-norm score drives both rank and bit-width per token, compression-only, never evicts · no verified venue (second exception) → see details ↓</div>
+        </a>
+        <a href="#algo-a2ats" class="picker-card picker-card-link" style="border-color:rgba(124,58,237,0.35);">
+          <div class="picker-goal">Long-context workload with strong positional locality — query-relevant tokens sit near the current position</div>
+          <div class="picker-method" style="color:#7c3aed">A2ATS-adapted</div>
+          <div class="picker-detail">Windowed RoPE + query-aware retrieval VQ — exact RoPE within a trailing window, shared approximate rotation outside it; query-aware codebook assignment for a retrieval-fraction subset · ACL 2025 Findings → see details ↓</div>
         </a>
       </div>
     </div>
@@ -1130,7 +1136,7 @@
         <div class="cat-header" style="--chip:#7c3aed">
           <h3 class="cat-title">Quantization</h3>
           <span class="cat-blurb">Scalar, vector & codebook cache quantization</span>
-          <span class="cat-count">17</span>
+          <span class="cat-count">18</span>
         </div>
         <div class="algo-grid">
       <div id="algo-rabitq" class="algo-card fade-in" data-tags="full-kv metal extreme zero-cal" data-cat="quant">
@@ -1683,7 +1689,6 @@
       <div id="algo-amc" class="algo-card fade-in" data-tags="calib" data-cat="quant">
         <div class="card-head">
           <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
-          <span class="new-pill">NEW</span>
         </div>
         <div class="algo-title">AMC-adapted</div>
         <div class="card-subtitle">saliency-driven tiered rank + precision</div>
@@ -1717,6 +1722,41 @@
           </div>
         </details>
         <div class="card-meta">v0.38.0 · preprint (no venue) · arXiv:2607.10109</div>
+      </div>
+
+      <div id="algo-a2ats" class="algo-card fade-in" data-tags="calib" data-cat="quant">
+        <div class="card-head">
+          <span class="cat-chip" style="--chip:#7c3aed">Quantization</span>
+          <span class="new-pill">NEW</span>
+        </div>
+        <div class="algo-title">A2ATS-adapted</div>
+        <div class="card-subtitle">windowed RoPE + query-aware retrieval VQ</div>
+        <div class="algo-desc card-summary">Exact RoPE within a trailing window, a shared approximate rotation outside it; query-aware codebook assignment for a retrieval-fraction subset of tokens. Live-verified venue — ACL 2025 Findings, no exception needed.</div>
+        <div class="card-headline"><span class="headline-stat">distance-gated RoPE · query-aware VQ · retrieval-fraction split</span></div>
+        <details class="card-details">
+          <summary>Details</summary>
+          <div class="card-details-body">
+<div class="card-full-desc">Adapted from "A2ATS: Retrieval-Based KV Cache Reduction via Windowed Rotary Position Embedding and Query-Aware Vector Quantization" (He, Xing, Wang, Xu, Wu, Zhou, Liu, Xue &amp; Li, <a href="https://aclanthology.org/2025.findings-acl.644/" target="_blank" rel="noopener" style="color:#7c3aed">ACL 2025 Findings</a>). Every VQ method here applies RoPE uniformly (VecInfer: no RoPE-awareness at all; CommVQ-adapted: codebook-constrained, one exact rotation per position regardless of distance); A2ATS instead gates RoPE precision by each token's <strong style="color:var(--text)">distance</strong> from the current decode position — exact within a trailing window, a single shared fixed-offset approximation outside it — combined with <strong style="color:#22c55e">query-aware</strong> codebook assignment for a retrieval-fraction subset of tokens.
+              <br><br>
+              <strong style="color:#22c55e">The honest crux:</strong> no query is visible at cache level, so the incoming key vector is used as a proxy query for both the retrieval-set split and the query-aware assignment (same category of approximation as H2O/SnapKV/AMC's key-as-query proxies); requires an offline codebook calibration pass, not auto-invoked. Measured, reported plainly rather than softened: windowed RoPE is <strong style="color:var(--text)">worse</strong> than always-exact RoPE in every geometry tested — ~2.8× higher reconstruction MSE on a positional-locality-favorable geometry, ~4.4× higher on a long-range-dependent one; query-aware VQ assignment has <strong style="color:var(--text)">higher</strong> reconstruction MSE than plain nearest-centroid VQ in every row measured — mathematically expected (β=1.0 reduces exactly to plain VQ), since the intended downstream retrieval-quality payoff isn't something an offline reconstruction-MSE benchmark can show.</div><div class="algo-stats"><div class="algo-stat-row">
+                <span class="label">Default codebook</span>
+                <span class="value">2^8 centroids · sub_dim 8</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">Default window</span>
+                <span class="value">128 positions</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">local_recency vs always-exact RoPE</span>
+                <span class="value" style="color:#f59e0b">~2.8× higher MSE</span>
+              </div>
+              <div class="algo-stat-row">
+                <span class="label">long_range_dependent vs always-exact RoPE</span>
+                <span class="value" style="color:#f59e0b">~4.4× higher MSE</span>
+              </div></div>
+          </div>
+        </details>
+        <div class="card-meta">v0.39.0 · ACL 2025 Findings · aclanthology.org/2025.findings-acl.644</div>
       </div>
         </div>
       </div>
@@ -2151,6 +2191,7 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
       <button class="tab-btn" data-tab="curdkv" role="tab" aria-selected="false" aria-controls="tab-curdkv" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">CurDKV · value-aware eviction</button>
       <button class="tab-btn" data-tab="nestedkv" role="tab" aria-selected="false" aria-controls="tab-nestedkv" style="border-color:rgba(45,212,191,0.4);color:#2dd4bf">NestedKV · multi-scale eviction</button>
       <button class="tab-btn" data-tab="amc" role="tab" aria-selected="false" aria-controls="tab-amc" style="border-color:rgba(124,58,237,0.4);color:#7c3aed">AMC · tiered rank+precision</button>
+      <button class="tab-btn" data-tab="a2ats" role="tab" aria-selected="false" aria-controls="tab-a2ats" style="border-color:rgba(124,58,237,0.4);color:#7c3aed">A2ATS · windowed RoPE + query-aware VQ</button>
     </div>
 
     <!-- RVQ tab -->
@@ -2746,6 +2787,38 @@ out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=<
     <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
     <span class="at">amc_k_high</span><span class="op">=</span><span class="nu">0.20</span><span class="op">,</span>    <span class="cm"># top percentile -> High tier</span>
     <span class="at">amc_k_mid</span><span class="op">=</span><span class="nu">0.30</span><span class="op">,</span>     <span class="cm"># next percentile -> Mid tier</span>
+<span class="op">)</span>
+<span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
+
+<span class="id">response</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">generate</span><span class="op">(</span>
+    <span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span><span class="op">,</span>
+    <span class="at">prompt</span><span class="op">=</span><span class="st">"Summarize the key findings from this research paper."</span><span class="op">,</span>
+    <span class="at">max_tokens</span><span class="op">=</span><span class="nu">500</span><span class="op">,</span>
+    <span class="at">prompt_cache</span><span class="op">=</span><span class="id">caches</span><span class="op">,</span>
+<span class="op">)</span></pre>
+      </div>
+    </div>
+
+    <!-- A2ATS tab -->
+    <div class="code-panel" id="tab-a2ats">
+      <div class="code-wrap fade-in">
+        <div class="code-header">
+          <span class="code-lang">python — A2ATS-adapted · windowed RoPE + query-aware retrieval VQ (ACL 2025 Findings)</span>
+          <button class="code-copy" data-target="code-a2ats">Copy</button>
+        </div>
+        <pre id="code-a2ats"><span class="kw">import</span> <span class="id">mlx_lm</span>
+<span class="kw">from</span> <span class="id">veloxquant_mlx</span> <span class="kw">import</span> <span class="fn">KVCacheBuilder</span><span class="op">,</span> <span class="fn">KVCacheConfig</span>
+
+<span class="id">model</span><span class="op">,</span> <span class="id">tokenizer</span> <span class="op">=</span> <span class="id">mlx_lm</span><span class="op">.</span><span class="fn">load</span><span class="op">(</span><span class="st">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span><span class="op">)</span>
+
+<span class="cm"># Exact RoPE within a trailing window of the current decode position;</span>
+<span class="cm"># a single shared fixed-offset approximation outside it. Query-aware</span>
+<span class="cm"># codebook assignment for a retrieval-fraction subset of tokens.</span>
+<span class="id">config</span> <span class="op">=</span> <span class="fn">KVCacheConfig</span><span class="op">(</span>
+    <span class="at">method</span><span class="op">=</span><span class="st">"a2ats"</span><span class="op">,</span>
+    <span class="at">head_dim</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>
+    <span class="at">a2ats_window</span><span class="op">=</span><span class="nu">128</span><span class="op">,</span>              <span class="cm"># trailing exact-RoPE window</span>
+    <span class="at">a2ats_use_query_aware</span><span class="op">=</span><span class="kw">True</span><span class="op">,</span>   <span class="cm"># paper's primary reported path</span>
 <span class="op">)</span>
 <span class="id">caches</span> <span class="op">=</span> <span class="fn">KVCacheBuilder</span><span class="op">.</span><span class="fn">for_model</span><span class="op">(</span><span class="id">model</span><span class="op">,</span> <span class="id">config</span><span class="op">)</span>
 

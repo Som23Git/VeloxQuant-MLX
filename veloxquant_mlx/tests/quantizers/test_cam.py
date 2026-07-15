@@ -114,6 +114,25 @@ def test_init_rejects_bad_mode():
         init_cam_state(4, 32, 16, merge_mode="bogus")
 
 
+def test_init_rejects_n_sink_equal_budget():
+    """n_sink >= budget leaves no evictable/mergeable room — sinks would be
+    merged away once the cache fills, silently violating the "sinks always
+    retained" invariant (see test_sinks_always_retained). Must raise instead
+    of letting that happen quietly."""
+    with pytest.raises(ValueError, match="n_sink"):
+        init_cam_state(4, 4, 8, merge_mode="sim_weighted")
+
+
+def test_init_rejects_n_sink_above_budget():
+    with pytest.raises(ValueError, match="n_sink"):
+        init_cam_state(8, 4, 8, merge_mode="sim_weighted")
+
+
+def test_init_zero_budget_allowed():
+    st = init_cam_state(0, 0, 8, merge_mode="sim_weighted")
+    assert st.budget == 0
+
+
 def test_update_respects_budget_exactly():
     st = init_cam_state(n_sink=2, budget=10, head_dim=8, merge_mode="sim_weighted")
     k, v = _kv(40, 8)

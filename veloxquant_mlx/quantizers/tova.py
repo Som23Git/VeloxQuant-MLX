@@ -71,7 +71,18 @@ def init_tova_state(n_sink: int, budget: int, head_dim: int) -> TovaState:  # no
         budget:   Maximum total tokens kept (sinks + non-sinks).
         head_dim: Head dimension D (unused here; accepted for API symmetry
                   with H2O's init_h2o_state and StreamingLLM's init).
+
+    Raises:
+        ValueError: if there are sink positions to protect but they leave no
+            evictable room within ``budget`` (``n_sink=0, budget=0`` remains
+            a valid "disabled cache" configuration).
     """
+    if n_sink > 0 and n_sink >= budget:
+        raise ValueError(
+            f"tova: n_sink ({n_sink}) must be < budget ({budget}) — no "
+            "evictable positions remain, so sinks would be evicted once "
+            "the cache fills"
+        )
     return TovaState(keys=None, values=None, n_sink=n_sink, budget=budget)
 
 

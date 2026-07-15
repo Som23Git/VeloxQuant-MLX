@@ -66,6 +66,11 @@ class ZipCacheKVCache(_MLXKVCache):
         self._hi_bits = int(getattr(config, "zipcache_hi_bits", 4))
         self._lo_bits = int(getattr(config, "zipcache_lo_bits", 2))
         self._hi_fraction = float(getattr(config, "zipcache_hi_fraction", 0.20))
+        if not 0.0 <= self._hi_fraction <= 1.0:
+            raise ValueError(
+                f"zipcache: zipcache_hi_fraction must be in [0, 1], got "
+                f"{self._hi_fraction}"
+            )
         self._gs = int(getattr(config, "zipcache_group_size", 32))
         self._quant_values = bool(getattr(config, "zipcache_quantize_values", True))
 

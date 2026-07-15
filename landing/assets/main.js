@@ -69,7 +69,7 @@ function initCodeTabs() {
 function initBadgeTyping() {
   const badge = document.getElementById('hero-badge');
   if (!badge) return;
-  const text = "v0.38.0 — AMC-adapted saliency-driven tiered rank + precision shipped";
+  const text = "v0.39.0 — A2ATS-adapted windowed RoPE + query-aware retrieval VQ shipped";
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     badge.textContent = text;
     return;

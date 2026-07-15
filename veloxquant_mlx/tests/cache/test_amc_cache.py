@@ -188,6 +188,24 @@ def test_adaptive_thresholds_requires_calib_variance() -> None:
         _make(amc_adaptive_thresholds=True, amc_calib_variance=None)
 
 
+def test_k_high_above_one_rejected() -> None:
+    with pytest.raises(ValueError, match="amc_k_high"):
+        _make(amc_k_high=1.5)
+
+
+def test_k_high_negative_rejected() -> None:
+    with pytest.raises(ValueError, match="amc_k_high"):
+        _make(amc_k_high=-0.1)
+
+
+def test_k_high_plus_k_mid_above_one_rejected() -> None:
+    """amc_assign_tiers silently clamps n_high/n_mid to fit N tokens, so an
+    invalid k_high + k_mid > 1.0 config would otherwise pass through
+    unnoticed instead of surfacing as a config error."""
+    with pytest.raises(ValueError, match="amc_k_high \\+ amc_k_mid"):
+        _make(amc_k_high=0.8, amc_k_mid=0.5)
+
+
 def test_adaptive_thresholds_opt_in_runs_without_crash() -> None:
     c = _make(amc_adaptive_thresholds=True, amc_calib_variance=0.05, amc_threshold_window=16)
     k, v = _rand_kv(S=20, H=2, D=32)

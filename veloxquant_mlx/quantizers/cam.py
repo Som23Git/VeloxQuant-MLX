@@ -221,12 +221,21 @@ def init_cam_state(
         merge_keys: Merge keys as well as values (default False → values only).
 
     Raises:
-        ValueError: if ``merge_mode`` is unknown.
+        ValueError: if ``merge_mode`` is unknown, or if there are sink
+            positions to protect but they leave no evictable/mergeable room
+            within ``budget`` (``n_sink=0, budget=0`` remains a valid
+            "disabled cache" configuration).
     """
     if merge_mode not in ("sim_weighted", "mean", "drop"):
         raise ValueError(
             f"init_cam_state: merge_mode must be 'sim_weighted', 'mean', or "
             f"'drop', got {merge_mode!r}."
+        )
+    if n_sink > 0 and n_sink >= budget:
+        raise ValueError(
+            f"cam: n_sink ({n_sink}) must be < budget ({budget}) — no "
+            "evictable/mergeable positions remain, so sinks would be "
+            "merged away once the cache fills"
         )
     return CaMState(
         keys=None, values=None, scores=None, n_sink=n_sink, budget=budget,

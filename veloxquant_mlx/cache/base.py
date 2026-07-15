@@ -38,7 +38,7 @@ class KVCacheConfig:
         "adakv", "xquant", "kvquant", "palu", "cachegen", "minicache", "gear", "zipcache", "snapkv",
         "streaming_llm", "h2o", "tova", "pyramidkv", "squeeze", "chunkkv", "cam", "xkv",
         "nsnquant", "knorm", "skvq", "qfilters", "keyformer", "morphkv", "kvzip",
-        "kvtc", "curdkv", "nestedkv", "amc",
+        "kvtc", "curdkv", "nestedkv", "amc", "a2ats",
     ] = "turboquant_prod"
     head_dim: int = 128
     bit_width_inlier: Union[int, list] = 2
@@ -234,6 +234,15 @@ class KVCacheConfig:
     amc_gamma: float = 0.1                # threshold attenuation scaling factor (Eq. 4-5)
     amc_calib_variance: Optional[float] = None  # offline calibration variance; required if amc_adaptive_thresholds=True
     amc_group_size: int = 32              # token-axis group size for tier quantization
+    # --- A2ATS-adapted configuration (windowed RoPE + query-aware VQ) --
+    a2ats_codebook_bits: int = 8          # codebook size 2^bits
+    a2ats_sub_dim: int = 8                # VQ sub-vector width
+    a2ats_window: int = 128               # trailing exact-RoPE window (positions)
+    a2ats_use_query_aware: bool = True    # paper's primary reported path (default ON)
+    a2ats_beta: float = 0.5               # query/reconstruction blend, in [0, 1]
+    a2ats_retrieval_fraction: float = 0.20  # fraction of tokens routed to query-aware assignment
+    a2ats_rope_base: float = 10000.0      # RoPE frequency base
+    a2ats_codebook: Any = None            # mx.array | np.ndarray | None (random init if absent)
     # --- KVSink-adapted sink protection (method="kivi_sink") -----------
     n_sink_tokens: int = 5             # top-k high-key-norm tokens kept fp16
     smooth_factors: Any = None         # mx.array | np.ndarray | None
@@ -314,6 +323,7 @@ class KVCacheFactory:
         from veloxquant_mlx.cache.curdkv_cache import CurDKVKVCache
         from veloxquant_mlx.cache.nestedkv_cache import NestedKVKVCache
         from veloxquant_mlx.cache.amc_cache import AMCKVCache
+        from veloxquant_mlx.cache.a2ats_cache import A2ATSKVCache
         from veloxquant_mlx.cache.kitty_cache import KittyKVCache
         from veloxquant_mlx.cache.polar_cache import PolarQuantKVCache
         from veloxquant_mlx.cache.qjl_cache import QJLKVCache
@@ -475,13 +485,21 @@ class KVCacheFactory:
             # (prefill and decode alike); the default for_model path (one
             # AMCKVCache per layer) is all it needs.
             cache = AMCKVCache(config)
+        elif config.method == "a2ats":
+            # No coordinator: windowed RoPE regime selection, retrieval-set
+            # split, and query-aware codebook assignment all run
+            # independently every step (prefill and decode alike, using
+            # the incoming key as a proxy query — see a2ats_cache.py's
+            # module docstring); the default for_model path (one
+            # A2ATSKVCache per layer) is all it needs.
+            cache = A2ATSKVCache(config)
         else:
             raise QuantizerConfigError(
                 f"KVCacheFactory: unknown method '{config.method}'. "
                 f"Choices: turboquant_prod, turboquant_mse, turboquant_rvq, "
                 f"polar, qjl, vecinfer, spectral, kivi, kivi_sink, svdq, kitty, "
                 f"adakv, xquant, kvquant, palu, cachegen, minicache, gear, zipcache, snapkv, "
-                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc, curdkv, nestedkv, amc."
+                f"streaming_llm, h2o, tova, pyramidkv, squeeze, chunkkv, cam, xkv, nsnquant, knorm, skvq, qfilters, keyformer, morphkv, kvzip, kvtc, curdkv, nestedkv, amc, a2ats."
             )
 
         if config.sliding_window is not None:

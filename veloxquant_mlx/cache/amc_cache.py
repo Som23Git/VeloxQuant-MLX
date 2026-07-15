@@ -79,6 +79,17 @@ class AMCKVCache(_MLXKVCache):
         super().__init__()
         self._k_high = float(getattr(config, "amc_k_high", 0.20))
         self._k_mid = float(getattr(config, "amc_k_mid", 0.30))
+        if not 0.0 <= self._k_high <= 1.0 or not 0.0 <= self._k_mid <= 1.0:
+            raise ValueError(
+                f"AMCKVCache: amc_k_high ({self._k_high}) and amc_k_mid "
+                f"({self._k_mid}) must each be in [0, 1]."
+            )
+        if self._k_high + self._k_mid > 1.0:
+            raise ValueError(
+                f"AMCKVCache: amc_k_high + amc_k_mid must be <= 1.0, got "
+                f"{self._k_high} + {self._k_mid} = "
+                f"{self._k_high + self._k_mid}."
+            )
         self._use_query_saliency = bool(getattr(config, "amc_use_query_saliency", False))
         self._query_alpha = float(getattr(config, "amc_query_alpha", 0.5))
         self._use_adaptive_thresholds = bool(getattr(config, "amc_adaptive_thresholds", False))
