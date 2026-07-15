@@ -227,6 +227,10 @@ class PALUKVCache(_MLXKVCache):
         hi_bit = int(getattr(config, "palu_hi_bit", 4))
         lo_bit = int(getattr(config, "palu_lo_bit", 2))
         hi_frac = float(getattr(config, "palu_hi_fraction", 0.25))
+        if not 0.0 <= hi_frac <= 1.0:
+            raise ValueError(
+                f"palu: palu_hi_fraction must be in [0, 1], got {hi_frac}"
+            )
         gsize = int(getattr(config, "palu_group_size", 32))
         quant_values = bool(getattr(config, "palu_quantize_values", True))
 

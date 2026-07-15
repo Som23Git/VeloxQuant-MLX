@@ -11,7 +11,26 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.38.0 — Latest
+## v0.39.0 — Latest
+
+### New
+- **A2ATS-adapted** (`method="a2ats"`) — windowed RoPE + query-aware retrieval VQ. Every VQ method already in the repo applies RoPE uniformly (VecInfer: no RoPE-awareness at all; CommVQ-adapted: codebook-constrained, one exact rotation per position regardless of distance); A2ATS instead gates RoPE precision by each token's **distance** from the current decode position — exact within a trailing window, a single shared fixed-offset approximation outside it — combined with **query-aware** codebook assignment for a retrieval-fraction subset of tokens. This is a normal-track method: a live-verified peer-reviewed venue (ACL 2025 Findings), no exception needed. Inspired by "A2ATS: Retrieval-Based KV Cache Reduction via Windowed Rotary Position Embedding and Query-Aware Vector Quantization" (He, Xing, Wang, Xu, Wu, Zhou, Liu, Xue, Li — ACL 2025 Findings, aclanthology.org/2025.findings-acl.644) — documented as "A2ATS-adapted (VeloxQuant-MLX implementation)," not a faithful port.
+  - `a2ats_apply_exact_rope`/`a2ats_apply_windowed_rope` (`veloxquant_mlx/quantizers/a2ats_rope.py`) — distance-gated exact/approximate RoPE; `window<=0` degrades to always-approximate, `window` at or beyond sequence length degrades to always-exact.
+  - `a2ats_query_aware_assignment`/`a2ats_select_retrieval_set` (`veloxquant_mlx/quantizers/a2ats.py`) — query-aware nearest-centroid assignment (`beta`-blended reconstruction-error/query-cosine-similarity) and heap-based retrieval-set top-k selection, reusing `dsa.MaxHeap` (the same pattern as `amc_assign_tiers`).
+  - `A2ATSKVCache` (`veloxquant_mlx/cache/a2ats_cache.py`) — retrieval-set tokens get query-aware codebook assignment, bulk tokens get plain nearest-centroid assignment (reusing `VecInfer`'s `quantize_vq`/`dequantize_vq`); reconstruction is followed by windowed RoPE. Values follow a plain nearest-centroid VQ path (no RoPE, no retrieval preference).
+  - Config: `a2ats_codebook_bits` (8), `a2ats_sub_dim` (8), `a2ats_window` (128), `a2ats_use_query_aware` (True), `a2ats_beta` (0.5), `a2ats_retrieval_fraction` (0.20), `a2ats_rope_base` (10000.0), `a2ats_codebook` (None).
+  - 51 tests (13 RoPE + 13 quantizer + 25 cache) and a deterministic offline benchmark (`benchmark_scripts/benchmark_a2ats.py`). Config-validation tests (`a2ats_beta`/`a2ats_retrieval_fraction` bounds) were written **first**, following a same-session bug-hunt finding that 5 sibling methods had shipped without this exact check.
+
+### Honest scope
+- **No query visible at cache level** — the incoming key vector is used as a proxy query for both the retrieval-set split and query-aware assignment, the same category of approximation as H2O-adapted/SnapKV-adapted/AMC-adapted's proxy-query methods.
+- **Windowed RoPE has a real, measured cost in every geometry tested** — roughly 2.8x higher reconstruction MSE than always-exact RoPE on a positional-locality-favorable geometry, and roughly 4.4x higher on a long-range-dependent one. Not merely a long-range weakness — stated plainly in `benchmark_scripts/benchmark_a2ats.py`'s closing summary.
+- **Query-aware assignment has higher reconstruction MSE than plain nearest-centroid VQ in every row measured** — mathematically expected (`beta=1.0` reduces exactly to plain VQ), not a bug; the intended downstream retrieval-quality payoff is not something an offline reconstruction-MSE benchmark can show.
+- **Offline codebook calibration required** — same footgun class as VecInfer/CommVQ-adapted/Palu/SVDq/AMC-adapted; the default random-init codebook exists only for wiring/shape tests.
+- No CUDA kernel fusion reproduced; no composition with CommVQ-adapted's RoPE-commuting codebook constraint attempted.
+
+---
+
+## v0.38.0
 
 ### Venue exception (read first)
 **AMC-adapted is the second method in VeloxQuant-MLX (2 of 40) that does not

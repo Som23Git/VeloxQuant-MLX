@@ -203,3 +203,17 @@ def test_determinism() -> None:
     ko2, _ = c2.update_and_fetch(K, V)
     mx.eval(ko1, ko2)
     assert np.allclose(np.array(ko1), np.array(ko2), atol=1e-4)
+
+
+# ---------------------------------------------------------------------------
+# Config validation — svdq_hi_fraction must be in [0, 1]
+# ---------------------------------------------------------------------------
+
+def test_hi_fraction_above_one_rejected() -> None:
+    with pytest.raises(ValueError, match="svdq_hi_fraction"):
+        _make(svdq_hi_fraction=1.5)
+
+
+def test_hi_fraction_negative_rejected() -> None:
+    with pytest.raises(ValueError, match="svdq_hi_fraction"):
+        _make(svdq_hi_fraction=-0.2)

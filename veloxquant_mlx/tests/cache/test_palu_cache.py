@@ -228,3 +228,17 @@ def test_determinism() -> None:
     mx.eval(ko1, ko2, vo1, vo2)
     assert np.allclose(np.array(ko1), np.array(ko2), atol=1e-4)
     assert np.allclose(np.array(vo1), np.array(vo2), atol=1e-4)
+
+
+# ---------------------------------------------------------------------------
+# Config validation — palu_hi_fraction must be in [0, 1]
+# ---------------------------------------------------------------------------
+
+def test_hi_fraction_above_one_rejected() -> None:
+    with pytest.raises(ValueError, match="palu_hi_fraction"):
+        _make(palu_hi_fraction=1.5)
+
+
+def test_hi_fraction_negative_rejected() -> None:
+    with pytest.raises(ValueError, match="palu_hi_fraction"):
+        _make(palu_hi_fraction=-0.2)

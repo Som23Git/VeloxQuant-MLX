@@ -78,6 +78,11 @@ class SVDqKVCache(_MLXKVCache):
         self._hi_bit: int = int(getattr(config, "svdq_hi_bit", 4))
         self._lo_bit: int = int(getattr(config, "svdq_lo_bit", 2))
         self._hi_fraction: float = float(getattr(config, "svdq_hi_fraction", 0.25))
+        if not 0.0 <= self._hi_fraction <= 1.0:
+            raise ValueError(
+                f"svdq: svdq_hi_fraction must be in [0, 1], got "
+                f"{self._hi_fraction}"
+            )
         self._group_size: int = int(getattr(config, "svdq_group_size", 32))
 
         # SVD state — set on first prefill call

@@ -60,6 +60,11 @@ class KittyKVCache(_MLXKVCache):
         super().__init__()
         self._D: int = int(config.head_dim)
         self._hi_fraction: float = float(getattr(config, "kitty_hi_fraction", 0.25))
+        if not 0.0 <= self._hi_fraction <= 1.0:
+            raise ValueError(
+                f"kitty: kitty_hi_fraction must be in [0, 1], got "
+                f"{self._hi_fraction}"
+            )
         self._hi_bit: int = int(getattr(config, "kitty_hi_bit", 4))
         self._lo_bit: int = int(getattr(config, "kitty_lo_bit", 2))
         self._group_size: int = int(getattr(config, "kitty_group_size", 32))

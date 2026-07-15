@@ -61,6 +61,7 @@ const sidebars: SidebarsConfig = {
         'algorithms/curdkv',
         'algorithms/nestedkv',
         'algorithms/amc',
+        'algorithms/a2ats',
         'algorithms/xkv',
       ],
     },
