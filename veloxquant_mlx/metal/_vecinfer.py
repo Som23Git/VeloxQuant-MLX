@@ -464,7 +464,12 @@ def vecinfer_encode_decode_metal(
         inputs=[keys_f32, cb_f32, smooth_2d, H_f32, params],
         output_shapes=[(B, H_dim, S, D), (B, H_dim, S, n_sub)],
         output_dtypes=[mx.float16, mx.uint32],
-        grid=(n_tokens, 1, 1),
+        # grid is in threads, not threadgroups (mx.fast.metal_kernel
+        # convention) — one threadgroup of D threads per token, so the grid
+        # must be n_tokens * D. Passing n_tokens here silently truncated to
+        # floor(n_tokens / D) threadgroups (zero when n_tokens < D), leaving
+        # most/all tokens' outputs at their uninitialized buffer contents.
+        grid=(n_tokens * D, 1, 1),
         threadgroup=(D, 1, 1),
     )
     return outputs[0], outputs[1].astype(mx.int32)
@@ -506,7 +511,9 @@ def vecinfer_encode_decode_simple_metal(
         inputs=[values_f32, cb_f32, params],
         output_shapes=[(B, H, S, D), (B, H, S, n_sub)],
         output_dtypes=[mx.float16, mx.uint32],
-        grid=(n_tokens, 1, 1),
+        # grid is in threads, not threadgroups — see matching comment in
+        # vecinfer_encode_decode_metal.
+        grid=(n_tokens * D, 1, 1),
         threadgroup=(D, 1, 1),
     )
     return outputs[0], outputs[1]

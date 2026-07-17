@@ -219,7 +219,10 @@ def init_chunkkv_state(
                     ``"key_norm"`` (mean key-L2-norm proxy).
 
     Raises:
-        ValueError: if ``chunk_size < 1`` or ``score_mode`` is unknown.
+        ValueError: if ``chunk_size < 1``, ``score_mode`` is unknown, or there
+            are sink positions to protect but they leave no evictable room
+            within ``budget`` (``n_sink=0, budget=0`` remains a valid
+            "disabled cache" configuration).
     """
     if chunk_size < 1:
         raise ValueError(f"init_chunkkv_state: chunk_size must be >= 1, got {chunk_size}.")
@@ -227,6 +230,12 @@ def init_chunkkv_state(
         raise ValueError(
             f"init_chunkkv_state: score_mode must be 'attn_mass' or 'key_norm', "
             f"got {score_mode!r}."
+        )
+    if n_sink > 0 and n_sink >= budget:
+        raise ValueError(
+            f"chunkkv: n_sink ({n_sink}) must be < budget ({budget}) — no "
+            "evictable positions remain, so sinks would be evicted once "
+            "the cache fills"
         )
     return ChunkKVState(
         keys=None, values=None, scores=None, n_sink=n_sink, budget=budget,

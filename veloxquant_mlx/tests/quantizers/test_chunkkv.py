@@ -107,6 +107,18 @@ def test_init_rejects_bad_args():
         init_chunkkv_state(4, 32, 16, score_mode="bogus")
 
 
+def test_init_state_rejects_n_sink_equal_budget() -> None:
+    """n_sink >= budget leaves no evictable room — sinks would be evicted
+    once the cache fills, defeating the sink guarantee."""
+    with pytest.raises(ValueError, match="n_sink"):
+        init_chunkkv_state(n_sink=4, budget=4, head_dim=16)
+
+
+def test_init_state_rejects_n_sink_above_budget() -> None:
+    with pytest.raises(ValueError, match="n_sink"):
+        init_chunkkv_state(n_sink=8, budget=4, head_dim=16)
+
+
 def test_update_respects_budget_and_is_chunk_aligned():
     st = init_chunkkv_state(n_sink=2, budget=10, head_dim=8, chunk_size=4)
     k, v = _kv(40, 8)

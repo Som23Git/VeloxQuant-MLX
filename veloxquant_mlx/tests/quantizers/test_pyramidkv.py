@@ -107,6 +107,25 @@ def test_init_state_fields() -> None:
     assert st.scores is None
 
 
+def test_init_state_rejects_n_sink_equal_budget() -> None:
+    """n_sink >= budget leaves no evictable room — sinks would be evicted
+    once the cache fills, defeating the sink guarantee."""
+    with pytest.raises(ValueError, match="n_sink"):
+        init_pyramid_state(n_sink=4, budget=4, head_dim=32)
+
+
+def test_init_state_rejects_n_sink_above_budget() -> None:
+    with pytest.raises(ValueError, match="n_sink"):
+        init_pyramid_state(n_sink=8, budget=4, head_dim=32)
+
+
+def test_init_state_allows_disabled_cache() -> None:
+    """n_sink=0, budget=0 is a valid 'disabled cache' configuration."""
+    st = init_pyramid_state(n_sink=0, budget=0, head_dim=32)
+    assert st.n_sink == 0
+    assert st.budget == 0
+
+
 # ---------------------------------------------------------------------------
 # pyramid_get_kv — empty state
 # ---------------------------------------------------------------------------

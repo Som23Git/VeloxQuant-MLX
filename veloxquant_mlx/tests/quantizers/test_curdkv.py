@@ -62,6 +62,18 @@ def test_init_state_default_rank_cap() -> None:
     assert st.rank_cap == 16
 
 
+def test_init_state_rejects_n_sink_equal_budget() -> None:
+    """n_sink >= budget leaves no evictable room — sinks would be evicted
+    once the cache fills, defeating the sink guarantee."""
+    with pytest.raises(ValueError, match="n_sink"):
+        init_curdkv_state(n_sink=4, budget=4, head_dim=32)
+
+
+def test_init_state_rejects_n_sink_above_budget() -> None:
+    with pytest.raises(ValueError, match="n_sink"):
+        init_curdkv_state(n_sink=8, budget=4, head_dim=32)
+
+
 # ---------------------------------------------------------------------------
 # curdkv_get_kv — empty state
 # ---------------------------------------------------------------------------

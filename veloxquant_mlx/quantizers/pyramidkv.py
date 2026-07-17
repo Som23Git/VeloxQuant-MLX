@@ -131,7 +131,18 @@ def init_pyramid_state(n_sink: int, budget: int, head_dim: int) -> PyramidState:
         n_sink:   Number of initial sink positions to protect from eviction.
         budget:   This layer's budget (already resolved from the pyramid schedule).
         head_dim: Head dimension D (unused here; accepted for API symmetry).
+
+    Raises:
+        ValueError: if there are sink positions to protect but they leave no
+            evictable room within ``budget`` (``n_sink=0, budget=0`` remains
+            a valid "disabled cache" configuration).
     """
+    if n_sink > 0 and n_sink >= budget:
+        raise ValueError(
+            f"pyramidkv: n_sink ({n_sink}) must be < budget ({budget}) — no "
+            "evictable positions remain, so sinks would be evicted once "
+            "the cache fills"
+        )
     return PyramidState(keys=None, values=None, scores=None, n_sink=n_sink, budget=budget)
 
 

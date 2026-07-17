@@ -7,6 +7,33 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.39.1] — 2026-07-17
+
+### Fixed
+
+**Metal dispatch bug — VecInfer's fused encode+decode kernels silently
+dropped most/all tokens.** `vecinfer_encode_decode_metal` and
+`vecinfer_encode_decode_simple_metal` (`veloxquant_mlx/metal/_vecinfer.py`)
+launch one `D`-wide threadgroup per token, but their Metal dispatch passed
+`grid=(n_tokens, 1, 1)` — `mx.fast.metal_kernel`'s `grid` argument is
+specified in **threads**, not threadgroups, so this silently truncated to
+`floor(n_tokens / D)` threadgroups (zero whenever `n_tokens < D`). Every
+token beyond that count kept its uninitialized output-buffer contents
+instead of a real reconstruction or codebook index. This affected every
+VecInfer Metal-accelerated encode/decode call, not only the specific
+cross-kernel-reuse case the regression tests happened to catch. Fixed by
+dispatching `n_tokens * D` threads, matching every other kernel in
+`veloxquant_mlx/metal/`. `test_vecinfer_fused_sdpa.py` and
+`test_vecinfer_metal_parity.py` (5 failing tests) now pass.
+
+**Silent sink-token eviction when `n_sink >= budget`.** `init_pyramid_state`,
+`init_squeeze_state`, `init_chunkkv_state`, and `init_curdkv_state`
+(`veloxquant_mlx/quantizers/{pyramidkv,squeeze,chunkkv,curdkv}.py`) accepted
+degenerate sink/budget configurations that leave no evictable room, silently
+evicting tokens documented as sink-protected. `h2o`/`tova` already guarded
+this (see 0.39.0's `a78cd7f`); the same `n_sink < budget` check is now
+applied to these four siblings, with matching regression tests.
+
 ## [0.38.0] — 2026-07-14
 
 ### Venue exception (read first)

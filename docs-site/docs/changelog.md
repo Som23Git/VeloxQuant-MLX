@@ -11,9 +11,14 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 
 ---
 
-## v0.39.0 — Latest
+## v0.39.1 — Latest
 
-### New
+### Fixed
+- **VecInfer's fused Metal encode+decode kernels silently dropped most/all tokens.** `vecinfer_encode_decode_metal` and `vecinfer_encode_decode_simple_metal` (`veloxquant_mlx/metal/_vecinfer.py`) dispatch one `D`-wide threadgroup per token, but passed `grid=(n_tokens, 1, 1)` — `mx.fast.metal_kernel`'s `grid` is in **threads**, not threadgroups, so this silently launched only `floor(n_tokens / D)` threadgroups (zero when `n_tokens < D`). Every token past that count kept uninitialized output-buffer contents instead of a real key/value reconstruction or codebook index — affecting every VecInfer Metal-accelerated encode/decode call. Fixed by dispatching `n_tokens * D` threads. `test_vecinfer_fused_sdpa.py` / `test_vecinfer_metal_parity.py` (5 failing tests) now pass.
+- **Silent sink-token eviction when `n_sink >= budget`** in `pyramidkv`, `squeeze`, `chunkkv`, `curdkv` (`veloxquant_mlx/quantizers/{pyramidkv,squeeze,chunkkv,curdkv}.py`). These four `init_*_state` functions accepted degenerate sink/budget configs that leave no evictable room, silently evicting tokens documented as sink-protected — the same bug class `h2o`/`tova` were already guarded against (0.39.0, `a78cd7f`). Added the matching `n_sink < budget` check plus regression tests to all four.
+- `benchmark_scripts/pyramidkv_benchmark_results.json` regenerated against the fixed kernels.
+
+## v0.39.0
 - **A2ATS-adapted** (`method="a2ats"`) — windowed RoPE + query-aware retrieval VQ. Every VQ method already in the repo applies RoPE uniformly (VecInfer: no RoPE-awareness at all; CommVQ-adapted: codebook-constrained, one exact rotation per position regardless of distance); A2ATS instead gates RoPE precision by each token's **distance** from the current decode position — exact within a trailing window, a single shared fixed-offset approximation outside it — combined with **query-aware** codebook assignment for a retrieval-fraction subset of tokens. This is a normal-track method: a live-verified peer-reviewed venue (ACL 2025 Findings), no exception needed. Inspired by "A2ATS: Retrieval-Based KV Cache Reduction via Windowed Rotary Position Embedding and Query-Aware Vector Quantization" (He, Xing, Wang, Xu, Wu, Zhou, Liu, Xue, Li — ACL 2025 Findings, aclanthology.org/2025.findings-acl.644) — documented as "A2ATS-adapted (VeloxQuant-MLX implementation)," not a faithful port.
   - `a2ats_apply_exact_rope`/`a2ats_apply_windowed_rope` (`veloxquant_mlx/quantizers/a2ats_rope.py`) — distance-gated exact/approximate RoPE; `window<=0` degrades to always-approximate, `window` at or beyond sequence length degrades to always-exact.
   - `a2ats_query_aware_assignment`/`a2ats_select_retrieval_set` (`veloxquant_mlx/quantizers/a2ats.py`) — query-aware nearest-centroid assignment (`beta`-blended reconstruction-error/query-cosine-similarity) and heap-based retrieval-set top-k selection, reusing `dsa.MaxHeap` (the same pattern as `amc_assign_tiers`).

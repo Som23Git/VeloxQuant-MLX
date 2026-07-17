@@ -78,7 +78,18 @@ def init_curdkv_state(n_sink: int, budget: int, head_dim: int, rank_cap: int = 1
         head_dim: Head dimension D (unused here; accepted for API symmetry
                   with H2O's init_h2o_state).
         rank_cap: Maximum SVD rank used when estimating leverage scores.
+
+    Raises:
+        ValueError: if there are sink positions to protect but they leave no
+            evictable room within ``budget`` (``n_sink=0, budget=0`` remains
+            a valid "disabled cache" configuration).
     """
+    if n_sink > 0 and n_sink >= budget:
+        raise ValueError(
+            f"curdkv: n_sink ({n_sink}) must be < budget ({budget}) — no "
+            "evictable positions remain, so sinks would be evicted once "
+            "the cache fills"
+        )
     return CurDKVState(
         keys=None, values=None, leverage_scores=None,
         n_sink=n_sink, budget=budget, rank_cap=rank_cap,
