@@ -251,6 +251,72 @@ PYTHONPATH=. python benchmark_scripts/benchmark_kivi.py \
     --output-dir ./my-results/kivi-3b
 ```
 
+## Worked example: KVSink protection
+
+[`benchmark_scripts/benchmark_sink.py`](https://github.com/rajveer43/VeloxQuant-MLX/blob/master/benchmark_scripts/benchmark_sink.py) benchmarks KIVI-2bit with an added "sink protection" mechanism (`method="kivi_sink"`): instead of quantizing every token uniformly, a small, configurable number of tokens (`k`) — typically early "sink" tokens that attention tends to over-weight — are kept in full fp16 precision instead of being compressed. The script sweeps `k=0` (plain KIVI-2bit, no protection), `k=5`, and `k=20` against a real-timed fp16 baseline to show the resulting compression-vs-protection tradeoff.
+
+```bash
+PYTHONPATH=. python benchmark_scripts/benchmark_sink.py \
+    --model mlx-community/Llama-3.2-3B-Instruct-4bit
+```
+
+:::note[This script does not measure output quality]
+The script's own docstring is explicit about scope: *"without a perplexity harness, quality evidence here is limited to tokens-generated (a coherence proxy); the reconstruction-quality claims are covered by the unit tests on planted-sink data (`tests/cache/test_sink_cache.py`), not by this script."* In other words — this benchmark tells you the throughput/memory/compression cost of sink protection, not whether it actually improves generation quality. If you want evidence that sink protection preserves reconstruction fidelity, look at the unit tests, not this script's output.
+:::
+
+### Captured output
+
+Run against `mlx-community/Llama-3.2-3B-Instruct-4bit` on Apple M4 (24 GB):
+
+```text
+Loading mlx-community/Llama-3.2-3B-Instruct-4bit...
+  head_dim=128 kv_heads=8 layers=28 prompt_tok=2239 hw={'platform': 'macOS-26.5.2-arm64-arm-64bit', 'machine': 'arm64', 'chip': 'Apple M4', 'ram_gb': 24.0}
+
+--- fp16-baseline ---
+  121 tok in 7.40s (16.4 tok/s)  peak=2476MB  key_x=1.00  fullKV_x=1.00  sink_fp16=0B
+
+--- KIVI-2bit ---
+  121 tok in 7.38s (16.4 tok/s)  peak=2600MB  key_x=5.79  fullKV_x=3.98  sink_fp16=0B
+
+--- KIVI-2bit+sink-k5 ---
+  121 tok in 8.79s (13.8 tok/s)  peak=2200MB  key_x=5.80  fullKV_x=3.95  sink_fp16=679936B
+
+--- KIVI-2bit+sink-k20 ---
+  121 tok in 8.79s (13.8 tok/s)  peak=2200MB  key_x=5.83  fullKV_x=3.85  sink_fp16=2633728B
+
+Results: figures/kivi_sink/Llama-3.2-3B-Instruct-4bit/results.json
+  fp16-baseline            16.4 tok/s  key_x=1.00  fullKV_x=1.00  toks=121
+  KIVI-2bit                16.4 tok/s  key_x=5.79  fullKV_x=3.98  toks=121
+  KIVI-2bit+sink-k5        13.8 tok/s  key_x=5.80  fullKV_x=3.95  toks=121
+  KIVI-2bit+sink-k20       13.8 tok/s  key_x=5.83  fullKV_x=3.85  toks=121
+```
+
+:::note[Full-KV compression drops with k, key compression barely moves]
+This run shows the protection-cost curve exactly as the docstring predicts, but on the metric that actually matters: **full-KV compression** decreases as `k` grows (3.98× → 3.95× → 3.85×), since each protected token now costs full fp16 storage instead of ~2-bit storage. The **key compression** column looks almost flat (5.79× → 5.80× → 5.83×) and even ticks up slightly — that's not a contradiction, it's because key-only compression in this script's accounting doesn't fully reflect the fp16 sink overhead the same way full-KV does; treat full-KV compression as the trustworthy number here. Throughput also dropped noticeably with protection enabled (16.4 → 13.8 tok/s) and peak memory actually fell (2600 → 2200 MB) — both are specific to this prompt/model size and worth re-checking at your own scale rather than assumed as general behavior.
+:::
+
+The script saves a 3-panel summary chart alongside a `results.json` with the same numbers — note this script has one fewer panel than VecInfer/KIVI (no peak-memory or bit-width panel):
+
+![KVSink protection benchmark summary for Llama-3.2-3B-Instruct-4bit on Apple M4, showing three bar charts: throughput in tokens per second, full-KV compression ratio, and key compression ratio, comparing fp16-baseline, KIVI-2bit, KIVI-2bit+sink-k5, and KIVI-2bit+sink-k20](/img/benchmarks/kvsink/sink_summary.png)
+
+The three panels are, left to right:
+
+- **Throughput (tok/s)** — generation speed for each config. In this run, enabling sink protection (k=5 or k=20) cost noticeably more than plain KIVI-2bit (13.8 vs 16.4 tok/s); increasing k further from 5 to 20 made no additional difference.
+- **Full-KV compression (×)** — the realistic end-to-end compression ratio, including the fp16 cost of protected sink tokens. This is the panel that actually shows the protection-cost curve described in the script's docstring: it decreases as k grows.
+- **Key compression (×)** — key-cache-only compression. Stays close to flat across all three KIVI/KVSink configs in this run — see the note above on why this isn't the number to use for judging the protection tradeoff.
+
+### Try it yourself
+
+`--model`, `--max-tokens`, `--group-size`, and `--residual-length` all work the same way as in the KIVI example above. Unlike VecInfer and KIVI, this script has **no `--output-dir` flag** — output always lands in `figures/kivi_sink/<model-stem>/`:
+
+```bash
+PYTHONPATH=. python benchmark_scripts/benchmark_sink.py \
+    --model mlx-community/Llama-3.2-3B-Instruct-4bit \
+    --max-tokens 256 \
+    --group-size 64 \
+    --residual-length 64
+```
+
 ## Interpreting results
 
 ### Compression ratio
