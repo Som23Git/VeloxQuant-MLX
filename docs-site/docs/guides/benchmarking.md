@@ -7,104 +7,49 @@ slug: /guides/benchmarking
 
 # Benchmarking Guide
 
-This guide explains how to use the `veloxquant benchmark` CLI, interpret results, and reproduce the paper numbers from BENCHMARK_RESULTS.md.
+This guide explains how to use the `veloxquant_mlx benchmark` CLI, and walks through three real, reproducible worked examples using the scripts in `benchmark_scripts/`.
 
 ## CLI benchmark tool
 
-The built-in benchmark CLI runs a single quantization configuration against a model and reports memory, latency, and quality metrics:
+`python -m veloxquant_mlx benchmark` ([`veloxquant_mlx/cli/benchmark.py`](https://github.com/rajveer43/VeloxQuant-MLX/blob/master/veloxquant_mlx/cli/benchmark.py)) is a synthetic, model-free microbenchmark: it builds a KV cache directly (no `mlx_lm` model, no tokenizer) and times `cache.attend()` against random key/value/query arrays at the sequence lengths you give it. Use it to measure raw encode/attend latency for a given method and bit-width in isolation — for realistic, model-driven throughput/memory/compression numbers, see the worked examples below instead.
 
 ```bash
-python -m veloxquant_mlx benchmark \
-    --model mlx-community/Llama-3.2-3B-Instruct-4bit \
-    --method turboquant_rvq \
-    --bits 1 \
-    --value-bits 2 \
-    --seq-len 4096 \
-    --num-runs 10 \
-    --output ./results/llama3_rvq_1bit.json
+PYTHONPATH=. python -m veloxquant_mlx benchmark \
+    --method turboquant_prod \
+    --bits 2 \
+    --seq_lens 512 2048 8192 \
+    --compare_optimized
 ```
 
 ### CLI options
 
 | Flag | Default | Description |
 |---|---|---|
-| `--model` | Required | mlx_lm model path or HuggingFace ID |
-| `--method` | Required | Algorithm name (`turboquant_rvq`, `vecinfer`, etc.) |
-| `--bits` | `1` | Key bit rate |
-| `--value-bits` | `2` | Value bit rate |
-| `--seq-len` | `2048` | Sequence length for benchmark |
-| `--num-runs` | `5` | Number of timed runs (first is warmup) |
-| `--output` | stdout | Path to save JSON results |
-| `--artifacts-dir` | `./artifacts/` | Where to load calibration artifacts |
-| `--verbose` | False | Print per-run timing |
+| `--method` | `turboquant_prod` | One of `turboquant_prod`, `turboquant_mse`, `qjl`, `polar` |
+| `--head_dim` | `128` | Attention head dimension used for the synthetic keys/values |
+| `--bits` | `3` | Inlier bit-width |
+| `--jl_dim` | `128` | JL projection dimension |
+| `--seq_len` | `1000` | Single sequence length to benchmark |
+| `--seq_lens` | none | Space-separated list of sequence lengths (overrides `--seq_len`) |
+| `--seed` | `42` | Random seed for the synthetic keys/values/query |
+| `--compare_optimized` | off | Also build a second cache with vectorized attend + fused query-dot + outlier two-stream enabled, and report the speedup vs. the baseline |
+| `--n_outlier_channels` | `4` | Outlier channels to protect (only used with `--compare_optimized`) |
+| `--n_calib_tokens` | `200` | Calibration tokens (only used by methods that need them) |
 
-### Output format
+### Captured output
 
-```json
-{
-  "model": "mlx-community/Llama-3.2-3B-Instruct-4bit",
-  "method": "turboquant_rvq",
-  "bits": 1,
-  "value_bits": 2,
-  "seq_len": 4096,
-  "results": {
-    "peak_memory_mb": 71.3,
-    "fp16_equivalent_mb": 536.0,
-    "compression_ratio": 7.5,
-    "mean_encode_ms": 3.2,
-    "mean_decode_ms": 1.8,
-    "mean_cosine_similarity": 0.974,
-    "tokens_per_second": 42.1
-  }
-}
+```text
+=== veloxquant_mlx benchmark ===
+Method: turboquant_prod, head_dim=128, bits=2, jl_dim=128
+seq_len | baseline_attend_ms | optimized_attend_ms | speedup
+    512 |             17.103 |               0.794 |  21.536x
+   2048 |             48.232 |               0.668 |  72.160x
+   8192 |            192.220 |               1.459 | 131.740x
 ```
 
-## Benchmarking in Python
-
-For more control, run benchmarks programmatically:
-
-```python
-import mlx_lm
-import time
-from veloxquant_mlx.cache.base import KVCacheConfig, KVCacheBuilder
-from veloxquant_mlx.observers.memory import MemoryObserver
-from veloxquant_mlx.observers.distortion import DistortionObserver
-from veloxquant_mlx.observers.latency import LatencyObserver
-
-model, tokenizer = mlx_lm.load("mlx-community/Llama-3.2-3B-Instruct-4bit")
-
-# Benchmark multiple configs
-configs = [
-    KVCacheConfig(method="turboquant_rvq", bits=1, value_bits=2),
-    KVCacheConfig(method="turboquant_rvq", bits=2, value_bits=2),
-    KVCacheConfig(method="qjl", sketch_dim=64),
-]
-
-prompt = "Write a detailed essay on climate change and its global impacts." * 10
-
-for config in configs:
-    cache = KVCacheBuilder.build(model, config)
-    mem = MemoryObserver()
-    dist = DistortionObserver()
-    lat = LatencyObserver()
-    for obs in [mem, dist, lat]:
-        obs.attach(cache)
-
-    # Warmup
-    mlx_lm.generate(model, tokenizer, prompt=prompt[:500], max_tokens=128, kv_cache=cache)
-
-    # Timed run
-    t0 = time.perf_counter()
-    mlx_lm.generate(model, tokenizer, prompt=prompt, max_tokens=512, kv_cache=cache)
-    elapsed = time.perf_counter() - t0
-
-    print(f"\n--- {config.method} {config.bits}-bit ---")
-    print(f"Memory      : {mem.report().peak_compressed_mb:.1f} MB "
-          f"({mem.report().compression_ratio:.1f}×)")
-    print(f"Cosine sim  : {dist.report().mean_cosine_similarity:.4f}")
-    print(f"Encode lat  : {lat.report().mean_encode_ms:.2f} ms")
-    print(f"Wall time   : {elapsed:.2f} s")
-```
+:::note[This is attend-only latency on random data, not end-to-end throughput]
+There's no model, no tokenizer, and no generated text here — `keys`/`values`/`query` are `np.random.default_rng` arrays, and only `cache.attend()` is timed. The speedup column compares the same method with and without the optimized code paths (`--compare_optimized`), not compression vs. fp16. For real end-to-end numbers (tokens/second, peak memory, compression ratio) on an actual model, see the worked examples below — this CLI answers a narrower question: "how much does the optimized attend path help, in isolation, for this method and bit-width."
+:::
 
 ## Worked example: VecInfer
 
@@ -333,31 +278,35 @@ End-to-end throughput including quantization overhead. With Metal kernels, Velox
 
 ## Reproducing paper numbers
 
-The benchmark results in BENCHMARK_RESULTS.md were produced with:
+`benchmark_scripts/run_outlier_ratequant.py` reproduces the Outlier-Token + RateQuant comparison (fp16 baseline vs. RVQ 1-bit vs. RVQ 1-bit + Outlier-Token vs. RVQ + RateQuant per-layer allocation) across 8 models. Per its own module docstring:
 
 ```bash
-# Full 10-model sweep (reproduces Table 1)
-python benchmark_scripts/benchmark_vecinfer.py \
-    --models mlx-community/Llama-3.1-8B-Instruct-4bit \
-             mlx-community/Mistral-7B-Instruct-v0.3-4bit \
-             mlx-community/Qwen2.5-7B-Instruct-4bit \
-    --seq-lens 1024 4096 16384 \
-    --methods turboquant_rvq vecinfer ratequant spectral \
-    --output ./figures/paper_table1/
+# Full 8-model × 4-config sweep — one fresh subprocess per (model, config)
+python3 benchmark_scripts/run_outlier_ratequant.py
 
-# RateQuant outlier study (reproduces Figure 3)
-python benchmark_scripts/run_outlier_ratequant.py \
-    --model mlx-community/Llama-3.1-8B-Instruct-4bit \
-    --target-bits 1.0 1.5 2.0 2.5 3.0 4.0 \
-    --output ./figures/outlier_token_ratequant/
+# Restrict to specific models (comma-separated model keys, not full HF ids)
+python3 benchmark_scripts/run_outlier_ratequant.py --models mistral7b,phi4
+
+# Restrict to specific configs
+python3 benchmark_scripts/run_outlier_ratequant.py --configs fp16,rvq1o
+
+# Re-run even if cached results exist
+python3 benchmark_scripts/run_outlier_ratequant.py --force
+
+# Change the RateQuant per-layer average bit target (default 1.5)
+python3 benchmark_scripts/run_outlier_ratequant.py --ratequant-target 1.5
 ```
 
-:::note
-Benchmark scripts assume calibration artifacts are already generated in `./artifacts/`. Run `python -m veloxquant_mlx precompute` first for VecInfer, RateQuant, and SpectralQuant.
+:::note[Not run for this guide — verified against source, not executed]
+This is a genuinely large sweep (8 models × 4 configs, one subprocess each), so it wasn't run to produce this doc — unlike the VecInfer/KIVI/KVSink worked examples above, which were. The flags above are copied from the script's own docstring and its real `argparse` definition, not guessed. If you run it yourself, results land under `figures/outlier_token_ratequant/<model>/`, one JSON per (model, config) cached in `.bench_tmp/` so re-runs skip already-completed configs unless you pass `--force`.
+:::
+
+:::note[Calibration artifacts]
+Methods that need pre-trained codebooks or smoothing factors (VecInfer, SpectralQuant) self-calibrate on first use and cache the result under `~/.cache/veloxquant/<method>/<model-id>/` — see the VecInfer worked example above. There is no separate `python -m veloxquant_mlx precompute` step required before running these scripts.
 :::
 
 ## See also
 
 - [Observers guide](../guides/observers)
 - [Mixed-precision guide](../guides/mixed-precision)
-- [CLI reference — benchmark command](../api/core-api)
+- [Core abstractions API](../api/core-api)
