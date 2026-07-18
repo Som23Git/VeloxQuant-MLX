@@ -181,6 +181,76 @@ PYTHONPATH=. python benchmark_scripts/benchmark_vecinfer.py \
     --output-dir ./my-results/vecinfer-3b
 ```
 
+## Worked example: KIVI
+
+[`benchmark_scripts/benchmark_kivi.py`](https://github.com/rajveer43/VeloxQuant-MLX/blob/master/benchmark_scripts/benchmark_kivi.py) benchmarks several KIVI (arXiv:2402.02750) bit-widths against an fp16 baseline. Unlike VecInfer, KIVI is deterministic — there's no codebook calibration step, so every run is a cold start. KIVI keeps a small fp16 "residual window" of the most recent tokens uncompressed, so the script reports both a key-only compression ratio and a lower full-KV ratio that accounts for that residual.
+
+```bash
+PYTHONPATH=. python benchmark_scripts/benchmark_kivi.py \
+    --model mlx-community/Llama-3.2-3B-Instruct-4bit
+```
+
+:::note[Read this before trusting the throughput numbers]
+This script's own docstring calls out a specific past mistake: an earlier RaBitQ benchmark recorded `fp16_ms: 0`, which silently invalidated every speedup number derived from it. `benchmark_kivi.py` was written so the fp16 baseline is **always timed for real**, specifically to avoid repeating that bug. The docstring also sets an expectation worth stating plainly: on Apple Silicon, KIVI's paper-reported speedup comes from a CUDA kernel that has no Metal port here, so the realistic expectation is a **memory win with a throughput cost**, not a free speedup. In the captured run below, throughput was actually flat across all configs (~16 tok/s) rather than costly — that's a property of this particular 3B model and short prompt, not a general claim; re-run at longer sequence lengths before drawing conclusions.
+:::
+
+### Captured output
+
+Run against `mlx-community/Llama-3.2-3B-Instruct-4bit` on Apple M4 (24 GB):
+
+```text
+Loading mlx-community/Llama-3.2-3B-Instruct-4bit...
+  head_dim=128, n_kv_heads=8, n_layers=28
+  prompt_tokens=2239 (residual_length=32)
+  hardware={'platform': 'macOS-26.5.2-arm64-arm-64bit', 'machine': 'arm64', 'chip': 'Apple M4', 'ram_gb': 24.0}
+
+--- fp16-baseline ---
+  121 tok in 7.54s (16.1 tok/s)  peak=2484MB  key_x=1.00  fullKV_x=1.00
+
+--- KIVI-2bit ---
+  121 tok in 7.39s (16.4 tok/s)  peak=2600MB  key_x=5.79  fullKV_x=3.98
+
+--- KIVI-3bit ---
+  121 tok in 7.51s (16.1 tok/s)  peak=2600MB  key_x=4.34  fullKV_x=3.24
+
+--- KIVI-4bit ---
+  121 tok in 7.57s (16.0 tok/s)  peak=2600MB  key_x=3.47  fullKV_x=2.73
+
+Results: figures/kivi/Llama-3.2-3B-Instruct-4bit/results.json
+  fp16-baseline      16.1 tok/s   2483.7 MB  key_x=1.00  fullKV_x=1.00  toks=121
+  KIVI-2bit          16.4 tok/s   2600.1 MB  key_x=5.79  fullKV_x=3.98  toks=121
+  KIVI-3bit          16.1 tok/s   2600.1 MB  key_x=4.34  fullKV_x=3.24  toks=121
+  KIVI-4bit          16.0 tok/s   2600.1 MB  key_x=3.47  fullKV_x=2.73  toks=121
+```
+
+:::note[Peak memory went up, not down, in this run]
+All three KIVI configs show slightly *higher* peak memory (2600 MB) than the fp16 baseline (2484 MB) here — the opposite of what compression should do. At this small a model (3B) and short a prompt (~2.2K tokens), the KV cache isn't yet the dominant consumer of memory, so KIVI's bookkeeping overhead (quantized storage + the fp16 residual window) outweighs its savings. Compression wins become visible at longer context lengths, where the KV cache — not the model weights — dominates memory. Try `--max-tokens` with a much longer prompt to see this shift.
+:::
+
+The script saves a 4-panel summary chart alongside a `results.json` with the same numbers:
+
+![KIVI benchmark summary for Llama-3.2-3B-Instruct-4bit on Apple M4, showing four bar charts: throughput in tokens per second, peak memory in MB, key compression ratio, and full-KV compression ratio including the fp16 residual window, each comparing fp16-baseline against KIVI-2bit, KIVI-3bit, and KIVI-4bit](/img/benchmarks/kivi/kivi_summary.png)
+
+The four panels are, left to right:
+
+- **Throughput** — tokens/second for each config. In this run all four configs are within noise of each other (~16–16.4 tok/s) — see the caveat above about not over-generalizing from a short prompt on a small model.
+- **Peak memory** — peak MLX/Metal memory in MB during generation. See the note above on why this went up rather than down at this scale.
+- **Key compression** — `fp16_key_bytes / compressed_key_bytes` for the key cache only. Tracks the configured bit-width (2-bit ≈ 5.8×, 3-bit ≈ 4.3×, 4-bit ≈ 3.5× in this run — lower than the theoretical 8×/5.3×/4× because of quantization group overhead at `--group-size 32`).
+- **Full-KV compression (incl. fp16 residual)** — the realistic end-to-end ratio once KIVI's fp16 residual window (the most recent `--residual-length` tokens, kept uncompressed for accuracy) is included. Always lower than key-only compression — this is the number to use when estimating actual memory savings.
+
+### Try it yourself
+
+KIVI has more tunable parameters than VecInfer. `--model` and `--max-tokens` work the same way; `--group-size` controls the quantization group size (smaller groups → better fidelity, more overhead) and `--residual-length` controls how many recent tokens stay in fp16:
+
+```bash
+PYTHONPATH=. python benchmark_scripts/benchmark_kivi.py \
+    --model mlx-community/Llama-3.2-3B-Instruct-4bit \
+    --max-tokens 256 \
+    --group-size 64 \
+    --residual-length 64 \
+    --output-dir ./my-results/kivi-3b
+```
+
 ## Interpreting results
 
 ### Compression ratio
