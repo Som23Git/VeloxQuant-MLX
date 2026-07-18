@@ -9,7 +9,7 @@ slug: /algorithms/rvq
 
 TurboQuant RVQ is the **recommended default algorithm** in VeloxQuant-MLX. It uses Residual Vector Quantization with analytical codebooks — no calibration required, works on any model out of the box.
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 Metal kernels are used for scalar quantization and Hadamard rotation. Requires macOS M-series.
 :::
 

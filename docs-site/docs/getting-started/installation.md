@@ -7,7 +7,7 @@ slug: /getting-started/installation
 
 # Installation
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 VeloxQuant-MLX uses Metal GPU kernels compiled at runtime. It requires **macOS on an Apple M-series chip** (M1 or later). Intel Macs and Linux are not supported.
 :::
 

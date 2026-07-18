@@ -9,7 +9,7 @@ slug: /getting-started/quickstart
 
 This guide gets you from a fresh install to compressed LLM inference in five minutes. You will load a model with `mlx_lm`, attach a TurboQuant RVQ KV cache, generate text, and print memory statistics.
 
-:::note Prerequisites
+:::note[Prerequisites]
 Complete [Installation](../getting-started/installation) first. You need `mlx_lm` installed (`pip install mlx-lm`) and a model downloaded locally (e.g. `mlx-community/Llama-3.2-3B-Instruct-4bit`).
 :::
 

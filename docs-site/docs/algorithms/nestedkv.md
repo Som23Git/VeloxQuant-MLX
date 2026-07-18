@@ -12,7 +12,7 @@ Nested Memory Routing for Long-Context KV Cache Compression" (Chen, Liu, Gao,
 Fan, Wang, Chu, Lin, Hu; arXiv:2605.26678)](https://arxiv.org/abs/2605.26678)
 — **NestedKV-adapted (VeloxQuant-MLX implementation)**, not a faithful port.
 
-:::warning No verified peer-reviewed venue
+:::warning[No verified peer-reviewed venue]
 This is the **only** method in VeloxQuant-MLX (1 of 39) that does not trace
 to a verified peer-reviewed venue. As of 2026-07-14, the paper is a single
 arXiv revision (submitted 2026-05-26) with no Comments/journal-ref field

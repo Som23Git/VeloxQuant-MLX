@@ -60,7 +60,7 @@ caches = KVCacheBuilder.for_model(model, config)
 model.make_cache = lambda *_a, **_k: caches
 ```
 
-:::note Requires `for_model`
+:::note[Requires `for_model`]
 Cross-layer subspace sharing needs the shared `XKVCoordinator` that
 `KVCacheBuilder.for_model()` builds. Constructing a single cache via the
 factory yields a degenerate (coordinator-less) **standalone member** —

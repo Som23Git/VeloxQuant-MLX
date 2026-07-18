@@ -9,7 +9,7 @@ slug: /algorithms/spectral
 
 SpectralQuant uses **eigenvector rotation** to align the key distribution with the quantizer's assumptions. By rotating keys into the PCA basis, it separates high-variance "signal" dimensions from low-variance "noise" dimensions and applies separate codebooks to each group — achieving high fidelity at long context lengths.
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 Requires macOS M-series for Metal kernels and efficient MLX SVD.
 :::
 

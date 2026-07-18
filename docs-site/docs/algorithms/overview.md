@@ -9,7 +9,7 @@ slug: /algorithms/overview
 
 VeloxQuant-MLX implements forty-one KV cache compression algorithms. This page helps you pick the right one for your workload.
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 All algorithms use Metal GPU kernels and require macOS on an M-series chip.
 :::
 

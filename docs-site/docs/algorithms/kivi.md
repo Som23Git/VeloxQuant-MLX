@@ -13,7 +13,7 @@ Quantization for KV Cache"](https://arxiv.org/abs/2402.02750) (Liu, Yuan et
 al., **ICML 2024**). It is included so every other algorithm in this library
 can be measured against a recognized reference point.
 
-:::info Why a baseline?
+:::info[Why a baseline?]
 KIVI is not the highest-compression method here (VecInfer-2bit reaches 8×
 key compression vs KIVI-2bit's ~5.8×). Its value is being **calibration-free,
 deterministic, and the number reviewers expect to see compared against.**
@@ -80,7 +80,7 @@ Full-KV compression includes the fp16 residual window, so it is not inflated.
 
 ## Honest scope
 
-:::warning Memory, not raw speed; storage, not peak
+:::warning[Memory, not raw speed; storage, not peak]
 - KIVI's published *speedup* comes from a CUDA kernel that **does not port to
   Metal**. On Apple Silicon the win is memory; throughput is at-or-near fp16
   because the min/max arithmetic is cheap on a memory-bound decode path.

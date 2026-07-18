@@ -9,7 +9,7 @@ slug: /guides/metal-kernels
 
 VeloxQuant-MLX compiles nine Metal GPU kernels at runtime using `mx.fast.metal_kernel`. This guide explains what each kernel does, how they are loaded, performance characteristics, and fallback behaviour.
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 All Metal kernels require macOS on an M-series chip. On unsupported hardware, VeloxQuant-MLX falls back to MLX Python ops automatically.
 :::
 

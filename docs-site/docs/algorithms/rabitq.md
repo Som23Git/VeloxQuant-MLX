@@ -9,7 +9,7 @@ slug: /algorithms/rabitq
 
 RaBitQ achieves **1-bit key compression** using a randomised Hadamard transform followed by binary sign packing with IVF (Inverted File Index) clustering. It delivers 6× total KV compression (keys at 1 bit, values at fp16) with zero calibration.
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 Hamming distance scoring uses `rabitq_hamming_score` — a Metal kernel with native XOR+popcount instructions.
 :::
 

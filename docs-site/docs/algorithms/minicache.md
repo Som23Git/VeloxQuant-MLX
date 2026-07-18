@@ -46,7 +46,7 @@ caches = KVCacheBuilder.for_model(model, config)
 model.make_cache = lambda *_a, **_k: caches
 ```
 
-:::note Requires `for_model`
+:::note[Requires `for_model`]
 Cross-layer merging needs the shared `MiniCacheCoordinator` that
 `KVCacheBuilder.for_model()` builds. Constructing a single cache via the factory
 yields a degenerate (coordinator-less) **primary** that behaves as a lossless

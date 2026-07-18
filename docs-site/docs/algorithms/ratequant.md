@@ -9,7 +9,7 @@ slug: /algorithms/ratequant
 
 RateQuant is the **highest-accuracy algorithm** in VeloxQuant-MLX. It uses a 90-second sensitivity probe to learn which layers need more bits and which can be aggressively compressed — then allocates a mixed-precision budget via reverse-waterfilling.
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 Calibration and inference use Metal kernels. Requires macOS M-series.
 :::
 

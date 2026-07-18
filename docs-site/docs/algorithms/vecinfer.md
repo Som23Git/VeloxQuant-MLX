@@ -9,7 +9,7 @@ slug: /algorithms/vecinfer
 
 VecInfer is VeloxQuant-MLX's highest-throughput algorithm. It combines **product vector quantization** with per-channel smooth scaling and Metal GPU kernels that deliver **13× faster quantization** than naive MLX operations.
 
-:::warning Apple Silicon required
+:::warning[Apple Silicon required]
 VecInfer depends on `vecinfer_quantize_metal` — a Metal kernel that is only available on macOS M-series.
 :::
 

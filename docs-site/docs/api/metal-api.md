@@ -11,7 +11,7 @@ slug: /api/metal-api
 
 All Metal kernels are compiled lazily on first call via `mx.fast.metal_kernel`. These are low-level functions — most users should interact with them indirectly through quantizer and cache classes.
 
-:::warning Apple Silicon only
+:::warning[Apple Silicon only]
 All functions in this module require macOS on an M-series chip. On unsupported hardware they raise `MetalUnavailableError`.
 :::
 

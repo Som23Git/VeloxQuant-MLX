@@ -13,7 +13,7 @@ Transformer Inference" (Hu, Yuan, Hu, Yin, Li, Suchter — Apple;
 arXiv:2607.10109)](https://arxiv.org/abs/2607.10109) —
 **AMC-adapted (VeloxQuant-MLX implementation)**, not a faithful port.
 
-:::warning No verified peer-reviewed venue
+:::warning[No verified peer-reviewed venue]
 This is the **second** method in VeloxQuant-MLX (2 of 40) that does not trace
 to a verified peer-reviewed venue — the first was
 [NestedKV-adapted](../algorithms/nestedkv). As of 2026-07-14, the paper is a
@@ -28,7 +28,7 @@ method survey reverts to requiring a verified venue — this is not a new
 precedent.
 :::
 
-:::warning Hardware/RTL half of the source paper is entirely out of scope
+:::warning[Hardware/RTL half of the source paper is entirely out of scope]
 Roughly half of AMC's source paper (Sections IV-V: 45nm CMOS RTL, Verilog
 clock-gating, the Precision-Gated Systolic Array, the Narrow-Width SRAM
 write-back buffer, all pJ/µJ energy figures, the EDAP/Pareto silicon

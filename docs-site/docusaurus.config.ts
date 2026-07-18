@@ -147,7 +147,7 @@ const config: Config = {
       copyright: `MIT License © ${new Date().getFullYear()} VeloxQuant-MLX. Built with Docusaurus.`,
     },
     prism: {
-      theme: prismThemes.dracula,
+      theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
       additionalLanguages: ['python', 'bash', 'toml'],
     },

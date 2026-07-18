@@ -45,7 +45,7 @@ caches = KVCacheBuilder.for_model(model, KVCacheConfig(method="xquant"))
 output = generate(model, tokenizer, prompt="Tell me about KV caches", kv_cache=caches)
 ```
 
-:::note Single-cache construction
+:::note[Single-cache construction]
 `KVCacheFactory.create(KVCacheConfig(method="xquant"))` returns a *degenerate anchor* (no coordinator) — useful for unit-testing the anchor path, but it performs no cross-layer reuse. Use `for_model` for the real method.
 :::
 
