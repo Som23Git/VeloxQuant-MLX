@@ -106,6 +106,81 @@ for config in configs:
     print(f"Wall time   : {elapsed:.2f} s")
 ```
 
+## Worked example: VecInfer
+
+[`benchmark_scripts/benchmark_vecinfer.py`](https://github.com/rajveer43/VeloxQuant-MLX/blob/master/benchmark_scripts/benchmark_vecinfer.py) compares three VecInfer configurations (2-bit, 1.5-bit, 1-bit key/value quantization) against a vanilla fp16 KV cache on the same three short prompts, measuring generation throughput, peak memory, and key/value compression ratio for each. It's a good first script to run if you want to see real, reproducible numbers rather than the illustrative snippets above.
+
+```bash
+PYTHONPATH=. python benchmark_scripts/benchmark_vecinfer.py \
+    --model mlx-community/Llama-3.2-1B-Instruct-4bit
+```
+
+The first run performs a short calibration pass (training smooth factors and codebooks on synthetic activations) and caches the result under `~/.cache/veloxquant/vecinfer/<model-id>/`, so subsequent runs against the same model are faster.
+
+### Captured output
+
+Run against `mlx-community/Llama-3.2-1B-Instruct-4bit` on Apple Silicon:
+
+```text
+Loading mlx-community/Llama-3.2-1B-Instruct-4bit...
+  head_dim=64, n_heads=32
+
+--- fp16-baseline ---
+  prompt 0: 81 tok in 0.88s (92.1 tok/s)
+  prompt 1: 81 tok in 0.70s (115.8 tok/s)
+  prompt 2: 81 tok in 0.70s (115.4 tok/s)
+
+--- vecinfer-2bit ---
+  prompt 0: 70 tok in 1.00s (70.2 tok/s)
+  prompt 1: 78 tok in 0.93s (83.7 tok/s)
+  prompt 2: 79 tok in 0.93s (84.8 tok/s)
+
+--- vecinfer-1.5bit ---
+  prompt 0: 81 tok in 6.75s (12.0 tok/s)
+  prompt 1: 79 tok in 6.68s (11.8 tok/s)
+  prompt 2: 76 tok in 6.69s (11.4 tok/s)
+
+--- vecinfer-1bit ---
+  prompt 0: 77 tok in 1.20s (64.0 tok/s)
+  prompt 1: 82 tok in 1.13s (72.3 tok/s)
+  prompt 2: 52 tok in 1.13s (46.1 tok/s)
+
+Summary: figures/vecinfer/Llama-3.2-1B-Instruct-4bit/vecinfer_summary.png
+Results: figures/vecinfer/Llama-3.2-1B-Instruct-4bit/results.json
+
+Final:
+  fp16-baseline         106.5 tok/s    710.5 MB  key_x=1.00  avg_bits=16.00
+  vecinfer-2bit          79.3 tok/s    713.0 MB  key_x=8.00  avg_bits=2.00
+  vecinfer-1.5bit        11.7 tok/s    713.6 MB  key_x=10.67  avg_bits=1.50
+  vecinfer-1bit          60.9 tok/s    712.9 MB  key_x=16.00  avg_bits=1.00
+```
+
+:::note
+In this particular run, `vecinfer-1.5bit` was markedly slower (11.7 tok/s) than the 2-bit and 1-bit configs (79.3 and 60.9 tok/s). This is the actual measurement from this script on this machine, not a typo — the 1.5-bit path takes a different, currently less-optimized code path. Re-run yourself before relying on this number; timings are sensitive to thermal state, background load, and MLX/mlx_lm version.
+:::
+
+The script saves a 4-panel summary chart alongside a `results.json` with the same numbers:
+
+![VecInfer benchmark summary for Llama-3.2-1B-Instruct-4bit, showing four bar charts: throughput in tokens per second, peak memory in MB, key cache compression ratio, and effective bit-width, each comparing fp16-baseline against vecinfer-2bit, vecinfer-1.5bit, and vecinfer-1bit configurations](/img/benchmarks/vecinfer/vecinfer_summary.png)
+
+The four panels are, left to right:
+
+- **Throughput** — tokens/second for each config. Lower-bit configs generally trade throughput for memory savings, though the actual ordering depends on which code paths are optimized (see the 1.5-bit note above).
+- **Peak memory** — peak MLX/Metal memory in MB during generation. In this run all four configs land close together (~710–714 MB) because the model weights dominate total memory at this scale (1B params); the KV-cache savings become more visible at longer sequence lengths or larger models.
+- **Key cache compression** — `fp16_key_bytes / compressed_key_bytes` for the key cache. This tracks the configured bit-width directly (2-bit ≈ 8×, 1.5-bit ≈ 10.67×, 1-bit ≈ 16×).
+- **Effective bit-width** — the average bits/element actually assigned by the allocator, which should match the config's target (2.0, 1.5, 1.0) — useful as a sanity check that the allocator is behaving as configured.
+
+### Try it yourself
+
+Swap `--model` for any other `mlx-community/*` checkpoint, and use `--max-tokens` to change generation length (default `80`). Output lands in `figures/vecinfer/<model-stem>/` by default, or pass `--output-dir` to redirect it:
+
+```bash
+PYTHONPATH=. python benchmark_scripts/benchmark_vecinfer.py \
+    --model mlx-community/Llama-3.2-3B-Instruct-4bit \
+    --max-tokens 128 \
+    --output-dir ./my-results/vecinfer-3b
+```
+
 ## Interpreting results
 
 ### Compression ratio
