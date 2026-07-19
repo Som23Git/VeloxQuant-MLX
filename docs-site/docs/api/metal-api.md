@@ -100,17 +100,66 @@ Precomputes a query-codebook distance look-up table for asymmetric MIPS (Maximum
 
 ```python
 def rabitq_hamming_score(
-    query_bits: mx.array,
-    key_bits: mx.array,
-    scale: float,
+    qbits: mx.array,   # [D//8] uint8   — packed query sign bits
+    bits: mx.array,    # [N, D//8] uint8 — packed candidate sign bits
+    Cx: mx.array,      # [N] float32    — per-candidate constant
+    scale: mx.array,   # [1] float32    — ||qhat - c||_1 / D
 ) -> mx.array
 ```
 
-XOR + popcount Hamming distance as inner product proxy. Uses Metal native instructions.
+XOR + popcount Hamming scoring for N candidates against one query:
+`score[i] = popcount(XOR(qbits, bits[i])) * scale + Cx[i]`.
 
-- `query_bits`: packed uint32, shape `[batch, heads, 1, words]`
-- `key_bits`: packed uint32, shape `[batch, heads, seq, words]`
-- Returns: `[batch, heads, 1, seq]` attention score approximation
+- Returns: `[N]` float32 approximate distances (lower = closer)
+
+### `rabitq_fused_attend`
+
+`veloxquant_mlx.metal._rabitq_attend`
+
+```python
+def rabitq_fused_attend(
+    q: mx.array,        # [B, H, S_q, D]    fp16  — queries (pre-rotated)
+    q_scale: mx.array,  # [B, H, S_q]       fp32  — per-query score scale
+    k_bits: mx.array,   # [B, H, S_kv, D/8] uint8 — packed 1-bit key signs
+    k_mag: mx.array,    # [B, H, S_kv]      fp32  — per-key magnitude
+    k_const: mx.array,  # [B, H, S_kv]      fp32  — additive score bias
+    v_idx: mx.array,    # [B, H, S_kv, D] or [B, H, S_kv, D//2] uint8
+    v_cents: mx.array,  # [n_cents]         fp32  — scalar value codebook
+) -> mx.array
+```
+
+Single-dispatch attention over an asymmetric cache (1-bit keys + codebook values). Scores each slot from packed bits via `(D - 2*ham) * q_scale * k_mag + k_const`, runs an online softmax split across 8 SIMD-groups (flash-decoding), and accumulates codebook values. Fold any `1/sqrt(D)` scaling into `q_scale`/`k_const`. Requires D divisible by 8, D ≤ 256.
+
+`v_idx` may be one index per element (`[.., D]`) or nibble-packed (`[.., D//2]`, from `rabitq_pack_values`) — the format is detected from the shape; packed requires ≤ 16 codebook entries and produces bit-identical outputs.
+
+- Returns: `[B, H, S_q, D]` fp16 attention output
+
+### `rabitq_pack_values`
+
+`veloxquant_mlx.metal._rabitq_values`
+
+```python
+def rabitq_pack_values(v_idx: mx.array) -> mx.array
+```
+
+Packs 4-bit value indices two-per-byte along the last axis (low nibble = even element; values masked to 4 bits). Any shape with an even last dimension.
+
+- Returns: uint8 array with the last dimension halved — feed directly to `rabitq_fused_attend`
+
+### `rabitq_encode`
+
+`veloxquant_mlx.metal._rabitq_encode`
+
+```python
+def rabitq_encode(
+    keys: mx.array,  # [N, D] fp16/fp32 — raw (pre-rotation) key vectors
+    diag: mx.array,  # [D] fp32 — +-1 Hadamard diagonal
+) -> tuple[mx.array, mx.array]
+```
+
+Fused rotate + binarize + bit-pack + L1-magnitude in one dispatch; sign packing uses `simd_ballot`. Outputs plug into `rabitq_fused_attend` as `k_bits`/`k_mag` (with `k_const = 0`). Requires D a power of two, divisible by 8, ≤ 1024.
+
+- Returns: `(k_bits [N, D//8] uint8, k_mag [N] fp32)`
 
 ---
 

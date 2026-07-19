@@ -2283,8 +2283,29 @@
 out<span class="op">[</span>vec_idx<span class="op">]</span> <span class="op">=</span> best_idx<span class="op">;</span></pre>
     </div>
 
+    <!-- Fused RaBitQ asymmetric pipeline -->
+    <p class="section-desc fade-in" style="margin-top:2.5rem;">Phase 2 shipped: a fully GPU-resident <strong style="color:var(--text)">asymmetric-precision pipeline</strong> — 1-bit packed keys scored by XOR+popcount, 4-bit codebook values — a K/V format mix fused attention kernels normally can't express. Encode and attend are one Metal dispatch each; no dequantized K or V is ever materialized.</p>
+
+    <div class="picker-grid fade-in">
+      <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
+        <div class="picker-goal">Fused attend at S_kv=8192</div>
+        <div class="picker-method purple">2.492 ms → 1.404 ms</div>
+        <div class="picker-detail">1.78× vs dequantize+SDPA with nibble-packed values (1.42× at S_kv=2048, 1.10× at 512; D=128, 8 heads). Online softmax split across 8 SIMD-groups, flash-decoding style, so single-token decode still fills the GPU.</div>
+      </div>
+      <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
+        <div class="picker-goal">Fused encode at N=32768</div>
+        <div class="picker-method purple">4.511 ms → 0.752 ms</div>
+        <div class="picker-detail">6× vs the numpy round-trip, 2.9× vs pure MLX ops. Rotate + binarize + bit-pack + magnitude in one dispatch — <code style="font-family:'JetBrains Mono',monospace;font-size:0.9em">simd_ballot</code> turns 32 sign predicates into 4 packed bytes in a single instruction.</div>
+      </div>
+      <div class="picker-card" style="border-color:rgba(124,58,237,0.35);">
+        <div class="picker-goal">Verified, honestly</div>
+        <div class="picker-method purple">63 parity tests</div>
+        <div class="picker-detail">Bit-exact and numeric parity vs numpy references, including an end-to-end encode→attend test and packed-vs-unpacked value equality. Caveat: with unpacked values the attend kernel <em>loses</em> at S_kv=512 (0.65×) — nibble packing (two 4-bit indices per byte) halves V bandwidth and flips it to 1.10×.</div>
+      </div>
+    </div>
+
     <div class="bench-note" style="margin-top:1.5rem;">
-      <strong style="color:#a78bfa">Honest caveat:</strong> the kernel pays a ~50–200µs launch overhead per call on Apple Silicon. On tiny models (SmolLM2 135M, 30 layers, ~60 launches/token) that overhead can exceed the work saved. The kernel is built for the regime that needs it — 7B+ models with realistic context lengths. <strong style="color:var(--text)">Phase 2</strong> (fused dequant + SDPA, never materializing fp16 keys) is on the roadmap. See the full writeup: <a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/blogs/metal-kernels.md" target="_blank" rel="noopener" style="color:var(--accent)">Metal kernels blog post</a>.
+      <strong style="color:#a78bfa">Honest caveat:</strong> the kernel pays a ~50–200µs launch overhead per call on Apple Silicon. On tiny models (SmolLM2 135M, 30 layers, ~60 launches/token) that overhead can exceed the work saved. The kernels are built for the regime that needs them — 7B+ models with realistic context lengths. See the full writeup: <a href="https://github.com/rajveer43/VeloxQuant-MLX/blob/master/blogs/metal-kernels.md" target="_blank" rel="noopener" style="color:var(--accent)">Metal kernels blog post</a>.
     </div>
   </section>
 

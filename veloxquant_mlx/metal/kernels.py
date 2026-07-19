@@ -1,11 +1,16 @@
 """Metal kernel wrappers for VeloxQuant-MLX — re-export facade.
 
 Kernels are organized into focused submodules:
-  _vecinfer     — VecInfer codebook dequantize, quantize, encode+decode
-  _bit_packing  — TurboQuant b-bit index pack/unpack
-  _scalar_quant — TurboQuant scalar quantize/dequantize + fused Hadamard
-  _qjl          — QJL encode and inner product
-  _rvq_attend   — Fused RVQ decode + attention
+  _vecinfer      — VecInfer codebook dequantize, quantize, encode+decode
+  _bit_packing   — TurboQuant b-bit index pack/unpack
+  _scalar_quant  — TurboQuant scalar quantize/dequantize + fused Hadamard
+  _qjl           — QJL encode and inner product
+  _rvq_attend    — Fused RVQ decode + attention
+  _comm_vq       — CommVQ RoPE-commutative decode
+  _rabitq        — RaBitQ packed Hamming scoring
+  _rabitq_attend — Fused RaBitQ asymmetric attention (1-bit K + 4-bit V)
+  _rabitq_encode — Fused RaBitQ key encode (rotate + pack + magnitude)
+  _rabitq_values — Nibble packing for 4-bit value indices
 """
 from __future__ import annotations
 
@@ -37,6 +42,15 @@ from veloxquant_mlx.metal._comm_vq import (
 from veloxquant_mlx.metal._rabitq import (
     rabitq_hamming_score,
 )
+from veloxquant_mlx.metal._rabitq_attend import (
+    rabitq_fused_attend,
+)
+from veloxquant_mlx.metal._rabitq_encode import (
+    rabitq_encode,
+)
+from veloxquant_mlx.metal._rabitq_values import (
+    rabitq_pack_values,
+)
 
 __all__ = [
     "vecinfer_dequant_metal",
@@ -53,4 +67,7 @@ __all__ = [
     "turboquant_fused_rvq_decode_attend",
     "comm_vq_decode_metal",
     "rabitq_hamming_score",
+    "rabitq_fused_attend",
+    "rabitq_encode",
+    "rabitq_pack_values",
 ]

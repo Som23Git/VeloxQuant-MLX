@@ -7,7 +7,7 @@ slug: /guides/metal-kernels
 
 # Metal GPU Kernels
 
-VeloxQuant-MLX compiles nine Metal GPU kernels at runtime using `mx.fast.metal_kernel`. This guide explains what each kernel does, how they are loaded, performance characteristics, and fallback behaviour.
+VeloxQuant-MLX compiles eleven Metal kernel modules at runtime using `mx.fast.metal_kernel`. This guide explains what each kernel does, how they are loaded, performance characteristics, and fallback behaviour.
 
 :::warning[Apple Silicon required]
 All Metal kernels require macOS on an M-series chip. On unsupported hardware, VeloxQuant-MLX falls back to MLX Python ops automatically.
@@ -19,6 +19,9 @@ All Metal kernels require macOS on an M-series chip. On unsupported hardware, Ve
 |---|---|---|
 | `metal/_vecinfer.py` | `vecinfer_quantize_metal`, `vecinfer_dequant_metal`, `vecinfer_encode_decode_metal` | VecInfer PVQ |
 | `metal/_rabitq.py` | `rabitq_hamming_score` | RaBitQ 1-bit |
+| `metal/_rabitq_attend.py` | `rabitq_fused_attend` | RaBitQ asymmetric attention (1-bit keys + 4-bit values) |
+| `metal/_rabitq_encode.py` | `rabitq_encode` | RaBitQ encode (rotate + binarize + pack + magnitude) |
+| `metal/_rabitq_values.py` | `rabitq_pack_values` | Nibble packing for 4-bit value indices |
 | `metal/_comm_vq.py` | `comm_vq_decode_metal` | CommVQ RoPE |
 | `metal/_scalar_quant.py` | `turboquant_scalar_quantize`, `turboquant_scalar_dequantize`, `turboquant_hadamard_quantize` | TurboQuant RVQ |
 | `metal/_rvq_attend.py` | `turboquant_fused_rvq_decode_attend` | RVQ + attention fusion |
@@ -47,15 +50,17 @@ Compiled kernels are cached in memory for the process lifetime. There is no pers
 
 ## Performance characteristics
 
-Benchmarked on M3 Pro, Llama-3.1-8B, 4096 context (source: BENCHMARK_RESULTS.md):
+All numbers below are from this repo's own benchmark scripts on an Apple M4 MacBook; each row states its exact configuration.
 
-| Operation | MLX Python | Metal kernel | Speedup |
-|---|---|---|---|
-| VecInfer PVQ quantize | 42 ms | 3.2 ms | **13×** |
-| Scalar quantize + Hadamard | 18 ms | 2.1 ms | **8.6×** |
-| RaBitQ Hamming score | 31 ms | 2.8 ms | **11×** |
-| Bit pack/unpack | 8 ms | 0.9 ms | **8.9×** |
-| Fused RVQ decode + attention | 24 ms | 3.5 ms | **6.9×** |
+| Operation | Baseline | Metal kernel | Speedup | Configuration |
+|---|---|---|---|---|
+| VecInfer `quantize_vq` | 228 ms | 15.6 ms | **14.7×** | S=8192 (range 6.9–14.7× over S=128–8192; see `figures/metal/summary.png`) |
+| RaBitQ fused attend (nibble-packed V) | 2.492 ms | 1.404 ms | **1.78×** | vs dequantize+SDPA, B=1 H=8 S_q=1 D=128 S_kv=8192 (`scripts/metal_rabitq_attend_bench.py`) |
+| RaBitQ fused attend (nibble-packed V) | 0.681 ms | 0.481 ms | **1.42×** | same shape, S_kv=2048 |
+| RaBitQ fused attend (nibble-packed V) | 0.309 ms | 0.281 ms | **1.10×** | same shape, S_kv=512 |
+| RaBitQ encode | 4.511 ms | 0.752 ms | **6.0×** | vs numpy round-trip, N=32768 D=128 (`scripts/metal_rabitq_encode_bench.py`); 2.88× vs pure MLX ops |
+
+Honest caveats: with *unpacked* (one byte per index) values the fused attend loses at short contexts (0.65× at S_kv=512) — nibble-packing the value indices (two per byte, `rabitq_pack_values`) halves value bandwidth and flips that to a small win. The encoder is a wash below N≈1024. All kernels are built for the long-context / large-batch regime.
 
 ## Fallback behaviour
 
@@ -101,6 +106,35 @@ if ok:
         scale=1.0 / (head_dim ** 0.5),
     )
 ```
+
+## Fused RaBitQ asymmetric pipeline
+
+Two kernels form a fully GPU-resident pipeline for an asymmetric-precision cache — **1-bit packed keys + 4-bit codebook values**, a combination that fused attention kernels normally can't express because keys and values use different formats:
+
+- `rabitq_encode` — one dispatch turns raw fp16 keys into the cache representation: randomized Hadamard rotation (threadgroup butterfly), sign binarization via `simd_ballot` (each SIMD-group's 32 sign bits land in one vote mask = 4 packed bytes), and the per-vector L1/D magnitude.
+- `rabitq_fused_attend` — one dispatch scores every cached slot directly from the packed bits (XOR + popcount), runs an online softmax, and accumulates values from the 4-bit codebook. No dequantized K or V matrix is ever materialized. The kv axis is split across 8 SIMD-groups flash-decoding style so decode-shaped calls still fill the GPU.
+- `rabitq_pack_values` — packs two 4-bit value indices per byte (low nibble = even dim). The attend kernel detects the packed shape (`[.., D//2]`) automatically and reads nibbles directly — half the value-cache memory and bandwidth, bit-identical outputs to the unpacked path.
+
+```python
+import mlx.core as mx
+from veloxquant_mlx.metal.kernels import rabitq_encode, rabitq_fused_attend
+
+# Encode: [N, D] fp16 keys -> packed bits + per-vector magnitude
+k_bits_flat, k_mag_flat = rabitq_encode(keys, diag)   # [N, D//8] uint8, [N] fp32
+
+# Attend: score packed keys, gather 4-bit values — single dispatch
+out = rabitq_fused_attend(
+    q,        # [B, H, S_q, D]    fp16, pre-rotated
+    q_scale,  # [B, H, S_q]       fp32, e.g. L1(q)/D (fold in 1/sqrt(D))
+    k_bits,   # [B, H, S_kv, D/8] uint8 packed sign bits
+    k_mag,    # [B, H, S_kv]      fp32 per-key magnitude
+    k_const,  # [B, H, S_kv]      fp32 additive bias (zeros for centroid-free)
+    v_idx,    # [B, H, S_kv, D]   uint8 value codebook indices
+    v_cents,  # [16]              fp32 scalar value codebook
+)                                 # -> [B, H, S_q, D] fp16
+```
+
+The score per slot is `(D − 2·ham) · q_scale · k_mag + k_const`, the sign-bit estimate of `⟨q, k⟩`. Parity is verified against a numpy reference in `veloxquant_mlx/tests/metal/test_rabitq_attend.py` and `test_rabitq_encode.py`, including an end-to-end encode→attend test.
 
 ## Bit packing
 

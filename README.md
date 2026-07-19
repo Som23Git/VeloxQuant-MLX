@@ -67,6 +67,8 @@ response = mlx_lm.generate(model, tokenizer, prompt="Explain relativity simply."
 | SpectralQuant compression | **5.33×** | per-model measured (Qwen2.5-0.5B / Gemma-4-4B), same bit-width |
 | SpectralQuant cosine sim | **+3pp** | over TurboQuant on Qwen2.5-0.5B |
 | **RaBitQ full KV compression** | **6×** | 1-bit keys + MSE-b4 values, Falcon3-7B |
+| **RaBitQ fused attend speedup** | **1.78×** | vs dequantize+SDPA at S_kv=8192, D=128 — single-dispatch 1-bit-key/4-bit-value attention, nibble-packed values |
+| **RaBitQ fused encode speedup** | **6×** | vs numpy round-trip at N=32768, D=128 (2.9× vs pure MLX ops) |
 | **RaBitQ context at 8 GB** | **~103k tokens** (est.) | KV-only linear extrapolation from measured memory rows; vs ~17k fp16 — 6× more context |
 | **CommVQ key compression** | **64×** | RoPE-commutative VQ, D=128, n_cb=4 |
 | **KIVI-2bit key compression** | **5.8×** | per-channel keys / per-token values; measured on Llama-3.2-3B, Qwen2.5-7B, Mistral-7B |
@@ -239,6 +241,25 @@ The VecInfer `quantize_vq` hot path is now a 30-line Metal Shading Language shad
 **Honest caveat:** the kernel pays a ~50–200 µs launch overhead per call. On tiny models (SmolLM2-135M, ~60 launches/token) that overhead can exceed the savings. Built for the regime that needs it: 7B+ models at realistic context lengths.
 
 Full kernel source and how it was built: [blogs/metal-kernels.md](blogs/metal-kernels.md). Usage, fallback behaviour, and debugging: [docs — Metal GPU kernels](https://veloxquant-mlx.netlify.app/docs/guides/metal-kernels).
+
+### Fused RaBitQ asymmetric pipeline
+
+Two newer kernels form a fully GPU-resident pipeline for an **asymmetric-precision cache** — 1-bit packed keys scored via XOR+popcount, 4-bit codebook values — a K/V format combination fused attention kernels normally can't express:
+
+- [`rabitq_encode`](veloxquant_mlx/metal/_rabitq_encode.py) — rotate + binarize + bit-pack + magnitude in one dispatch. Sign packing uses `simd_ballot`: each SIMD-group's 32 sign predicates land in a single vote mask, which is exactly 4 bytes of packed output.
+- [`rabitq_fused_attend`](veloxquant_mlx/metal/_rabitq_attend.py) — scores packed keys, runs an online softmax split across 8 SIMD-groups (flash-decoding style), and accumulates codebook values — one dispatch, no dequantized K or V ever materialized.
+- [`rabitq_pack_values`](veloxquant_mlx/metal/_rabitq_values.py) — two 4-bit value indices per byte; the attend kernel reads nibbles directly (auto-detected from the shape), halving value-cache memory and bandwidth with bit-identical outputs.
+
+Measured (Apple M4, D=128 — `scripts/metal_rabitq_attend_bench.py`, `scripts/metal_rabitq_encode_bench.py`):
+
+| Kernel | Config | Baseline | Fused | Speedup |
+|---|---|---|---|---|
+| attend, packed V | S_kv=8192, B=1 H=8 S_q=1 | 2.492 ms | **1.404 ms** | **1.78×** |
+| attend, packed V | S_kv=2048 | 0.681 ms | **0.481 ms** | **1.42×** |
+| attend, packed V | S_kv=512 | 0.309 ms | **0.281 ms** | **1.10×** |
+| encode | N=32768 | 4.511 ms (numpy) | **0.752 ms** | **6.0×** |
+
+**Honest caveat:** with unpacked (byte-per-index) values the fused attend *loses* at short contexts (0.65× at S_kv=512) — nibble-packing halves value bandwidth and flips that to a small win. Parity vs numpy references is covered by 63 dedicated tests ([`test_rabitq_attend.py`](veloxquant_mlx/tests/metal/test_rabitq_attend.py), [`test_rabitq_encode.py`](veloxquant_mlx/tests/metal/test_rabitq_encode.py), [`test_rabitq_values.py`](veloxquant_mlx/tests/metal/test_rabitq_values.py)), including an end-to-end encode→attend test and bit-exact packed-vs-unpacked equality.
 
 ---
 
