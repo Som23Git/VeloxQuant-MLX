@@ -1,4 +1,4 @@
-"""Monkey-patches an mlx-lm model's attention layers to use a quantized KV cache.
+"""Monkey-patches an mlx-lm model to build its KV cache via VeloxQuant-MLX.
 
 Usage::
 
@@ -7,77 +7,53 @@ Usage::
     from veloxquant_mlx.cache import KVCacheConfig
 
     model, tokenizer = load("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit")
-    config = KVCacheConfig(method="turboquant_prod", head_dim=128, bit_width_inlier=2)
+    config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=1, seed=42)
     patch_model_kv_cache(model, config)
+
+    # mlx_lm.generate() now builds a quantized cache automatically
+    from mlx_lm import generate
+    response = generate(model, tokenizer, prompt="...", max_tokens=200)
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List
 
-from veloxquant_mlx.cache.base import KVCacheConfig, KVCacheFactory
+from veloxquant_mlx.cache.base import KVCacheBuilder, KVCacheConfig
 
 
-def patch_model_kv_cache(model: Any, config: KVCacheConfig) -> None:
-    """Replace each attention layer's KV cache with a quantized implementation.
+def patch_model_kv_cache(model: Any, config: KVCacheConfig) -> List[Any]:
+    """Wire a quantized KV cache into an mlx-lm model's generation path.
 
-    This function monkey-patches the model in-place. It iterates over all
-    sub-modules that have a ``cache`` attribute (the mlx-lm convention) and
-    replaces them with a new KVCache instance built from config.
+    ``mlx_lm.generate()`` builds its prompt cache via
+    ``mlx_lm.models.cache.make_prompt_cache()``, which calls
+    ``model.make_cache()`` if the model defines one, and falls back to a
+    default fp16 cache otherwise. There is no pre-existing ``.cache``
+    attribute on attention sub-modules to overwrite — caches are only ever
+    constructed lazily, on demand, through that hook.
 
-    After patching, the model's KV cache is automatically used during the
-    next forward pass.
+    This function builds the real per-layer cache list via
+    ``KVCacheBuilder.for_model()`` (which already handles VLM wrappers,
+    MoE-gate fallback layers, per-layer bit-width lists, and cross-layer
+    methods like XQuant/MiniCache/PyramidKV) and overrides
+    ``model.make_cache`` so every subsequent call returns it.
 
     Args:
-        model: An mlx-lm model object with ``.layers`` attribute containing
-               attention sub-modules.
+        model: A loaded mlx_lm model instance.
         config: KVCacheConfig describing the quantization scheme.
 
-    Raises:
-        AttributeError: If the model does not have the expected structure.
+    Returns:
+        The list of KVCache instances now wired into ``model.make_cache``.
 
     Example::
 
         config = KVCacheConfig(
-            method="turboquant_prod",
-            head_dim=128,
-            bit_width_inlier=2,
+            method="turboquant_rvq",
+            bit_width_inlier=1,
             seed=42,
         )
         patch_model_kv_cache(model, config)
     """
-    n_patched = 0
-
-    def _patch_module(module: Any) -> None:
-        nonlocal n_patched
-        # Patch any sub-module that has a 'cache' attribute
-        if hasattr(module, "cache"):
-            module.cache = KVCacheFactory.create(config)
-            n_patched += 1
-        # Recurse into children
-        for child in _get_children(module):
-            _patch_module(child)
-
-    def _get_children(module: Any) -> list:
-        """Return iterable of child sub-modules."""
-        children = []
-        if hasattr(module, "layers"):
-            children.extend(module.layers)
-        if hasattr(module, "self_attn"):
-            children.append(module.self_attn)
-        if hasattr(module, "attention"):
-            children.append(module.attention)
-        return children
-
-    _patch_module(model)
-
-    if n_patched == 0:
-        import warnings
-        warnings.warn(
-            "patch_model_kv_cache: no attention layers with a 'cache' attribute "
-            "were found. The model may not follow the mlx-lm convention or may "
-            "not yet have been called (cache is created lazily). "
-            "Consider calling the model once before patching.",
-            stacklevel=2,
-        )
-    else:
-        print(f"[veloxquant_mlx] Patched {n_patched} attention cache(s) with {config.method!r}.")
+    caches = KVCacheBuilder.for_model(model, config)
+    model.make_cache = lambda *_a, **_k: caches
+    print(f"[veloxquant_mlx] Wired {len(caches)} layer cache(s) with {config.method!r}.")
+    return caches

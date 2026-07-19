@@ -309,12 +309,12 @@ def run_fp16_baseline(model, tokenizer) -> dict:
 
 
 def run_turboquant_method(model, tokenizer, method: str, b: int) -> dict:
-    """Patch model with a turboquant KV cache and measure."""
+    """Patch model with a turboquant KV cache and measure perplexity/latency for real."""
     from veloxquant_mlx.cache.base import KVCacheConfig
     from veloxquant_mlx.integration.mlx_lm_patch import patch_model_kv_cache
 
     label = f"{method} b={b}"
-    print(f"\n[?/?] {label} ...")
+    print(f"  Patching model with {label} ...")
 
     config = KVCacheConfig(
         method=method,
@@ -323,18 +323,26 @@ def run_turboquant_method(model, tokenizer, method: str, b: int) -> dict:
         seed=42,
     )
 
-    # We can't easily patch and measure memory since cache is lazy
-    # Instead: measure perplexity and latency, estimate memory from b
-    ppl = compute_perplexity_stable(model, tokenizer, WIKITEXT_SAMPLE)
+    original_make_cache = getattr(model, "make_cache", None)
+    try:
+        patch_model_kv_cache(model, config)
+        ppl = compute_perplexity_stable(model, tokenizer, WIKITEXT_SAMPLE)
+        lat = measure_latency(model, tokenizer, "Tell me about Apple Silicon:", n_new_tokens=32)
+    finally:
+        # Restore the unpatched cache so later runs (fp16 baseline re-checks,
+        # other methods) don't inherit this method's compressed cache.
+        if original_make_cache is not None:
+            model.make_cache = original_make_cache
+        elif hasattr(model, "make_cache"):
+            del model.make_cache
 
-    # Estimate compressed memory
+    # Estimate compressed memory (same 256-token / this-model-shape convention
+    # used throughout this file; see MODEL_ID and n_layers/n_heads/head_dim above)
     n_layers, n_heads, head_dim = 32, 32, 128
     bits_per_dim = b
     compressed_bytes = 256 * n_layers * n_heads * head_dim * bits_per_dim / 8 * 2  # K+V
     fp16_bytes = 256 * n_layers * n_heads * head_dim * 2 * 2
     compression = fp16_bytes / compressed_bytes
-
-    lat = measure_latency(model, tokenizer, "Tell me about Apple Silicon:", n_new_tokens=32)
 
     print(f"  PPL={ppl:.2f}  latency={lat['ms_per_token']:.1f}ms/tok  KV≈{compressed_bytes/1e6:.1f}MB  {compression:.1f}×")
     return {
@@ -523,36 +531,13 @@ if __name__ == "__main__":
     # 1. fp16 baseline
     results["fp16_baseline"] = run_fp16_baseline(model, tokenizer)
 
-    # 2. TurboQuantMSE b=2 — just measure perplexity with unpatched model
-    #    (patching requires a forward pass first; we estimate memory analytically)
-    print("\n[2/4] TurboQuantMSE b=2 (analytical memory estimate) ...")
-    n_layers, n_heads, head_dim = 32, 32, 128
-    b = 2
-    compressed = 256 * n_layers * n_heads * head_dim * b / 8 * 2
-    fp16 = 256 * n_layers * n_heads * head_dim * 2 * 2
-    ppl_mse = compute_perplexity_stable(model, tokenizer, WIKITEXT_SAMPLE)
-    lat_mse = measure_latency(model, tokenizer, "Tell me about Apple Silicon:", n_new_tokens=32)
-    results["turboquant_mse_b2"] = {
-        "ppl": ppl_mse,
-        "latency_ms_per_tok": lat_mse["ms_per_token"],
-        "kv_mb": compressed / 1e6,
-        "compression": fp16 / compressed,
-    }
-    print(f"  PPL={ppl_mse:.2f}  KV≈{compressed/1e6:.1f}MB  {fp16/compressed:.1f}×")
+    # 2. TurboQuantMSE b=2 — patch the model's KV cache and measure for real
+    print("\n[2/4] TurboQuantMSE b=2 ...")
+    results["turboquant_mse_b2"] = run_turboquant_method(model, tokenizer, "turboquant_mse", b=2)
 
-    # 3. TurboQuantRVQ b=2
-    print("\n[3/4] TurboQuantRVQ b=2 (analytical memory estimate) ...")
-    b_rvq = 2
-    compressed_rvq = 256 * n_layers * n_heads * head_dim * b_rvq / 8 * 2
-    ppl_rvq = compute_perplexity_stable(model, tokenizer, WIKITEXT_SAMPLE)
-    lat_rvq = measure_latency(model, tokenizer, "Tell me about Apple Silicon:", n_new_tokens=32)
-    results["turboquant_rvq_b2"] = {
-        "ppl": ppl_rvq,
-        "latency_ms_per_tok": lat_rvq["ms_per_token"],
-        "kv_mb": compressed_rvq / 1e6,
-        "compression": fp16 / compressed_rvq,
-    }
-    print(f"  PPL={ppl_rvq:.2f}  KV≈{compressed_rvq/1e6:.1f}MB  {fp16/compressed_rvq:.1f}×")
+    # 3. TurboQuantRVQ b=2 — patch the model's KV cache and measure for real
+    print("\n[3/4] TurboQuantRVQ b=2 ...")
+    results["turboquant_rvq_b2"] = run_turboquant_method(model, tokenizer, "turboquant_rvq", b=2)
 
     # 4. CommVQ
     results["comm_vq_b8_n4"] = run_comm_vq(model, tokenizer)
