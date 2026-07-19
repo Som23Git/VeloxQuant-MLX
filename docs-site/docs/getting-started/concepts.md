@@ -93,5 +93,6 @@ See [API Reference — Core](../api/core-api) for the full interface documentati
 ## Next steps
 
 - [Choose an algorithm](../algorithms/overview)
+- [vs. llama.cpp / oMLX / plain mlx_lm](./comparison) — why compress the cache instead of using what you already have
 - [mlx_lm integration guide](../guides/mlx-lm-integration)
 - [Calibration guide](../guides/calibration)
