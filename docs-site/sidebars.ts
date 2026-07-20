@@ -81,6 +81,7 @@ const sidebars: SidebarsConfig = {
         'guides/sliding-window',
         'guides/observers',
         'guides/benchmarking',
+        'guides/validation-report',
       ],
     },
   ],
