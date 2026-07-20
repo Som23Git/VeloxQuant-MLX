@@ -40,6 +40,7 @@
 - Metal-accelerated hot paths: 6.9–14.7× faster quantize, 98% less peak memory at the OOM-trigger shape
 - Every "-adapted" method documents its honest deviation from the source paper — no silent approximations
 - Validated end-to-end on 12 production models: Llama, Mistral, Qwen, Phi, Gemma 3/4, Falcon
+- Vision-language models too: `patch_vlm_kv_cache` wires the same caches into [mlx-vlm](https://github.com/Blaizzy/mlx-vlm) single-prompt generation (Qwen2-VL, LLaVA, …) — [docs](https://veloxquant-mlx.netlify.app/docs/guides/mlx-lm-integration)
 
 ```python
 import mlx_lm

@@ -40,20 +40,43 @@ The monkey-patch approach automatically intercepts the default KV cache creation
 
 ```python
 import mlx_lm
-from veloxquant_mlx.integration.mlx_lm_patch import patch_mlx_lm
+from veloxquant_mlx.integration.mlx_lm_patch import patch_model_kv_cache
+from veloxquant_mlx.cache import KVCacheConfig
 
 model, tokenizer = mlx_lm.load("mlx-community/Mistral-7B-Instruct-v0.3-4bit")
 
-config = KVCacheConfig(method="turboquant_rvq", bits=1)
-patch_mlx_lm(model, config)  # patches model.make_cache()
+config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=1, seed=42)
+patch_model_kv_cache(model, config)  # overrides model.make_cache()
 
-# No kv_cache argument needed — the patch intercepts it
+# No cache argument needed — mlx_lm.generate() builds the quantized cache
 response = mlx_lm.generate(model, tokenizer, prompt="...", max_tokens=512)
 ```
 
 :::tip
-The monkey-patch is useful when integrating with third-party code that calls `mlx_lm.generate` directly and does not expose a `kv_cache` argument.
+The monkey-patch is useful when integrating with third-party code that calls `mlx_lm.generate` directly and does not expose a cache argument.
 :::
+
+## Vision-language models (mlx-vlm)
+
+`patch_vlm_kv_cache` wires VeloxQuant caches into [mlx-vlm](https://github.com/Blaizzy/mlx-vlm) models (Qwen2-VL, LLaVA, etc.). mlx-vlm's single-prompt generation builds its cache through `model.language_model.make_cache()` — the patch overrides exactly that hook (verified against mlx-vlm 0.6.5):
+
+```python
+from mlx_vlm import load, generate
+from veloxquant_mlx.integration.mlx_vlm_patch import patch_vlm_kv_cache
+from veloxquant_mlx.cache import KVCacheConfig
+
+model, processor = load("mlx-community/Qwen2-VL-2B-Instruct-4bit")
+config = KVCacheConfig(method="turboquant_rvq", bit_width_inlier=2, seed=42)
+patch_vlm_kv_cache(model, config)
+
+output = generate(model, processor, prompt, image)
+```
+
+Behaviour to know:
+
+- **Fresh caches per generation.** Unlike the text patch, `make_cache` rebuilds the cache list on every call, so repeated `generate()` calls never leak KV state between generations.
+- **Single-prompt path only.** mlx-vlm's batched/session path converts caches with its own `to_batch_cache()`, which rejects foreign cache types — so batched generation keeps mlx-vlm's built-in caches (its native `kv_bits` quantization still works there). The top-level model is deliberately left unpatched to keep that path safe.
+- **Eviction methods warn.** Token-dropping methods (`snapkv`, `h2o`, `pyramidkv`, …) may discard image tokens from the prompt prefix; the patch emits a `UserWarning` and quantization-only methods are recommended for multimodal prompts.
 
 ## Pattern 3 — Fused SDPA
 
