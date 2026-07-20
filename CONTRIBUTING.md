@@ -5,10 +5,34 @@ quantization library for `mlx_lm` on Apple Silicon, and contributions of all
 kinds are welcome: bug reports, new quantization methods, benchmarks on
 additional models, documentation, and performance work.
 
+## Issue-first workflow
+
+For anything beyond a tiny typo fix, **open an issue first** using one of the
+templates under `.github/ISSUE_TEMPLATE/`:
+
+| Template | Use when |
+| --- | --- |
+| Bug report | Something is broken or incorrect |
+| Feature request | New API, method, or capability |
+| Validation run | Recording a reproducible comparison |
+
+Then create a feature branch and open a PR that references the issue
+(`Closes #N`). This keeps discussion searchable and reviewable.
+
+### Suggested labels
+
+Maintainers may apply these labels (create them in the GitHub UI as needed):
+
+- `bug`, `enhancement`, `docs`, `validation`, `metal`, `good first issue`
+- `method:*` for work tied to a specific algorithm (e.g. `method:rvq`)
+
+Do not add a heavy project board until issue volume justifies it.
+
 ## Reporting bugs and requesting features
 
 Please open an issue at
-<https://github.com/rajveer43/veloxquant-mlx/issues>. For bugs, include:
+<https://github.com/rajveer43/VeloxQuant-MLX/issues>. Prefer the issue
+templates. For bugs, include:
 
 - your hardware (chip + RAM) and macOS version,
 - `python`, `mlx`, and `mlx_lm` versions,
@@ -16,16 +40,42 @@ Please open an issue at
 - a minimal snippet that reproduces the problem, and
 - the full error output.
 
+## Accounting vs resident memory
+
+Every compression or memory claim in an issue or PR must say which metric
+was measured:
+
+1. **Key-byte accounting** — `fp16_key_bytes / compressed_key_bytes` on the
+   cache objects. This is what many benches print as `key_x`. It reflects
+   packed-format size, not necessarily process RSS.
+2. **Full-KV accounting** — keys + values (+ residual fp16 windows when the
+   method keeps them).
+3. **MLX peak memory** — `mx.get_peak_memory()` (weights, activations, and
+   temporary tensors dominate at short context).
+4. **Resident / OS RSS** — Activity Monitor or `ps` RSS. Use long contexts
+   before claiming the user will see large RAM savings.
+
+Default **RVQ** and **VecInfer** paths quantize then dequantize into the
+parent `mlx_lm` fp16 `KVCache`. Headline ratios such as 7.5× or 16× are
+**key accounting** unless a packed or fused storage path is active and
+measured. Do not describe accounting ratios as resident RAM savings.
+
+We do not merge number claims that lack a reproducible script and a
+committed `results.json` (see Submitting changes).
+
 ## Getting set up
 
 Requires Apple Silicon (M1 or later), Python ≥ 3.11, and MLX ≥ 0.18.
 
 ```bash
-git clone https://github.com/rajveer43/veloxquant-mlx
+git clone https://github.com/rajveer43/VeloxQuant-MLX
 cd VeloxQuant-MLX
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 ```
+
+Fork first if you do not have write access, then add
+`upstream` pointing at `rajveer43/VeloxQuant-MLX`.
 
 ## Running the tests
 
@@ -35,16 +85,22 @@ python -m pytest veloxquant_mlx/tests -q
 
 New code should come with tests that mirror the existing conventions in
 `veloxquant_mlx/tests/` (shape/dtype preservation, reconstruction-quality
-bounds on seeded synthetic data, and — for any Metal kernel — a parity test
+bounds on seeded synthetic data, and for any Metal kernel a parity test
 against the pure-MLX path). Seed all randomness: determinism is treated as a
 correctness requirement.
 
+End-to-end `mlx_lm` generation benches require Apple Silicon and are run
+locally. CI may run unit tests that do not need Metal; see
+`docs/CI_AND_TESTING.md` once present.
+
 ## Submitting changes
 
-1. Fork the repository and create a feature branch.
-2. Make your change with accompanying tests and documentation.
-3. Ensure the full test suite passes locally.
-4. Open a pull request describing the change and, for any performance or
+1. Open or reference an issue for non-trivial work.
+2. Fork (if needed) and create a feature branch
+   (`chore/...`, `docs/...`, `feat/...`, `fix/...`).
+3. Make your change with accompanying tests and documentation.
+4. Ensure the full test suite passes locally.
+5. Open a pull request describing the change and, for any performance or
    compression claim, the committed `results.json` it traces to. We do not
    merge numbers that are not reproducible from a script in the repository.
 

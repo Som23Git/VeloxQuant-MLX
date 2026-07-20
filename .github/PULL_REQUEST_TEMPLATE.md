@@ -1,0 +1,28 @@
+## Summary
+
+Brief description of what this PR changes and why.
+
+## Related issue
+
+Closes #
+
+## Test plan
+
+- [ ] `python -m pytest veloxquant_mlx/tests -q` passes locally on Apple Silicon
+- [ ] New or updated unit tests cover the change
+- [ ] Docs updated if user-facing behavior changed
+
+## Number claims (if any)
+
+Compression, speedup, or memory claims **must** link a reproducible script and a committed `results.json`.
+
+- Script path:
+- Results path:
+- Metric type (check one):
+  - [ ] Key-byte **accounting** (`fp16_key_bytes / compressed_key_bytes`)
+  - [ ] Full-KV accounting (keys + values + residual windows)
+  - [ ] MLX peak memory (`mx.get_peak_memory`)
+  - [ ] OS RSS / long-context OOM comparison
+  - [ ] Throughput (tok/s)
+
+Do not describe accounting ratios as resident RAM savings unless resident memory was measured.

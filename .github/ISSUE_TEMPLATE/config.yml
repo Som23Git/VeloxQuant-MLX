@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation site
+    url: https://veloxquant-mlx.netlify.app/
+    about: Guides, algorithm pages, and API reference
+  - name: Discussions / questions
+    url: https://github.com/rajveer43/VeloxQuant-MLX/issues
+    about: Prefer a structured template above for bugs, features, and validation runs
