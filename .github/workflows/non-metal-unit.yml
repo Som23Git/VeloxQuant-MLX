@@ -1,0 +1,24 @@
+name: non-metal-unit
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  recommender:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest only
+        run: pip install pytest
+      # Keep tests under repo-root tests/non_metal/ so pytest does not
+      # walk into veloxquant_mlx/ (package __init__ imports mlx).
+      - name: Run Mac recommender unit tests (no MLX)
+        run: >
+          python -m pytest tests/non_metal/test_mac_recommender.py -q
+          --noconftest --import-mode=importlib -c /dev/null -o addopts=

@@ -82,6 +82,7 @@ const sidebars: SidebarsConfig = {
         'guides/observers',
         'guides/benchmarking',
         'guides/validation-report',
+        'guides/mac-recommender',
       ],
     },
   ],
