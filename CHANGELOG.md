@@ -7,6 +7,61 @@ All notable changes to **VeloxQuant-MLX** are documented here.
 > (`docs-site/docs/changelog.md`). The entries below cover the latest releases
 > and the original 0.9.0 baseline.
 
+## [0.41.0] — 2026-07-20
+
+### Added
+
+**mlx-vlm vision-language model support** —
+`patch_vlm_kv_cache(model, config)`
+(`veloxquant_mlx/integration/mlx_vlm_patch.py`) wires VeloxQuant caches
+into mlx-vlm models (Qwen2-VL, LLaVA, …). Verified against mlx-vlm
+0.6.5: the single-prompt generate path builds its cache through
+`model.language_model.make_cache()`, and the patch overrides exactly
+that hook — the top-level model is left unpatched so mlx-vlm's
+batch/session path (whose `to_batch_cache()` rejects foreign cache
+types) stays safe. Unlike the text patch, caches are rebuilt fresh on
+every `generate()` call, so repeated generations never leak KV state.
+Token-eviction methods (`snapkv`, `h2o`, `pyramidkv`, …) emit a
+`UserWarning` since image tokens sit in the prompt prefix and can be
+evicted. 8 integration tests, including one driving mlx-vlm's real
+`make_prompt_cache`.
+
+### Fixed
+
+- Integration guide "Pattern 2" documented a nonexistent
+  `patch_mlx_lm` function with a nonexistent `bits=` kwarg; it now
+  shows the real `patch_model_kv_cache` API.
+- README badges: stale test count (now 1417 passing, verified by a
+  full-suite run) and stale changelog version; removed the downloads
+  badge and download-count claim.
+
+## [0.40.0] — 2026-07-19
+
+### Added
+
+**Fused RaBitQ asymmetric Metal kernel pipeline** — three new kernels
+form a fully GPU-resident path for a 1-bit-key / 4-bit-value cache:
+
+- `rabitq_fused_attend` (`veloxquant_mlx/metal/_rabitq_attend.py`) —
+  single-dispatch attention: keys scored from packed sign bits via
+  XOR + popcount, online softmax split across 8 SIMD-groups
+  (flash-decoding style), values gathered from a scalar codebook. No
+  dequantized K or V is ever materialized. Measured 1.10–1.78× vs the
+  dequantize+SDPA baseline (D=128, 8 heads, S_kv=512–8192, Apple M4).
+- `rabitq_encode` (`_rabitq_encode.py`) — fused rotate + binarize +
+  bit-pack + L1 magnitude in one dispatch; `simd_ballot` turns each
+  SIMD-group's 32 sign predicates into 4 packed bytes in a single
+  instruction. 6× vs the numpy round-trip at N=32768.
+- `rabitq_pack_values` (`_rabitq_values.py`) — two 4-bit value indices
+  per byte; the attend kernel reads nibbles natively (auto-detected
+  from the v_idx shape) with bit-identical outputs, halving value-cache
+  memory and bandwidth.
+
+63 new parity tests (`tests/metal/test_rabitq_{attend,encode,values}.py`),
+including an end-to-end encode→attend test and packed-vs-unpacked
+bit-exactness. Benchmarks: `scripts/metal_rabitq_attend_bench.py`,
+`scripts/metal_rabitq_encode_bench.py`.
+
 ## [0.39.1] — 2026-07-17
 
 ### Fixed
